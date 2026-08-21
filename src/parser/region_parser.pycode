@@ -1,0 +1,170 @@
+from decimal import Decimal, InvalidOperation
+
+from bs4 import BeautifulSoup
+
+
+REGION_HEADERS = [
+    "slno",
+    "depot",
+    "category",
+    "target_kmpl",
+    "day_kms",
+    "upd_kms",
+    "lyud_kms",
+    "kms_variance",
+    "up_to_month_kms",
+    "day_hsd",
+    "upd_hsd",
+    "lyud_hsd",
+    "hsd_variance",
+    "up_to_month_hsd",
+    "day_kmpl",
+    "upd_kmpl",
+    "lyud_kmpl",
+    "kmpl_variance",
+    "up_to_month_kmpl",
+    "lmonth_kmpl",
+]
+
+
+NUMERIC_FIELDS = {
+    "target_kmpl",
+    "day_kms",
+    "upd_kms",
+    "lyud_kms",
+    "kms_variance",
+    "up_to_month_kms",
+    "day_hsd",
+    "upd_hsd",
+    "lyud_hsd",
+    "hsd_variance",
+    "up_to_month_hsd",
+    "day_kmpl",
+    "upd_kmpl",
+    "lyud_kmpl",
+    "kmpl_variance",
+    "up_to_month_kmpl",
+    "lmonth_kmpl",
+}
+
+
+def _clean_text(value):
+    return " ".join(value.split())
+
+
+def _parse_decimal(value):
+    value = _clean_text(value)
+
+    if not value:
+        return None
+
+    try:
+        return Decimal(value)
+    except InvalidOperation as exc:
+        raise ValueError(f"Invalid numeric value: {value!r}") from exc
+
+
+def _parse_row(cells, current_slno, current_depot):
+    """
+    Parse one Region Wise table row.
+
+    The APSRTC HTML uses rowspan for SLNO and Depot when a depot
+    contains multiple category rows.
+
+    Therefore:
+
+    20 cells = SLNO + Depot + Category + remaining fields
+    18 cells = Category + remaining fields
+    """
+
+    values = [_clean_text(cell.get_text(" ", strip=True)) for cell in cells]
+
+    if len(values) == 20:
+        slno = values[0] or current_slno
+        depot = values[1] or current_depot
+        data_values = values[2:]
+
+    elif len(values) == 18:
+        slno = current_slno
+        depot = current_depot
+        data_values = values
+
+    else:
+        raise ValueError(
+            f"Unexpected Region Wise row cell count: {len(values)}"
+        )
+
+    record = {
+        "slno": int(slno) if slno else None,
+        "depot": depot,
+        "category": data_values[0],
+    }
+
+    for field, value in zip(REGION_HEADERS[3:], data_values[1:]):
+        if field in NUMERIC_FIELDS:
+            record[field] = _parse_decimal(value)
+        else:
+            record[field] = value
+
+    return record
+
+
+def parse_region_html(html):
+    """
+    Parse the APSRTC Region Wise HTML report.
+
+    Returns one record per actual TOT/NAC/AC row.
+
+    Depot and SLNO values are carried forward for rows where APSRTC
+    uses HTML rowspan.
+    """
+
+    soup = BeautifulSoup(html, "html.parser")
+
+    table = soup.find("table")
+
+    if table is None:
+        raise ValueError("Region Wise table was not found.")
+
+    rows = table.find_all("tr")
+
+    if not rows:
+        raise ValueError("Region Wise table contains no rows.")
+
+    records = []
+
+    current_slno = None
+    current_depot = None
+
+    for row in rows[1:]:
+        cells = row.find_all("td")
+
+        if not cells:
+            continue
+
+        record = _parse_row(
+            cells,
+            current_slno=current_slno,
+            current_depot=current_depot,
+        )
+
+        if record["slno"] is not None:
+            current_slno = record["slno"]
+
+        if record["depot"]:
+            current_depot = record["depot"]
+
+        records.append(record)
+
+    return records
+
+
+def parse_region_file(file_path):
+    """
+    Parse a saved Region Wise HTML file.
+    """
+
+    with open(file_path, "r", encoding="utf-8") as file:
+        html = file.read()
+
+    return parse_region_html(html)

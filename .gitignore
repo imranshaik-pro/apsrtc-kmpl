@@ -1,0 +1,25 @@
+﻿# Python virtual environment
+.venv/
+
+# Environment secrets
+.env
+
+# Python generated files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Logs
+*.log
+
+# Generated production reports
+reports/
+
+# Diagnostic/generated APSRTC HTML response
+region_response.html
+
+# Local tooling/cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
