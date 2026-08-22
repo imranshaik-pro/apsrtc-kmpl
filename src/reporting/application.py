@@ -81,10 +81,13 @@ def build_daily_report(session, report_date, depot, vehicle_depot, region_code):
     for_day_results = calculate_for_day(vehicle_records)
     up_to_day_results = calculate_up_to_day(vehicle_records)
 
+    # Updated call: pass depot and report_date for logging unknown types
     vehicle_summary = build_vehicle_summary(
         for_day_results=for_day_results,
         up_to_day_results=up_to_day_results,
-        raw_records=vehicle_records,  # Pass raw records to filter NAC only
+        raw_records=vehicle_records,
+        depot=depot,
+        report_date=report_date,
     )
 
     region_records = _collect_region_records(
