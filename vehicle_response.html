@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link href="stylesheets/superTables.css" rel="Stylesheet" type="text/css" />
+<link rel="stylesheet" type="text/css" href="test1.css">
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<link rel="stylesheet" href="menu/css/krimenu.css" type="text/css" />
+<style type="text/css"></style>
+<script type="text/javascript" src="../opdnew/jquery.js"></script>
+<script>
+$(document).ready(function()
+{
+var yesterday = new Date(( new Date()).valueOf() - 1000*60*60*24);
+     var mm=yesterday.getMonth() + 1;
+     var dd=yesterday.getDate();
+     var yy=yesterday.getFullYear();
+     if(mm<10) { mm="0" + mm; }
+     if(dd<10) { dd="0" + dd; }
+     var pdt=dd+"/"+mm+"/"+yy;
+     var a =document.getElementById("fyymm");
+     a.setAttribute("value",pdt);
+});
+</script>
+
+
+<script>
+function showCustomer(str)
+{
+var xmlhttp;    
+if (str=="")
+  {
+  document.getElementById("txtHint").innerHTML="";
+  return;
+  }
+if (window.XMLHttpRequest)
+  {// code for IE7+, Firefox, Chrome, Opera, Safari
+  xmlhttp=new XMLHttpRequest();
+  }
+else
+  {// code for IE6, IE5
+  xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+  }
+xmlhttp.onreadystatechange=function()
+  {
+  if (xmlhttp.readyState==4 && xmlhttp.status==200)
+    {
+    document.getElementById("txtHint").innerHTML=xmlhttp.responseText;
+    }
+  }
+xmlhttp.open("GET","gk_info.php?q="+str,true);
+xmlhttp.send();
+}
+</script>
+<script>
+function Validateform(){
+        var v1  = document.f1.fyymm;
+        var v2  = document.f1.dept;
+if (v1.value=="" )
+{
+	alert("Please select the Date ");
+	v1.focus();
+	return false;
+}
+if (v2.value=="" )
+{
+	alert("Please select the Depot ");
+	v2.focus();
+	return false;
+}
+}
+</script>
+    <style type="text/css">
+html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+                background-color: gray;
+            }
+            #cont {
+                width: inherit;
+                height: inherit;
+                margin: 0;
+                padding: 0;
+                background-color: #EEEEEE;
+            }
+            h1 {
+                margin: 0;
+                padding: 0;
+            }
+
+    </style>
+<script language="javascript" type="text/javascript" src="scripts/datetimepicker.js">
+</script>
+</head>
+<body>
+<style>
+body 
+  {
+    background-color: #ffffff;
+    font-family: Tahoma, Arial, sans serif;
+  }
+.fakeContainer { /* The parent container */
+    margin: 10px;
+    padding: 0px;
+    border: none;
+    border: none;
+    border-right: 2px solid red;
+    border-left: 2px solid red;
+    border-top: 2px solid red;
+    border-bottom: 2px solid red;
+    width: 90%; /* Required to set */
+    height: 400px; /* Required to set */
+    overflow: hidden; /* Required to set */
+}
+</style>
+
+<div  id="cont"  align="center">
+
+<div id="content" style="background-color:#EEEEEE;height:90%;">
+<p id="demo"></p>
+<form  NAME="f1" action="" method="post" onSubmit="return Validateform()" >
+<h2 style='color: #00BBFF;' align=center> DAILY VEHICLE-WISE KMPL STATEMENT </h2>
+<hr>
+<table align="center">
+<tr>
+ <td> SELECT DATE </td>
+ <td>
+<input class="fyymm" id="fyymm" name="fyymm" type="text" size="9"  ><a href="javascript:NewCal('fyymm','ddmmyyyy')"><img src="scripts/cal.gif" width="14" height="20" border="0" alt="Pick a date"></a>
+  </td>
+</tr>
+<tr>
+<td>DEPOT.</td>
+<td  align="left">
+      <select name="dept" class="dept" >
+          <option selected="selected"></option>
+      <option value="ADK/ADDANKI">ADDANKI</option><option value="ADN/ADONI">ADONI</option><option value="ALPR/ALIPIRI">ALIPIRI</option><option value="ALG/ALLAGADDA">ALLAGADDA</option><option value="AMP/AMALAPURAM">AMALAPURAM</option><option value="AKP/ANAKAPALLI">ANAKAPALLI</option><option value="ATP/ANANTAPUR">ANANTAPUR</option><option value="ATK-N/ATMAKUR">ATMAKUR</option><option value="ATK/ATMAKUR(K)">ATMAKUR(K)</option><option value="ATNR/AUTONAGAR">AUTONAGAR</option><option value="AVG/AVANIGADDA">AVANIGADDA</option><option value="BDVL/BADVEL">BADVEL</option><option value="BPL/BANAGANAPALLI">BANAGANAPALLI</option><option value="BPTL/BAPATLA">BAPATLA</option><option value="BVRM/BHIMAVARAM">BHIMAVARAM</option><option value="CPT/CHILAKALURIPET">CHILAKALURIPET</option><option value="CRL/CHIRALA">CHIRALA</option><option value="CTR1/CHITTOR-I">CHITTOR-I</option><option value="CTR2/CHITTOR-II">CHITTOR-II</option><option value="DBSC/DBSC">DBSC</option><option value="DVRM/DHARMAVARAM">DHARMAVARAM</option><option value="DHN/DHONE">DHONE</option><option value="ELSM/ELESWARAM">ELESWARAM</option><option value="ELR/ELURU">ELURU</option><option value="GWK/GAJUWAKA">GAJUWAKA</option><option value="GWK2/GAJUWAKA-2">GAJUWAKA-2</option><option value="GVRM/GANNAVARAM">GANNAVARAM</option><option value="GDLR/GIDDALUR">GIDDALUR</option><option value="GKRM/GOKAVARAM">GOKAVARAM</option><option value="GTY/GOOTY">GOOTY</option><option value="GVPT1/GOVERNERPET-I">GOVERNERPET-I</option><option value="GVPT2/GOVERNERPET-II">GOVERNERPET-II</option><option value="GDV/GUDIVADA">GUDIVADA</option><option value="GDR/GUDUR">GUDUR</option><option value="GTKL/GUNTAKAL">GUNTAKAL</option><option value="GNT1/GUNTUR-I">GUNTUR-I</option><option value="GNT2/GUNTUR-II">GUNTUR-II</option><option value="HDP/HINDUPUR">HINDUPUR</option><option value="IBM/IBRAHIMPATNAM-V">IBRAHIMPATNAM-V</option><option value="JPT/JAGGAIAHPET">JAGGAIAHPET</option><option value="JMD/JAMMALAMADUGU">JAMMALAMADUGU</option><option value="JRG/JANGAREDDIGUDEM">JANGAREDDIGUDEM</option><option value="KDP/KADAPA">KADAPA</option><option value="KDR/KADIRI">KADIRI</option><option value="KKD/KAKINADA">KAKINADA</option><option value="KLD/KALYANDURG">KALYANDURG</option><option value="KKR/KANDUKUR">KANDUKUR</option><option value="KNG/KANIGIRI">KANIGIRI</option><option value="KVL/KAVALI">KAVALI</option><option value="KKL/KOILKUNTLA">KOILKUNTLA</option><option value="KVR/KOVVUR">KOVVUR</option><option value="KPM/KUPPAM">KUPPAM</option><option value="KRNL1/KURNOOL-I">KURNOOL-I</option><option value="KRNL2/KURNOOL-II">KURNOOL-II</option><option value="MCL/MACHERLA">MACHERLA</option><option value="MTM/MACHILIPATNAM">MACHILIPATNAM</option><option value="MDKS/MADAKASIRA">MADAKASIRA</option><option value="MPL1/MADANAPALLI-I">MADANAPALLI-I</option><option value="MPL2/MADANAPALLI-II">MADANAPALLI-II</option><option value="MDP/MADDILAPALEM">MADDILAPALEM</option><option value="MDWD/MADHURAWADA">MADHURAWADA</option><option value="MNGR/MANGALAGIRI">MANGALAGIRI</option><option value="MGLM/MANGALAM">MANGALAM</option><option value="MRKP/MARKAPUR">MARKAPUR</option><option value="MYDK/MYDUKUR">MYDUKUR</option><option value="NDKR/NANDIKOTKUR">NANDIKOTKUR</option><option value="NDL/NANDYAL">NANDYAL</option><option value="NSP/NARSAPUR">NARSAPUR</option><option value="NRT/NARSARAOPET">NARSARAOPET</option><option value="NRPM/NARSIPATNAM">NARSIPATNAM</option><option value="NLR1/NELLORE-I">NELLORE-I</option><option value="NLR2/NELLORE-II">NELLORE-II</option><option value="NDVL/NIDADAVOLU">NIDADAVOLU</option><option value="NZD/NUZVID">NUZVID</option><option value="OGL/ONGOLE">ONGOLE</option><option value="PDR/PADERU">PADERU</option><option value="PLKD/PALAKONDA">PALAKONDA</option><option value="PLMNR/PALAMANERU">PALAMANERU</option><option value="PLS/PALASA">PALASA</option><option value="PPM/PARVATHIPURAM">PARVATHIPURAM</option><option value="PKD/PATHIKONDA">PATHIKONDA</option><option value="PNKD/PENUKONDA">PENUKONDA</option><option value="PDRL/PIDUGURALLA">PIDUGURALLA</option><option value="PLR/PILERU">PILERU</option><option value="PNBS/PNBS">PNBS</option><option value="PDL/PODILI">PODILI</option><option value="PNR/PONNUR">PONNUR</option><option value="PDTR/PRODDUTUR">PRODDUTUR</option><option value="PVL/PULIVENDULA">PULIVENDULA</option><option value="PGR/PUNGANURU">PUNGANURU</option><option value="PTP/PUTTAPARTHY">PUTTAPARTHY</option><option value="PTR/PUTTUR">PUTTUR</option><option value="RJY/RAJAHMUNDRY">RAJAHMUNDRY</option><option value="RJPT/RAJAMPET">RAJAMPET</option><option value="RCPM/RAMACHANDRAPURAM">RAMACHANDRAPURAM</option><option value="RPR/RAPUR">RAPUR</option><option value="RVPM/RAVULAPALEM">RAVULAPALEM</option><option value="RCTY/RAYACHOTI">RAYACHOTI</option><option value="RDG/RAYADURG">RAYADURG</option><option value="RZL/RAZOLE">RAZOLE</option><option value="RPL/REPALLE">REPALLE</option><option value="SLR/SALUR">SALUR</option><option value="SAP/SATTENAPALLI">SATTENAPALLI</option><option value="STVD/SATYAVEEDU">SATYAVEEDU</option><option value="SML/SIMHACHALAM">SIMHACHALAM</option><option value="SKLM1/SRIKAKULAM-I">SRIKAKULAM-I</option><option value="SKLM2/SRIKAKULAM-II">SRIKAKULAM-II</option><option value="SKHT/SRIKALAHASTHI">SRIKALAHASTHI</option><option value="SKOTA/SRUNGAVARAPUKOTA">SRUNGAVARAPUKOTA</option><option value="VSCD/STEELCITY">STEELCITY</option><option value="SLRPT/SULLURPET">SULLURPET</option><option value="TPG/TADEPALLIGUDEM">TADEPALLIGUDEM</option><option value="TDP/TADIPATRI">TADIPATRI</option><option value="TNK/TANUKU">TANUKU</option><option value="TKL/TEKKALI">TEKKALI</option><option value="TNL/TENALI">TENALI</option><option value="TML/TIRUMALA">TIRUMALA</option><option value="TPT/TIRUPATHI">TIRUPATHI</option><option value="TVR/TIRUVUR">TIRUVUR</option><option value="TUNI/TUNI">TUNI</option><option value="UDGR/UDAYAGIRI">UDAYAGIRI</option><option value="URKD/URAVAKONDA">URAVAKONDA</option><option value="VGR/VENKATAGIRI">VENKATAGIRI</option><option value="VDPM/VIDYADHARAPURAM">VIDYADHARAPURAM</option><option value="VJA/VIJAYAWADA-I">VIJAYAWADA-I</option><option value="VNK/VINUKONDA">VINUKONDA</option><option value="VSP/VISAKHAPATNAM">VISAKHAPATNAM</option><option value="VZM/VIZIANAGARAM">VIZIANAGARAM</option><option value="VYR/VUYYURU">VUYYURU</option><option value="VKD/WAKADU">WAKADU</option><option value="WLTR/WALTAIR">WALTAIR</option><option value="YMGR/YEMMIGANUR">YEMMIGANUR</option>      </select>
+</td>
+</tr>
+<tr>
+<td align ="right"> <input type="reset" value="Reset"> </td>
+<td align ="right"> <input type="submit" value="SUBMIT"></td>
+</tr>
+</table>
+<hr>
+</form>
+<script type="text/javascript" src="javascripts/superTables.js"></script>
+<script type="text/javascript">
+(function() 
+{
+ var mySt = new superTable("demoTable", 
+   {cssSkin : "sSky", fixedCols : 3, headerRows : 2
+   });
+})();
+</script>
+Powered by I.T.Department.
+</body>
+</html>
