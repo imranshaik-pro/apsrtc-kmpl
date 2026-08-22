@@ -1,9 +1,14 @@
-﻿from datetime import datetime
+"""
+Telugu daily report builder – now includes top 10 low For‑Day vehicles list.
+"""
+
+from datetime import datetime
+from decimal import Decimal
+from typing import Dict, Any, List
 
 from src.reporting.region_formatter import format_region_kmpl_block
 
-
-TELUGU_WEEKDAYS = {
+WEEKDAYS = {
     0: "సోమవారం",
     1: "మంగళవారం",
     2: "బుధవారం",
@@ -14,117 +19,56 @@ TELUGU_WEEKDAYS = {
 }
 
 
-REPORT_SEPARATOR = "━━━━━━━━━━━━━━━━━━"
+def _format_vehicle_list(vehicles: List[Dict]) -> str:
+    """Format low‑KMPL vehicles with header and numbered lines."""
+    if not vehicles:
+        return "  (లేవు)"  # None
 
+    # Header line
+    lines = ["  `రోజు`  | `ఈ రోజు వరకు`"]
 
-def _format_report_date(report_date):
-    """
-    Convert YYYY-MM-DD into DD/MM/YYYY and Telugu weekday.
-    """
+    for idx, item in enumerate(vehicles, start=1):
+        day_str = f"{item['day_kmpl']:.2f}"
+        month_str = f"{item['month_kmpl']:.2f}" if item['month_kmpl'] is not None else "—"
+        lines.append(f"  `{idx:2d}. {item['vehicle']}` : {day_str} | {month_str}")
 
-    try:
-        parsed_date = datetime.strptime(
-            report_date,
-            "%Y-%m-%d",
-        )
-    except (TypeError, ValueError) as exc:
-        raise ValueError(
-            "Report date must use YYYY-MM-DD format."
-        ) from exc
-
-    formatted_date = parsed_date.strftime("%d/%m/%Y")
-    weekday = TELUGU_WEEKDAYS[parsed_date.weekday()]
-
-    return formatted_date, weekday
+    return "\n".join(lines)
 
 
 def build_telugu_daily_report(
-    depot,
-    report_date,
-    region_reporting_data,
-    vehicle_summary,
-):
+    depot: str,
+    report_date: str,
+    region_reporting_data: Dict[str, Any],
+    vehicle_summary: Dict[str, Any],
+) -> str:
     """
-    Build the final Telugu APSRTC daily KMPL report.
-
-    This function is presentation-only.
-
-    It does not:
-        - calculate KMPL
-        - round KMPL
-        - classify slabs
-        - calculate vehicle counts
-        - modify reporting data
+    Build the complete Telugu report.
     """
+    dt = datetime.strptime(report_date, "%Y-%m-%d")
+    weekday = WEEKDAYS[dt.weekday()]
+    date_display = dt.strftime("%d/%m/%Y")
 
-    if not depot:
-        raise ValueError("Depot is required.")
+    # Existing header and region block
+    header = f"🌟 {depot} డిపో :: {date_display} ({weekday})"
+    region_block = format_region_kmpl_block(region_reporting_data)
 
-    if not isinstance(region_reporting_data, dict):
-        raise ValueError(
-            "Region reporting data must be a dictionary."
-        )
+    # New vehicle list section
+    low_day_vehicles = vehicle_summary.get("low_day_vehicles", [])
+    vehicle_list_str = _format_vehicle_list(low_day_vehicles)
 
-    if not isinstance(vehicle_summary, dict):
-        raise ValueError(
-            "Vehicle summary must be a dictionary."
-        )
-
-    required_vehicle_summary_fields = {
-        "low_day_vehicles_count",
-        "low_month_vehicles_count",
-    }
-
-    missing_fields = (
-        required_vehicle_summary_fields
-        - vehicle_summary.keys()
-    )
-
-    if missing_fields:
-        raise ValueError(
-            "Vehicle summary is missing fields: "
-            f"{sorted(missing_fields)}"
-        )
-
-    formatted_date, weekday = _format_report_date(report_date)
-
-    region_block = format_region_kmpl_block(
-        region_reporting_data
-    )
-
-    low_day_count = vehicle_summary[
-        "low_day_vehicles_count"
+    # Build full report
+    lines = [
+        header,
+        "🛢️ HSD KMPL ⛽🚌💧",
+        "━━━━━━━━━━━━━━━━━━",
+        region_block,
+        "━━━━━━━━━━━━━━━━━━",
+        f"⚠️ *తక్కువ సామర్థ్య వాహనాలు* (రోజు KMPL ≤ 5.00):",
+        vehicle_list_str,
+        "━━━━━━━━━━━━━━━━━━",
+        "*తక్షణ చర్య!* 🛠️ టాప్ 10 తక్కువ HSD KMPL నమోదు చేసిన వాహనాలపై దృష్టి పెట్టండి.",
+        "",
+        "✅ తక్కువ KMPL వాహనాల సంఖ్య తగ్గించేందుకు ప్రతి ఒక్కరం బాధ్యతగా వ్యవహరిద్దాం. డిపో అభివృద్ధి మనందరి లక్ష్యం! 💪",
     ]
 
-    low_month_count = vehicle_summary[
-        "low_month_vehicles_count"
-    ]
-
-    return "\n".join(
-        [
-            (
-                f"🌟 {depot.upper()} డిపో :: "
-                f"{formatted_date} ({weekday})"
-            ),
-            "🛢️ HSD KMPL ⛽🚌💧",
-            REPORT_SEPARATOR,
-            "",
-            region_block,
-            "",
-            REPORT_SEPARATOR,
-            (
-                "⚠️ <👇 Below 5.00 KMPL 🚌 సంఖ్య "
-                f"(ఈ రోజు) :: {low_day_count}>"
-            ),
-            (
-                "⚠️ <👇 Below 5.00 KMPL 🚌 సంఖ్య "
-                f"(ఈ రోజు వరకు) :: {low_month_count}>"
-            ),
-            REPORT_SEPARATOR,
-            (
-                "✅ తక్కువ KMPL వాహనాల సంఖ్య తగ్గించేందుకు "
-                "ప్రతి ఒక్కరం బాధ్యతగా వ్యవహరిద్దాం. "
-                "డిపో అభివృద్ధి మనందరి లక్ష్యం! 💪"
-            ),
-        ]
-    )
+    return "\n".join(lines)
