@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 """
-Build depot_mapping.json from the master depot list.
+Build depot_mapping.json from the master depot list with alias keys.
 """
 
 import json
-import re
 
-# Map district names (as in the master list) to region codes
 REGION_MAP = {
     "Srikakulam": "SRIKAKULAM",
     "Vizianagaram": "VIZIANAGARAM",
@@ -37,7 +35,6 @@ REGION_MAP = {
     "Sri Sathya Sai": "SRISATYASAI"
 }
 
-# Master depot list (from your message)
 DEPOTS = [
     ("TKL", "Tekkali", "Srikakulam"),
     ("SKLM1", "Srikakulam-1", "Srikakulam"),
@@ -81,8 +78,8 @@ DEPOTS = [
     ("VJA", "Vijayawada / Vidyadharapuram", "NTR"),
     ("ATNR", "Autonagar", "NTR"),
     ("IBM", "Ibrahimpatnam", "NTR"),
-    ("GVPT-1", "Governorpet-1", "NTR"),
-    ("GVPT-2", "Governorpet-2", "NTR"),
+    ("GVPT1", "Governorpet-1", "NTR"),
+    ("GVPT2", "Governorpet-2", "NTR"),
     ("GVRM", "Gannavaram", "Krishna"),
     ("MTM", "Machilipatnam", "Krishna"),
     ("GDV", "Gudivada", "Krishna"),
@@ -109,7 +106,7 @@ DEPOTS = [
     ("KNGR", "Kanigiri", "Markapuram Jurisdiction"),
     ("GDLR", "Giddalur", "Markapuram Jurisdiction"),
     ("NLR1", "Nellore-1", "Sri Potti Sriramulu Nellore"),
-    ("ATK(N)", "Atmakur - Nellore", "Sri Potti Sriramulu Nellore"),
+    ("ATKN", "Atmakur - Nellore", "Sri Potti Sriramulu Nellore"),
     ("UDGR", "Udayagiri", "Sri Potti Sriramulu Nellore"),
     ("KVL", "Kavali", "Sri Potti Sriramulu Nellore"),
     ("RPR", "Rapur", "Sri Potti Sriramulu Nellore"),
@@ -146,7 +143,7 @@ DEPOTS = [
     ("PTKD", "Pattikonda", "Kurnool"),
     ("YMG", "Yemmiganur", "Kurnool"),
     ("ALG", "Allagadda", "Nandyal"),
-    ("ATK(K)", "Atmakur - Kurnool/Nandyal", "Nandyal"),
+    ("ATKK", "Atmakur - Kurnool/Nandyal", "Nandyal"),
     ("BPL", "Banaganapalli", "Nandyal"),
     ("DHN", "Dhone", "Nandyal"),
     ("KKL", "Koilakuntla", "Nandyal"),
@@ -167,37 +164,43 @@ DEPOTS = [
     ("PTP", "Puttaparthi", "Sri Sathya Sai"),
 ]
 
-def normalize_display_name(raw):
-    """Convert display name to match the server value format (uppercase, dashes, etc)."""
-    # Remove extra slashes, replace spaces/hyphens, uppercase
+def normalize_display(raw):
     name = raw.upper()
-    # Specific fixes
     name = name.replace(" / ", "/")
     name = name.replace(" - ", "-")
     name = name.replace(" ", "")
     return name
 
-def build_mapping():
+def build_alias(display):
+    alias = display.lower()
+    alias = alias.replace(" ", "").replace("-", "").replace("/", "").replace("(", "").replace(")", "")
+    return alias
+
+def main():
     mapping = {}
     for code, display, district in DEPOTS:
-        # Normalize display name for server value
-        norm_display = normalize_display_name(display)
-        vehicle_depot = f"{code}/{norm_display}"
-        region = REGION_MAP.get(district)
-        if region is None:
-            print(f"Warning: district '{district}' not found for {code}")
-            region = "UNKNOWN"
-        # Create a key (lowercase, alphanumeric)
+        norm = normalize_display(display)
+        vehicle_depot = f"{code}/{norm}"
+        region = REGION_MAP.get(district, "UNKNOWN")
+        # Primary key: code (lowercase, no special)
         key = code.lower().replace("-", "").replace("(", "").replace(")", "")
         mapping[key] = {
             "vehicle_depot": vehicle_depot,
             "region_code": region,
-            "display_name": norm_display
+            "display_name": norm
         }
-    return mapping
-
-if __name__ == "__main__":
-    mapping = build_mapping()
+        # Alias from display name
+        alias = build_alias(display)
+        if alias != key:
+            mapping[alias] = {
+                "vehicle_depot": vehicle_depot,
+                "region_code": region,
+                "display_name": norm,
+                "_alias_of": key
+            }
     with open("depot_mapping.json", "w", encoding="utf-8") as f:
         json.dump(mapping, f, indent=2, ensure_ascii=False)
     print(f"Generated depot_mapping.json with {len(mapping)} entries.")
+
+if __name__ == "__main__":
+    main()
