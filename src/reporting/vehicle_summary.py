@@ -1,32 +1,37 @@
 """
 Vehicle summary – low KMPL list for For‑Day (top 10, NAC only).
-Unknown vehicle types are flagged for review.
+Vehicle type mapping is read from vehicle_type_mapping.json.
 """
 
+import json
+import os
 from decimal import Decimal
-from typing import List, Dict, Any, Set
+from typing import List, Dict, Any
 
 THRESHOLD = Decimal("5.00")
+MAPPING_FILE = "vehicle_type_mapping.json"
 
-# Define known vehicle types (use first token of operation_type)
-NAC_CODES = {"EX", "OR", "IH", "UD", "HT", "IU"}  # Non‑AC
-AC_CODES = {"MB", "IB", "IR"}                     # AC – exclude
-
+def load_type_mapping():
+    """Load AC/NAC mapping from JSON file."""
+    # Try to find the mapping file relative to this script
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    mapping_path = os.path.join(base_dir, MAPPING_FILE)
+    if not os.path.exists(mapping_path):
+        # fallback: try current directory
+        mapping_path = os.path.join(os.getcwd(), MAPPING_FILE)
+    with open(mapping_path, 'r', encoding='utf-8') as f:
+        return json.load(f)
 
 def _get_vehicle_code(op_type: str) -> str:
     """Extract the first token from operation_type."""
     return op_type.strip().split()[0] if op_type.strip() else ""
-
 
 def build_vehicle_summary(
     for_day_results: List[Dict[str, Any]],
     up_to_day_results: List[Dict[str, Any]],
     raw_records: List[Dict[str, Any]],
 ) -> Dict[str, Any]:
-    """
-    Build a list of NAC vehicles with For‑Day KMPL <= 5.00, sorted ascending,
-    taking only the top 10. Unknown vehicle types are flagged.
-    """
+    mapping = load_type_mapping()
     nac_vehicles = set()
     unknown_vehicles = []
 
@@ -35,15 +40,13 @@ def build_vehicle_summary(
         code = _get_vehicle_code(op_type)
         vehicle_no = rec.get("vehicle_no", "")
 
-        if code in AC_CODES:
-            continue  # Explicitly exclude AC
-        elif code in NAC_CODES:
-            nac_vehicles.add(vehicle_no)
+        if code in mapping:
+            if mapping[code] == "NAC":
+                nac_vehicles.add(vehicle_no)
+            # else AC – skip
         else:
-            # Unknown type – flag it for review
             unknown_vehicles.append(vehicle_no)
 
-    # Create a map from vehicle number to Up‑To‑Day KMPL
     month_map = {}
     for rec in up_to_day_results:
         vehicle = rec["vehicle_number"]
@@ -51,7 +54,6 @@ def build_vehicle_summary(
         if kmpl is not None:
             month_map[vehicle] = kmpl
 
-    # Collect For‑Day NAC vehicles with KMPL <= 5.00 (ignore None, zero)
     low_vehicles = []
     for rec in for_day_results:
         vehicle = rec["vehicle_number"]
@@ -69,13 +71,8 @@ def build_vehicle_summary(
                 "month_kmpl": month_kmpl,
             })
 
-    # Sort ascending by day_kmpl
     low_vehicles.sort(key=lambda x: x["day_kmpl"])
-
-    # Take only top 10
     low_vehicles = low_vehicles[:10]
-
-    # Remove duplicates from unknown list
     unknown_vehicles = list(dict.fromkeys(unknown_vehicles))
 
     return {
