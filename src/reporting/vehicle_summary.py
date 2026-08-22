@@ -8,9 +8,14 @@ from typing import List, Dict, Any, Set
 
 THRESHOLD = Decimal("5.00")
 
-# Define known vehicle types
-NAC_CODES = {"EX", "OR", "IH", "UD"}  # Non‑AC
-AC_CODES = {"MB"}                     # AC – exclude
+# Define known vehicle types (use first token of operation_type)
+NAC_CODES = {"EX", "OR", "IH", "UD", "HT", "IU"}  # Non‑AC
+AC_CODES = {"MB", "IB", "IR"}                     # AC – exclude
+
+
+def _get_vehicle_code(op_type: str) -> str:
+    """Extract the first token from operation_type."""
+    return op_type.strip().split()[0] if op_type.strip() else ""
 
 
 def build_vehicle_summary(
@@ -22,17 +27,17 @@ def build_vehicle_summary(
     Build a list of NAC vehicles with For‑Day KMPL <= 5.00, sorted ascending,
     taking only the top 10. Unknown vehicle types are flagged.
     """
-    # Build set of NAC vehicle numbers from raw records
     nac_vehicles = set()
     unknown_vehicles = []
 
     for rec in raw_records:
-        op_type = rec.get("operation_type", "").upper().strip()
+        op_type = rec.get("operation_type", "")
+        code = _get_vehicle_code(op_type)
         vehicle_no = rec.get("vehicle_no", "")
 
-        if op_type in AC_CODES:
+        if code in AC_CODES:
             continue  # Explicitly exclude AC
-        elif op_type in NAC_CODES:
+        elif code in NAC_CODES:
             nac_vehicles.add(vehicle_no)
         else:
             # Unknown type – flag it for review
@@ -70,7 +75,7 @@ def build_vehicle_summary(
     # Take only top 10
     low_vehicles = low_vehicles[:10]
 
-    # Remove duplicates from unknown list (if same vehicle appears multiple times)
+    # Remove duplicates from unknown list
     unknown_vehicles = list(dict.fromkeys(unknown_vehicles))
 
     return {

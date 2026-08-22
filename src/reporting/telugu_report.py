@@ -51,14 +51,15 @@ def build_telugu_daily_report(
     low_day_vehicles = vehicle_summary.get("low_day_vehicles", [])
     vehicle_list_str = _format_vehicle_list(low_day_vehicles)
 
-    # Unknown vehicles alert
+    # Unknown vehicles alert – improved message
     unknown_vehicles = vehicle_summary.get("unknown_vehicles", [])
     unknown_alert = ""
     if unknown_vehicles:
         unknown_list = ", ".join(unknown_vehicles)
         unknown_alert = (
-            f"⚠️ *జాగ్రత్త:* కింది వాహనాల రకం గుర్తించబడలేదు. దయచేసి సమీక్షించండి.\n"
-            f"   {unknown_list}"
+            f"⚠️ *జాగ్రత్త:* కింది వాహనాల ఆపరేషన్ రకం (operation type) గుర్తించబడలేదు.\n"
+            f"   దయచేసి 'src/reporting/vehicle_summary.py' లో NAC_CODES / AC_CODES ను సమీక్షించండి.\n"
+            f"   వాహనాలు: {unknown_list}"
         )
 
     lines = [
@@ -77,9 +78,8 @@ def build_telugu_daily_report(
         "✅ తక్కువ KMPL వాహనాల సంఖ్య తగ్గించేందుకు ప్రతి ఒక్కరం బాధ్యతగా వ్యవహరిద్దాం. డిపో అభివృద్ధి మనందరి లక్ష్యం! 💪",
     ]
 
-    # Remove empty lines if alert is empty (or keep them)
-    report = "\n".join(lines)
     # Remove duplicate empty lines if alert is empty
+    report = "\n".join(lines)
     if not unknown_alert:
         report = report.replace("\n\n\n", "\n\n")
     return report
