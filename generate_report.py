@@ -14,7 +14,7 @@ def load_mapping():
 
 def main():
     parser = argparse.ArgumentParser(description="Generate APSRTC report for any depot")
-    parser.add_argument("--depot", required=True, help="Human-readable depot name (e.g., proddutur, kurnool)")
+    parser.add_argument("--depot", required=True, help="Depot code or alias")
     parser.add_argument("--date", help="Report date in YYYY-MM-DD (default: yesterday)")
     args = parser.parse_args()
 
@@ -22,8 +22,11 @@ def main():
     key = args.depot.lower().strip()
     if key not in mapping:
         print(f"Depot '{args.depot}' not found. Available depots:")
-        for k, v in mapping.items():
-            print(f"  - {v.get('display_name', k.title())} (use: {k})")
+        # Show a few for brevity
+        for k, v in list(mapping.items())[:20]:
+            print(f"  - {v.get('display_name', k)} (use: {k})")
+        if len(mapping) > 20:
+            print(f"  ... and {len(mapping)-20} more.")
         sys.exit(1)
 
     info = mapping[key]
@@ -46,7 +49,8 @@ def main():
     ]
 
     print(f"Generating report for {display_name} on {report_date}...")
-    result = subprocess.run(cmd, capture_output=False)
+    # For Python 3.6, use stdout=None, stderr=None (or just omit capture_output)
+    result = subprocess.run(cmd)
     sys.exit(result.returncode)
 
 if __name__ == "__main__":
