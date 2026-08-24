@@ -81,7 +81,6 @@ def build_daily_report(session, report_date, depot, vehicle_depot, region_code):
     for_day_results = calculate_for_day(vehicle_records)
     up_to_day_results = calculate_up_to_day(vehicle_records)
 
-    # Updated call: pass depot and report_date for logging unknown types
     vehicle_summary = build_vehicle_summary(
         for_day_results=for_day_results,
         up_to_day_results=up_to_day_results,
@@ -103,11 +102,15 @@ def build_daily_report(session, report_date, depot, vehicle_depot, region_code):
 
     region_reporting_data = build_region_reporting_data(depot_region_records)
 
+    # Pass raw records and calculation results to build the slab table
     return build_telugu_daily_report(
         depot=depot,
         report_date=report_date,
         region_reporting_data=region_reporting_data,
         vehicle_summary=vehicle_summary,
+        raw_records=vehicle_records,
+        for_day_results=for_day_results,
+        up_to_day_results=up_to_day_results,
     )
 
 
