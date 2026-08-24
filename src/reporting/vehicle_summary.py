@@ -44,16 +44,20 @@ def build_vehicle_summary(
 ) -> Dict[str, Any]:
     """
     Build a list of NAC vehicles with For‑Day KMPL <= 5.00, sorted ascending,
-    taking only the top 10. Unknown vehicle types are treated as NAC and logged.
+    taking only the top 10. Includes operation type for each vehicle.
+    Unknown vehicle types are treated as NAC and logged.
     """
     mapping = load_type_mapping()
     nac_vehicles = set()
     unknown_vehicles = []
+    # Map vehicle number to operation type from raw records
+    vehicle_type_map = {}
 
     for rec in raw_records:
         op_type = rec.get("operation_type", "")
         code = _get_vehicle_code(op_type)
         vehicle_no = rec.get("vehicle_no", "")
+        vehicle_type_map[vehicle_no] = code  # store the short code
 
         if code in mapping:
             if mapping[code] == "NAC":
@@ -89,10 +93,13 @@ def build_vehicle_summary(
             continue
         if day_kmpl <= THRESHOLD:
             month_kmpl = month_map.get(vehicle)
+            # Get operation type from the map (fallback to empty string)
+            op_type = vehicle_type_map.get(vehicle, "")
             low_vehicles.append({
                 "vehicle": vehicle,
                 "day_kmpl": day_kmpl,
                 "month_kmpl": month_kmpl,
+                "operation_type": op_type,   # added this field
             })
 
     # Sort ascending by day_kmpl

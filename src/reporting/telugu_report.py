@@ -21,7 +21,7 @@ WEEKDAYS = {
 
 
 def _format_vehicle_list(vehicles: List[Dict]) -> str:
-    """Format low‑KMPL vehicles with header and numbered lines."""
+    """Format low‑KMPL vehicles with header and numbered lines, including operation type."""
     if not vehicles:
         return "  (లేవు)"  # None
 
@@ -30,7 +30,10 @@ def _format_vehicle_list(vehicles: List[Dict]) -> str:
     for idx, item in enumerate(vehicles, start=1):
         day_str = f"{item['day_kmpl']:.2f}"
         month_str = f"{item['month_kmpl']:.2f}" if item['month_kmpl'] is not None else "—"
-        lines.append(f"  `{idx:2d}. {item['vehicle']}` : {day_str} | {month_str}")
+        op_type = item.get('operation_type', '')
+        # Format: ` 1. 21Z0705 (EX)` : 4.12 | 4.63
+        vehicle_display = f"{item['vehicle']} ({op_type})" if op_type else item['vehicle']
+        lines.append(f"  `{idx:2d}. {vehicle_display}` : {day_str} | {month_str}")
 
     return "\n".join(lines)
 
@@ -51,7 +54,6 @@ def build_telugu_daily_report(
     low_day_vehicles = vehicle_summary.get("low_day_vehicles", [])
     vehicle_list_str = _format_vehicle_list(low_day_vehicles)
 
-    # Unknown vehicles alert – improved message
     unknown_vehicles = vehicle_summary.get("unknown_vehicles", [])
     unknown_alert = ""
     if unknown_vehicles:
@@ -78,7 +80,6 @@ def build_telugu_daily_report(
         "✅ తక్కువ KMPL వాహనాల సంఖ్య తగ్గించేందుకు ప్రతి ఒక్కరం బాధ్యతగా వ్యవహరిద్దాం. డిపో అభివృద్ధి మనందరి లక్ష్యం! 💪",
     ]
 
-    # Remove duplicate empty lines if alert is empty
     report = "\n".join(lines)
     if not unknown_alert:
         report = report.replace("\n\n\n", "\n\n")
