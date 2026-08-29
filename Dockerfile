@@ -2,9 +2,12 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# Install system dependencies (for lxml, etc.)
+# Install system dependencies (for lxml, pandas, etc.)
 RUN apt-get update && apt-get install -y \
     gcc \
+    libxml2-dev \
+    libxslt-dev \
+    libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first (for better caching)
