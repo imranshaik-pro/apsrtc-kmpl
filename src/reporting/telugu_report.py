@@ -34,13 +34,9 @@ def _format_vehicle_list(vehicles: List[Dict]) -> str:
 
 
 def _format_slab_table(op_types: List[str], counts: Dict) -> str:
-    """
-    Render the slab vs operation type table with merged rows and separators.
-    """
     if not op_types:
         return "  (ఎటువంటి వాహనాలు లేవు)"
 
-    # Column widths
     col_widths = {
         "Slab": max(len("Slab"), max(len(s) for s in counts.keys() if s != "Total")),
         "Type": max(len("Type"), len("రోజు"), len("ఈరోజు వరకు")),
@@ -67,18 +63,14 @@ def _format_slab_table(op_types: List[str], counts: Dict) -> str:
             total = sum(values.get(op, 0) for op in op_types)
             row.append(str(total).rjust(col_widths["Total"]))
         else:
-            # For header row, we already have the column names in values
             row.append("Total".rjust(col_widths["Total"]))
         return "|".join(row)
 
     lines = []
-
-    # Header row – do NOT compute total (use strings)
     header_values = {op: op for op in op_types}
     lines.append(row_string("Slab", "Type", header_values, compute_total=False))
     lines.append(sep_line())
 
-    # Slab rows
     for slab_label, _, _ in SLABS:
         slab_data = counts.get(slab_label)
         if not slab_data:
@@ -87,7 +79,6 @@ def _format_slab_table(op_types: List[str], counts: Dict) -> str:
         lines.append(row_string("", "ఈరోజు వరకు", slab_data["up_to_day"]))
         lines.append(sep_line())
 
-    # Total row
     total_data = counts.get("Total")
     if total_data:
         lines.append(row_string("Total", "రోజు", total_data["for_day"]))
@@ -115,14 +106,18 @@ def build_telugu_daily_report(
     low_day_vehicles = vehicle_summary.get("low_day_vehicles", [])
     vehicle_list_str = _format_vehicle_list(low_day_vehicles)
 
-    # Build the slab table if raw records are provided
     slab_table_str = ""
     if raw_records is not None and for_day_results is not None and up_to_day_results is not None:
         op_types, slab_counts, unknown_in_slab = build_slab_operation_table(
             for_day_results, up_to_day_results, raw_records
         )
+        # Merge unknown vehicles
         existing_unknown = vehicle_summary.get("unknown_vehicles", [])
-        all_unknown = list(dict.fromkeys(existing_unknown + unknown_in_slab))
+        combined = {item['vehicle']: item for item in existing_unknown}
+        for v in unknown_in_slab:
+            if v not in combined:
+                combined[v] = {"vehicle": v, "op_type": "unknown"}
+        all_unknown = list(combined.values())
         vehicle_summary["unknown_vehicles"] = all_unknown
         if op_types:
             slab_table_str = "*రేంజ్ వారీగా వాహనాల వివరాలు*\n" + _format_slab_table(op_types, slab_counts)
@@ -132,7 +127,15 @@ def build_telugu_daily_report(
     unknown_vehicles = vehicle_summary.get("unknown_vehicles", [])
     unknown_alert = ""
     if unknown_vehicles:
-        unknown_list = ", ".join(unknown_vehicles)
+        # Show the raw operation type (or "blank" if empty)
+        vehicle_lines = []
+        for item in unknown_vehicles:
+            vehicle_no = item.get('vehicle', '')
+            op_type = item.get('op_type', '')
+            if op_type.strip() == "":
+                op_type = "blank"
+            vehicle_lines.append(f"{vehicle_no} (op_type: {op_type})")
+        unknown_list = ", ".join(vehicle_lines)
         unknown_alert = (
             f"⚠️ *జాగ్రత్త:* కింది వాహనాల ఆపరేషన్ రకం (operation type) గుర్తించబడలేదు.\n"
             f"   దయచేసి 'src/reporting/vehicle_summary.py' లో NAC_CODES / AC_CODES ను సమీక్షించండి.\n"

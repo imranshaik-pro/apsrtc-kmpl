@@ -51,12 +51,6 @@ def build_slab_operation_table(
     up_to_day_results: List[Dict[str, Any]],
     raw_records: List[Dict[str, Any]],
 ) -> Tuple[List[str], Dict[str, Dict[str, Dict[str, int]]], List[str]]:
-    """
-    Build counts for slab vs operation type.
-    Returns: (operation_types_list, counts_dict, unknown_vehicles)
-    counts_dict[slab_label][type_key][op_type] = count
-    type_key is either "for_day" or "up_to_day"
-    """
     mapping = load_type_mapping()
     vehicle_type_map = {}
     unknown_vehicles = []
@@ -109,14 +103,9 @@ def build_vehicle_summary(
     depot: str = None,
     report_date: str = None,
 ) -> Dict[str, Any]:
-    """
-    Build a list of NAC vehicles with For‑Day KMPL <= 5.00, sorted ascending,
-    taking only the top 10. Includes operation type for each vehicle.
-    Unknown vehicle types are treated as NAC and logged.
-    """
     mapping = load_type_mapping()
     nac_vehicles = set()
-    unknown_vehicles = []
+    unknown_vehicles = []   # will store {"vehicle": ..., "op_type": raw}
     vehicle_type_map = {}
 
     for rec in raw_records:
@@ -129,8 +118,9 @@ def build_vehicle_summary(
             if mapping[code] == "NAC":
                 nac_vehicles.add(vehicle_no)
         else:
-            nac_vehicles.add(vehicle_no)
-            unknown_vehicles.append({"vehicle": vehicle_no, "op_type": code or op_type})
+            nac_vehicles.add(vehicle_no)  # treat as NAC
+            # Store the raw operation type string
+            unknown_vehicles.append({"vehicle": vehicle_no, "op_type": op_type})
             log_msg = f"Unknown code '{code}' for vehicle {vehicle_no} (op_type: '{op_type}')"
             if depot and report_date:
                 log_msg += f" | Depot: {depot}, Date: {report_date}"
