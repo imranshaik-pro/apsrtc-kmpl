@@ -50,15 +50,14 @@ def build_slab_operation_table(
     for_day_results: List[Dict[str, Any]],
     up_to_day_results: List[Dict[str, Any]],
     raw_records: List[Dict[str, Any]],
-) -> Tuple[List[str], Dict[str, Dict[str, Dict[str, int]]]]:
+) -> Tuple[List[str], Dict[str, Dict[str, Dict[str, int]]], List[str]]:
     """
     Build counts for slab vs operation type.
-    Returns: (operation_types_list, counts_dict)
+    Returns: (operation_types_list, counts_dict, unknown_vehicles)
     counts_dict[slab_label][type_key][op_type] = count
     type_key is either "for_day" or "up_to_day"
     """
     mapping = load_type_mapping()
-    # Map vehicle number to operation type code
     vehicle_type_map = {}
     unknown_vehicles = []
 
@@ -73,15 +72,10 @@ def build_slab_operation_table(
             log_msg = f"Unknown code '{code}' for vehicle {vehicle_no} (op_type: '{op_type}')"
             unknown_logger.info(log_msg)
 
-    # Collect all operation types present
     op_types = sorted(set(vehicle_type_map.values()))
-
-    # Initialize counts
     counts = {slab[0]: {"for_day": {op: 0 for op in op_types}, "up_to_day": {op: 0 for op in op_types}} for slab in SLABS}
-    # Add total row
     counts["Total"] = {"for_day": {op: 0 for op in op_types}, "up_to_day": {op: 0 for op in op_types}}
 
-    # Count For-Day
     for rec in for_day_results:
         vehicle = rec["vehicle_number"]
         if vehicle not in vehicle_type_map:
@@ -94,7 +88,6 @@ def build_slab_operation_table(
         counts[slab_label]["for_day"][op_type] += 1
         counts["Total"]["for_day"][op_type] += 1
 
-    # Count Up-To-Day
     for rec in up_to_day_results:
         vehicle = rec["vehicle_number"]
         if vehicle not in vehicle_type_map:
@@ -109,7 +102,6 @@ def build_slab_operation_table(
 
     return op_types, counts, unknown_vehicles
 
-# (keep the existing build_vehicle_summary function for the low-KMPL list)
 def build_vehicle_summary(
     for_day_results: List[Dict[str, Any]],
     up_to_day_results: List[Dict[str, Any]],
@@ -117,6 +109,11 @@ def build_vehicle_summary(
     depot: str = None,
     report_date: str = None,
 ) -> Dict[str, Any]:
+    """
+    Build a list of NAC vehicles with For‑Day KMPL <= 5.00, sorted ascending,
+    taking only the top 10. Includes operation type for each vehicle.
+    Unknown vehicle types are treated as NAC and logged.
+    """
     mapping = load_type_mapping()
     nac_vehicles = set()
     unknown_vehicles = []
@@ -133,7 +130,7 @@ def build_vehicle_summary(
                 nac_vehicles.add(vehicle_no)
         else:
             nac_vehicles.add(vehicle_no)
-            unknown_vehicles.append(vehicle_no)
+            unknown_vehicles.append({"vehicle": vehicle_no, "op_type": code or op_type})
             log_msg = f"Unknown code '{code}' for vehicle {vehicle_no} (op_type: '{op_type}')"
             if depot and report_date:
                 log_msg += f" | Depot: {depot}, Date: {report_date}"
@@ -166,9 +163,16 @@ def build_vehicle_summary(
 
     low_vehicles.sort(key=lambda x: x["day_kmpl"])
     low_vehicles = low_vehicles[:10]
-    unknown_vehicles = list(dict.fromkeys(unknown_vehicles))
+
+    # Remove duplicates from unknown list
+    seen = set()
+    unique_unknown = []
+    for item in unknown_vehicles:
+        if item['vehicle'] not in seen:
+            seen.add(item['vehicle'])
+            unique_unknown.append(item)
 
     return {
         "low_day_vehicles": low_vehicles,
-        "unknown_vehicles": unknown_vehicles,
+        "unknown_vehicles": unique_unknown,
     }
