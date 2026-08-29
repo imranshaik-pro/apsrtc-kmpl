@@ -1,0 +1,213 @@
+#!/usr/bin/env python3
+import json
+
+# ---- Exact depot options from the website (copy from the <select name="dept">) ----
+DEPOT_OPTIONS = [
+    ("ADK/ADDANKI", "ADDANKI"),
+    ("ADN/ADONI", "ADONI"),
+    ("ALPR/ALIPIRI", "ALIPIRI"),
+    ("ALG/ALLAGADDA", "ALLAGADDA"),
+    ("AMP/AMALAPURAM", "AMALAPURAM"),
+    ("AKP/ANAKAPALLI", "ANAKAPALLI"),
+    ("ATP/ANANTAPUR", "ANANTAPUR"),
+    ("ATK-N/ATMAKUR", "ATMAKUR"),
+    ("ATK/ATMAKUR(K)", "ATMAKUR(K)"),
+    ("ATNR/AUTONAGAR", "AUTONAGAR"),
+    ("AVG/AVANIGADDA", "AVANIGADDA"),
+    ("BDVL/BADVEL", "BADVEL"),
+    ("BPL/BANAGANAPALLI", "BANAGANAPALLI"),
+    ("BPTL/BAPATLA", "BAPATLA"),
+    ("BVRM/BHIMAVARAM", "BHIMAVARAM"),
+    ("CPT/CHILAKALURIPET", "CHILAKALURIPET"),
+    ("CRL/CHIRALA", "CHIRALA"),
+    ("CTR1/CHITTOR-I", "CHITTOR-I"),
+    ("CTR2/CHITTOR-II", "CHITTOR-II"),
+    ("DBSC/DBSC", "DBSC"),
+    ("DVRM/DHARMAVARAM", "DHARMAVARAM"),
+    ("DHN/DHONE", "DHONE"),
+    ("ELSM/ELESWARAM", "ELESWARAM"),
+    ("ELR/ELURU", "ELURU"),
+    ("GWK/GAJUWAKA", "GAJUWAKA"),
+    ("GWK2/GAJUWAKA-2", "GAJUWAKA-2"),
+    ("GVRM/GANNAVARAM", "GANNAVARAM"),
+    ("GDLR/GIDDALUR", "GIDDALUR"),
+    ("GKRM/GOKAVARAM", "GOKAVARAM"),
+    ("GTY/GOOTY", "GOOTY"),
+    ("GVPT1/GOVERNERPET-I", "GOVERNERPET-I"),      # Correct spelling
+    ("GVPT2/GOVERNERPET-II", "GOVERNERPET-II"),    # Correct spelling
+    ("GDV/GUDIVADA", "GUDIVADA"),
+    ("GDR/GUDUR", "GUDUR"),
+    ("GTKL/GUNTAKAL", "GUNTAKAL"),
+    ("GNT1/GUNTUR-I", "GUNTUR-I"),
+    ("GNT2/GUNTUR-II", "GUNTUR-II"),
+    ("HDP/HINDUPUR", "HINDUPUR"),
+    ("IBM/IBRAHIMPATNAM-V", "IBRAHIMPATNAM-V"),
+    ("JPT/JAGGAIAHPET", "JAGGAIAHPET"),
+    ("JMD/JAMMALAMADUGU", "JAMMALAMADUGU"),
+    ("JRG/JANGAREDDIGUDEM", "JANGAREDDIGUDEM"),
+    ("KDP/KADAPA", "KADAPA"),
+    ("KDR/KADIRI", "KADIRI"),
+    ("KKD/KAKINADA", "KAKINADA"),
+    ("KLD/KALYANDURG", "KALYANDURG"),
+    ("KKR/KANDUKUR", "KANDUKUR"),
+    ("KNG/KANIGIRI", "KANIGIRI"),
+    ("KVL/KAVALI", "KAVALI"),
+    ("KKL/KOILKUNTLA", "KOILKUNTLA"),
+    ("KVR/KOVVUR", "KOVVUR"),
+    ("KPM/KUPPAM", "KUPPAM"),
+    ("KRNL1/KURNOOL-I", "KURNOOL-I"),
+    ("KRNL2/KURNOOL-II", "KURNOOL-II"),
+    ("MCL/MACHERLA", "MACHERLA"),
+    ("MTM/MACHILIPATNAM", "MACHILIPATNAM"),
+    ("MDKS/MADAKASIRA", "MADAKASIRA"),
+    ("MPL1/MADANAPALLI-I", "MADANAPALLI-I"),
+    ("MPL2/MADANAPALLI-II", "MADANAPALLI-II"),
+    ("MDP/MADDILAPALEM", "MADDILAPALEM"),
+    ("MDWD/MADHURAWADA", "MADHURAWADA"),
+    ("MNGR/MANGALAGIRI", "MANGALAGIRI"),
+    ("MGLM/MANGALAM", "MANGALAM"),
+    ("MRKP/MARKAPUR", "MARKAPUR"),
+    ("MYDK/MYDUKUR", "MYDUKUR"),
+    ("NDKR/NANDIKOTKUR", "NANDIKOTKUR"),
+    ("NDL/NANDYAL", "NANDYAL"),
+    ("NSP/NARSAPUR", "NARSAPUR"),
+    ("NRT/NARSARAOPET", "NARSARAOPET"),
+    ("NRPM/NARSIPATNAM", "NARSIPATNAM"),
+    ("NLR1/NELLORE-I", "NELLORE-I"),
+    ("NLR2/NELLORE-II", "NELLORE-II"),
+    ("NDVL/NIDADAVOLU", "NIDADAVOLU"),
+    ("NZD/NUZVID", "NUZVID"),
+    ("OGL/ONGOLE", "ONGOLE"),
+    ("PDR/PADERU", "PADERU"),
+    ("PLKD/PALAKONDA", "PALAKONDA"),
+    ("PLMNR/PALAMANERU", "PALAMANERU"),
+    ("PLS/PALASA", "PALASA"),
+    ("PPM/PARVATHIPURAM", "PARVATHIPURAM"),
+    ("PKD/PATHIKONDA", "PATHIKONDA"),
+    ("PNKD/PENUKONDA", "PENUKONDA"),
+    ("PDRL/PIDUGURALLA", "PIDUGURALLA"),
+    ("PLR/PILERU", "PILERU"),
+    ("PNBS/PNBS", "PNBS"),
+    ("PDL/PODILI", "PODILI"),
+    ("PNR/PONNUR", "PONNUR"),
+    ("PDTR/PRODDUTUR", "PRODDUTUR"),
+    ("PVL/PULIVENDULA", "PULIVENDULA"),
+    ("PGR/PUNGANURU", "PUNGANURU"),
+    ("PTP/PUTTAPARTHY", "PUTTAPARTHY"),
+    ("PTR/PUTTUR", "PUTTUR"),
+    ("RJY/RAJAHMUNDRY", "RAJAHMUNDRY"),
+    ("RJPT/RAJAMPET", "RAJAMPET"),
+    ("RCPM/RAMACHANDRAPURAM", "RAMACHANDRAPURAM"),
+    ("RPR/RAPUR", "RAPUR"),
+    ("RVPM/RAVULAPALEM", "RAVULAPALEM"),
+    ("RCTY/RAYACHOTI", "RAYACHOTI"),
+    ("RDG/RAYADURG", "RAYADURG"),
+    ("RZL/RAZOLE", "RAZOLE"),
+    ("RPL/REPALLE", "REPALLE"),
+    ("SLR/SALUR", "SALUR"),
+    ("SAP/SATTENAPALLI", "SATTENAPALLI"),
+    ("STVD/SATYAVEEDU", "SATYAVEEDU"),
+    ("SML/SIMHACHALAM", "SIMHACHALAM"),
+    ("SKLM1/SRIKAKULAM-I", "SRIKAKULAM-I"),
+    ("SKLM2/SRIKAKULAM-II", "SRIKAKULAM-II"),
+    ("SKHT/SRIKALAHASTHI", "SRIKALAHASTHI"),
+    ("SKOTA/SRUNGAVARAPUKOTA", "SRUNGAVARAPUKOTA"),
+    ("VSCD/STEELCITY", "STEELCITY"),
+    ("SLRPT/SULLURPET", "SULLURPET"),
+    ("TPG/TADEPALLIGUDEM", "TADEPALLIGUDEM"),
+    ("TDP/TADIPATRI", "TADIPATRI"),
+    ("TNK/TANUKU", "TANUKU"),
+    ("TKL/TEKKALI", "TEKKALI"),
+    ("TNL/TENALI", "TENALI"),
+    ("TML/TIRUMALA", "TIRUMALA"),
+    ("TPT/TIRUPATHI", "TIRUPATHI"),
+    ("TVR/TIRUVUR", "TIRUVUR"),
+    ("TUNI/TUNI", "TUNI"),
+    ("UDGR/UDAYAGIRI", "UDAYAGIRI"),
+    ("URKD/URAVAKONDA", "URAVAKONDA"),
+    ("VGR/VENKATAGIRI", "VENKATAGIRI"),
+    ("VDPM/VIDYADHARAPURAM", "VIDYADHARAPURAM"),
+    ("VJA/VIJAYAWADA-I", "VIJAYAWADA-I"),
+    ("VNK/VINUKONDA", "VINUKONDA"),
+    ("VSP/VISAKHAPATNAM", "VISAKHAPATNAM"),
+    ("VZM/VIZIANAGARAM", "VIZIANAGARAM"),
+    ("VYR/VUYYURU", "VUYYURU"),
+    ("VKD/WAKADU", "WAKADU"),
+    ("WLTR/WALTAIR", "WALTAIR"),
+    ("YMGR/YEMMIGANUR", "YEMMIGANUR"),
+]
+
+# ---- Region mapping (based on the website's region dropdown) ----
+# For each depot code prefix, assign the region_code.
+# This is derived from your district lists and the region dropdown.
+REGION_MAP = {
+    "TKL": "SRIKAKULAM", "SKLM1": "SRIKAKULAM", "SKLM2": "SRIKAKULAM", "PLS": "SRIKAKULAM",
+    "SKT": "VIZIANAGARAM", "VZM": "VIZIANAGARAM",
+    "PLKD": "PPMMANYAM", "PPM": "PPMMANYAM", "SLR": "PPMMANYAM",
+    "AKP": "ANAKAPALLI", "NRPM": "ANAKAPALLI",
+    "PDR": "ASR",
+    "VSP": "VISAKHAPATNAM", "MDWD": "VISAKHAPATNAM", "WLTR": "VISAKHAPATNAM",
+    "GWK": "VISAKHAPATNAM", "GWK2": "VISAKHAPATNAM", "SML": "VISAKHAPATNAM",
+    "VSCD": "VISAKHAPATNAM", "MDP": "VISAKHAPATNAM",
+    "KKD": "KAKINADA", "ELSM": "KAKINADA", "TUNI": "KAKINADA",
+    "RVM": "KONASEEMA", "RZL": "KONASEEMA", "AMP": "KONASEEMA", "RCPM": "KONASEEMA",
+    "RJY": "EASTGODAVARI", "GKRM": "EASTGODAVARI", "KVR": "EASTGODAVARI", "NDVL": "EASTGODAVARI",
+    "NSP": "WESTGODAVARI", "BVRM": "WESTGODAVARI", "TNK": "WESTGODAVARI", "TPG": "WESTGODAVARI",
+    "ELR": "ELURU", "JRG": "ELURU", "NZD": "ELURU",
+    "JPT": "NTR", "TVR": "NTR", "VJA": "NTR", "ATNR": "NTR", "IBM": "NTR",
+    "GVPT1": "NTR", "GVPT2": "NTR",
+    "GVRM": "KRISHNA", "MTM": "KRISHNA", "GDV": "KRISHNA", "AVG": "KRISHNA", "VYR": "KRISHNA",
+    "GNT1": "GUNTUR", "GNT2": "GUNTUR", "TNL": "GUNTUR", "PNR": "GUNTUR", "MNGR": "GUNTUR",
+    "PDRL": "PALNADU", "MCL": "PALNADU", "NRT": "PALNADU", "CPT": "PALNADU",
+    "SAP": "PALNADU", "VNK": "PALNADU",
+    "BPTL": "BAPATLA", "RPL": "BAPATLA", "CRL": "BAPATLA",
+    "OGL": "PRAKASAM", "ADK": "PRAKASAM", "KKR": "PRAKASAM",
+    "PDL": "MARKAPURAM", "MRKP": "MARKAPURAM", "KNGR": "MARKAPURAM", "GDLR": "MARKAPURAM",
+    "NLR1": "SPSNELLORE", "NLR2": "SPSNELLORE", "ATK-N": "SPSNELLORE",
+    "UDGR": "SPSNELLORE", "KVL": "SPSNELLORE", "RPR": "SPSNELLORE", "GDR": "SPSNELLORE",
+    "VKD": "TIRUPATI", "SLRPT": "TIRUPATI", "VGR": "TIRUPATI", "TPT": "TIRUPATI",
+    "MGLM": "TIRUPATI", "ALPR": "TIRUPATI", "TML": "TIRUPATI", "SKHT": "TIRUPATI",
+    "STVD": "TIRUPATI", "PTR": "TIRUPATI",
+    "CTR1": "CHITTOR", "CTR2": "CHITTOR", "PLMNR": "CHITTOR", "KPM": "CHITTOR",
+    "PLR": "ANNAMAIAH", "MPL1": "ANNAMAIAH", "MPL2": "ANNAMAIAH",
+    "RCTY": "ANNAMAIAH", "PGR": "ANNAMAIAH",
+    "KDP": "YSRKADAPA", "BDVL": "YSRKADAPA", "MYDK": "YSRKADAPA",
+    "JMD": "YSRKADAPA", "PDTR": "YSRKADAPA", "PVL": "YSRKADAPA", "RJPT": "YSRKADAPA",
+    "KRNL1": "KURNOOL", "KRNL2": "KURNOOL", "ADN": "KURNOOL",
+    "PTKD": "KURNOOL", "YMG": "KURNOOL",
+    "ALG": "NANDYAL", "ATK": "NANDYAL", "BPL": "NANDYAL", "DHN": "NANDYAL",
+    "KKL": "NANDYAL", "NDKR": "NANDYAL", "NDL": "NANDYAL",
+    "ATP": "ANANTAPUR", "KLD": "ANANTAPUR", "RDG": "ANANTAPUR",
+    "TDP": "ANANTAPUR", "GTKL": "ANANTAPUR", "URKD": "ANANTAPUR", "GTY": "ANANTAPUR",
+    "DVRM": "SRISATYASAI", "HDP": "SRISATYASAI", "KDR": "SRISATYASAI",
+    "MDKS": "SRISATYASAI", "PNKD": "SRISATYASAI", "PTP": "SRISATYASAI",
+    "DBSC": "YSRKADAPA",  # not sure, but kept
+    "PNBS": "VISAKHAPATNAM",  # guessing
+    "VDPM": "NTR",  # guessing
+}
+
+def main():
+    mapping = {}
+    for vehicle_depot, display_name in DEPOT_OPTIONS:
+        # Extract the code prefix (e.g., "PDTR" from "PDTR/PRODDUTUR")
+        code = vehicle_depot.split('/')[0]
+        # Determine region_code
+        region = REGION_MAP.get(code, "UNKNOWN")
+        # Create a lowercase key (e.g., "pdtr")
+        key = code.lower().replace("-", "").replace("(", "").replace(")", "")
+        mapping[key] = {
+            "vehicle_depot": vehicle_depot,
+            "region_code": region,
+            "display_name": display_name
+        }
+        # Also add the display name as a key for direct lookup (so Google Form names work)
+        mapping[display_name] = mapping[key].copy()
+        mapping[display_name]['_alias'] = key
+
+    with open('depot_mapping.json', 'w') as f:
+        json.dump(mapping, f, indent=2, ensure_ascii=False)
+
+    print(f"✅ Generated depot_mapping.json with {len(mapping)} entries (including aliases)")
+
+if __name__ == "__main__":
+    main()

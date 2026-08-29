@@ -1,1761 +1,8 @@
 {
-  "tkl": {
-    "vehicle_depot": "TKL/TEKKALI",
-    "region_code": "SRIKAKULAM",
-    "display_name": "TEKKALI"
-  },
-  "sklm1": {
-    "vehicle_depot": "SKLM1/SRIKAKULAM-1",
-    "region_code": "SRIKAKULAM",
-    "display_name": "SRIKAKULAM-1"
-  },
-  "sklm2": {
-    "vehicle_depot": "SKLM2/SRIKAKULAM-2",
-    "region_code": "SRIKAKULAM",
-    "display_name": "SRIKAKULAM-2"
-  },
-  "pls": {
-    "vehicle_depot": "PLS/PALASA",
-    "region_code": "SRIKAKULAM",
-    "display_name": "PALASA"
-  },
-  "skt": {
-    "vehicle_depot": "SKT/SRUNGAVARAPUKOTA/S.KOTA",
-    "region_code": "VIZIANAGARAM",
-    "display_name": "SRUNGAVARAPUKOTA/S.KOTA"
-  },
-  "vzm": {
-    "vehicle_depot": "VZM/VIZIANAGARAM",
-    "region_code": "VIZIANAGARAM",
-    "display_name": "VIZIANAGARAM"
-  },
-  "plkd": {
-    "vehicle_depot": "PLKD/PALAKONDA",
-    "region_code": "PPMMANYAM",
-    "display_name": "PALAKONDA"
-  },
-  "ppm": {
-    "vehicle_depot": "PPM/PARVATHIPURAM",
-    "region_code": "PPMMANYAM",
-    "display_name": "PARVATHIPURAM"
-  },
-  "slr": {
-    "vehicle_depot": "SLR/SALUR",
-    "region_code": "PPMMANYAM",
-    "display_name": "SALUR"
-  },
-  "akp": {
-    "vehicle_depot": "AKP/ANAKAPALLI",
-    "region_code": "ANAKAPALLI",
-    "display_name": "ANAKAPALLI"
-  },
-  "nrpm": {
-    "vehicle_depot": "NRPM/NARSIPATNAM",
-    "region_code": "ANAKAPALLI",
-    "display_name": "NARSIPATNAM"
-  },
-  "pdr": {
-    "vehicle_depot": "PDR/PADERU",
-    "region_code": "ASR",
-    "display_name": "PADERU"
-  },
-  "vsp": {
-    "vehicle_depot": "VSP/VISAKHAPATNAM",
-    "region_code": "VISAKHAPATNAM",
-    "display_name": "VISAKHAPATNAM"
-  },
-  "mdwd": {
-    "vehicle_depot": "MDWD/MADHAVADHARA",
-    "region_code": "VISAKHAPATNAM",
-    "display_name": "MADHAVADHARA"
-  },
-  "wltr": {
-    "vehicle_depot": "WLTR/WALTAIR",
-    "region_code": "VISAKHAPATNAM",
-    "display_name": "WALTAIR"
-  },
-  "gwk": {
-    "vehicle_depot": "GWK/GAJUWAKA",
-    "region_code": "VISAKHAPATNAM",
-    "display_name": "GAJUWAKA"
-  },
-  "sml": {
-    "vehicle_depot": "SML/SIMHACHALAM",
-    "region_code": "VISAKHAPATNAM",
-    "display_name": "SIMHACHALAM"
-  },
-  "vscd": {
-    "vehicle_depot": "VSCD/VISAKHASTEELCITYDEPOT",
-    "region_code": "VISAKHAPATNAM",
-    "display_name": "VISAKHASTEELCITYDEPOT"
-  },
-  "mdp": {
-    "vehicle_depot": "MDP/MADDILAPALEM",
-    "region_code": "VISAKHAPATNAM",
-    "display_name": "MADDILAPALEM"
-  },
-  "kkd": {
-    "vehicle_depot": "KKD/KAKINADA",
-    "region_code": "KAKINADA",
-    "display_name": "KAKINADA"
-  },
-  "elsm": {
-    "vehicle_depot": "ELSM/ELESWARAM",
-    "region_code": "KAKINADA",
-    "display_name": "ELESWARAM"
-  },
-  "tuni": {
-    "vehicle_depot": "TUNI/TUNI",
-    "region_code": "KAKINADA",
-    "display_name": "TUNI"
-  },
-  "rvm": {
-    "vehicle_depot": "RVM/RAVULAPALEM",
-    "region_code": "KONASEEMA",
-    "display_name": "RAVULAPALEM"
-  },
-  "rzl": {
-    "vehicle_depot": "RZL/RAZOLE",
-    "region_code": "KONASEEMA",
-    "display_name": "RAZOLE"
-  },
-  "amp": {
-    "vehicle_depot": "AMP/AMALAPURAM",
-    "region_code": "KONASEEMA",
-    "display_name": "AMALAPURAM"
-  },
-  "rcpm": {
-    "vehicle_depot": "RCPM/RAMACHANDRAPURAM",
-    "region_code": "KONASEEMA",
-    "display_name": "RAMACHANDRAPURAM"
-  },
-  "rjy": {
-    "vehicle_depot": "RJY/RAJAMAHENDRAVARAM/RAJAHMUNDRY",
-    "region_code": "EASTGODAVARI",
-    "display_name": "RAJAMAHENDRAVARAM/RAJAHMUNDRY"
-  },
-  "gkrm": {
-    "vehicle_depot": "GKRM/GOKAVARAM",
-    "region_code": "EASTGODAVARI",
-    "display_name": "GOKAVARAM"
-  },
-  "kvr": {
-    "vehicle_depot": "KVR/KOVVUR",
-    "region_code": "EASTGODAVARI",
-    "display_name": "KOVVUR"
-  },
-  "ndd": {
-    "vehicle_depot": "NDD/NIDADAVOLE",
-    "region_code": "EASTGODAVARI",
-    "display_name": "NIDADAVOLE"
-  },
-  "nsp": {
-    "vehicle_depot": "NSP/NARSAPURAM",
-    "region_code": "WESTGODAVARI",
-    "display_name": "NARSAPURAM"
-  },
-  "bvrm": {
-    "vehicle_depot": "BVRM/BHIMAVARAM",
-    "region_code": "WESTGODAVARI",
-    "display_name": "BHIMAVARAM"
-  },
-  "tnk": {
-    "vehicle_depot": "TNK/TANUKU",
-    "region_code": "WESTGODAVARI",
-    "display_name": "TANUKU"
-  },
-  "tpg": {
-    "vehicle_depot": "TPG/TADEPALLIGUDEM",
-    "region_code": "WESTGODAVARI",
-    "display_name": "TADEPALLIGUDEM"
-  },
-  "elr": {
-    "vehicle_depot": "ELR/ELURU",
-    "region_code": "ELURU",
-    "display_name": "ELURU"
-  },
-  "jrg": {
-    "vehicle_depot": "JRG/JANGAREDDYGUDEM",
-    "region_code": "ELURU",
-    "display_name": "JANGAREDDYGUDEM"
-  },
-  "nzd": {
-    "vehicle_depot": "NZD/NUZVID",
-    "region_code": "ELURU",
-    "display_name": "NUZVID"
-  },
-  "jpt": {
-    "vehicle_depot": "JPT/JAGGAIAHPETA",
-    "region_code": "NTR",
-    "display_name": "JAGGAIAHPETA"
-  },
-  "tvr": {
-    "vehicle_depot": "TVR/TIRUVURU",
-    "region_code": "NTR",
-    "display_name": "TIRUVURU"
-  },
-  "vja": {
-    "vehicle_depot": "VJA/VIJAYAWADA/VIDYADHARAPURAM",
-    "region_code": "NTR",
-    "display_name": "VIJAYAWADA/VIDYADHARAPURAM"
-  },
-  "atnr": {
-    "vehicle_depot": "ATNR/AUTONAGAR",
-    "region_code": "NTR",
-    "display_name": "AUTONAGAR"
-  },
-  "ibm": {
-    "vehicle_depot": "IBM/IBRAHIMPATNAM",
-    "region_code": "NTR",
-    "display_name": "IBRAHIMPATNAM"
-  },
-  "gvpt1": {
-    "vehicle_depot": "GVPT1/GOVERNORPET-1",
-    "region_code": "NTR",
-    "display_name": "GOVERNORPET-1"
-  },
-  "gvpt2": {
-    "vehicle_depot": "GVPT2/GOVERNORPET-2",
-    "region_code": "NTR",
-    "display_name": "GOVERNORPET-2"
-  },
-  "gvrm": {
-    "vehicle_depot": "GVRM/GANNAVARAM",
-    "region_code": "KRISHNA",
-    "display_name": "GANNAVARAM"
-  },
-  "mtm": {
-    "vehicle_depot": "MTM/MACHILIPATNAM",
-    "region_code": "KRISHNA",
-    "display_name": "MACHILIPATNAM"
-  },
-  "gdv": {
-    "vehicle_depot": "GDV/GUDIVADA",
-    "region_code": "KRISHNA",
-    "display_name": "GUDIVADA"
-  },
-  "avg": {
-    "vehicle_depot": "AVG/AVANIGADDA",
-    "region_code": "KRISHNA",
-    "display_name": "AVANIGADDA"
-  },
-  "vyr": {
-    "vehicle_depot": "VYR/VUYYURU",
-    "region_code": "KRISHNA",
-    "display_name": "VUYYURU"
-  },
-  "gnt1": {
-    "vehicle_depot": "GNT1/GUNTUR-1",
-    "region_code": "GUNTUR",
-    "display_name": "GUNTUR-1"
-  },
-  "tnl": {
-    "vehicle_depot": "TNL/TENALI",
-    "region_code": "GUNTUR",
-    "display_name": "TENALI"
-  },
-  "pnr": {
-    "vehicle_depot": "PNR/PONNUR",
-    "region_code": "GUNTUR",
-    "display_name": "PONNUR"
-  },
-  "mglr": {
-    "vehicle_depot": "MGLR/MANGALAGIRI",
-    "region_code": "GUNTUR",
-    "display_name": "MANGALAGIRI"
-  },
-  "pdrl": {
-    "vehicle_depot": "PDRL/PIDUGURALLA",
-    "region_code": "PALNADU",
-    "display_name": "PIDUGURALLA"
-  },
-  "mcl": {
-    "vehicle_depot": "MCL/MACHERLA",
-    "region_code": "PALNADU",
-    "display_name": "MACHERLA"
-  },
-  "nrt": {
-    "vehicle_depot": "NRT/NARASARAOPET",
-    "region_code": "PALNADU",
-    "display_name": "NARASARAOPET"
-  },
-  "cpt": {
-    "vehicle_depot": "CPT/CHILAKALURIPETA",
-    "region_code": "PALNADU",
-    "display_name": "CHILAKALURIPETA"
-  },
-  "sap": {
-    "vehicle_depot": "SAP/SATTENAPALLI",
-    "region_code": "PALNADU",
-    "display_name": "SATTENAPALLI"
-  },
-  "vnk": {
-    "vehicle_depot": "VNK/VINUKONDA",
-    "region_code": "PALNADU",
-    "display_name": "VINUKONDA"
-  },
-  "bptl": {
-    "vehicle_depot": "BPTL/BAPATLA",
-    "region_code": "BAPATLA",
-    "display_name": "BAPATLA"
-  },
-  "rpl": {
-    "vehicle_depot": "RPL/REPALLE",
-    "region_code": "BAPATLA",
-    "display_name": "REPALLE"
-  },
-  "crl": {
-    "vehicle_depot": "CRL/CHIRALA",
-    "region_code": "BAPATLA",
-    "display_name": "CHIRALA"
-  },
-  "ogl": {
-    "vehicle_depot": "OGL/ONGOLE",
-    "region_code": "PRAKASAM",
-    "display_name": "ONGOLE"
-  },
   "adk": {
     "vehicle_depot": "ADK/ADDANKI",
     "region_code": "PRAKASAM",
     "display_name": "ADDANKI"
-  },
-  "kdkr": {
-    "vehicle_depot": "KDKR/KANDUKUR",
-    "region_code": "PRAKASAM",
-    "display_name": "KANDUKUR"
-  },
-  "pdl": {
-    "vehicle_depot": "PDL/PODILI",
-    "region_code": "MARKAPURAM",
-    "display_name": "PODILI"
-  },
-  "mrkp": {
-    "vehicle_depot": "MRKP/MARKAPUR",
-    "region_code": "MARKAPURAM",
-    "display_name": "MARKAPUR"
-  },
-  "kngr": {
-    "vehicle_depot": "KNGR/KANIGIRI",
-    "region_code": "MARKAPURAM",
-    "display_name": "KANIGIRI"
-  },
-  "gdlr": {
-    "vehicle_depot": "GDLR/GIDDALUR",
-    "region_code": "MARKAPURAM",
-    "display_name": "GIDDALUR"
-  },
-  "nlr1": {
-    "vehicle_depot": "NLR1/NELLORE-1",
-    "region_code": "SPSNELLORE",
-    "display_name": "NELLORE-1"
-  },
-  "atkn": {
-    "vehicle_depot": "ATKN/ATMAKUR-NELLORE",
-    "region_code": "SPSNELLORE",
-    "display_name": "ATMAKUR-NELLORE"
-  },
-  "udgr": {
-    "vehicle_depot": "UDGR/UDAYAGIRI",
-    "region_code": "SPSNELLORE",
-    "display_name": "UDAYAGIRI"
-  },
-  "kvl": {
-    "vehicle_depot": "KVL/KAVALI",
-    "region_code": "SPSNELLORE",
-    "display_name": "KAVALI"
-  },
-  "rpr": {
-    "vehicle_depot": "RPR/RAPUR",
-    "region_code": "SPSNELLORE",
-    "display_name": "RAPUR"
-  },
-  "gdt": {
-    "vehicle_depot": "GDT/GUDUR",
-    "region_code": "SPSNELLORE",
-    "display_name": "GUDUR"
-  },
-  "vkd": {
-    "vehicle_depot": "VKD/VAKAPADU",
-    "region_code": "TIRUPATI",
-    "display_name": "VAKAPADU"
-  },
-  "slpt": {
-    "vehicle_depot": "SLPT/SULLURPETA",
-    "region_code": "TIRUPATI",
-    "display_name": "SULLURPETA"
-  },
-  "vgr": {
-    "vehicle_depot": "VGR/VENKATAGIRI",
-    "region_code": "TIRUPATI",
-    "display_name": "VENKATAGIRI"
-  },
-  "tpt": {
-    "vehicle_depot": "TPT/TIRUPATIMAIN",
-    "region_code": "TIRUPATI",
-    "display_name": "TIRUPATIMAIN"
-  },
-  "mglm": {
-    "vehicle_depot": "MGLM/MANGALAM",
-    "region_code": "TIRUPATI",
-    "display_name": "MANGALAM"
-  },
-  "alpr": {
-    "vehicle_depot": "ALPR/ALIPIRI",
-    "region_code": "TIRUPATI",
-    "display_name": "ALIPIRI"
-  },
-  "tml": {
-    "vehicle_depot": "TML/TIRUMALA",
-    "region_code": "TIRUPATI",
-    "display_name": "TIRUMALA"
-  },
-  "skht": {
-    "vehicle_depot": "SKHT/SRIKALAHASTI",
-    "region_code": "TIRUPATI",
-    "display_name": "SRIKALAHASTI"
-  },
-  "stvd": {
-    "vehicle_depot": "STVD/SATYAVEDU",
-    "region_code": "TIRUPATI",
-    "display_name": "SATYAVEDU"
-  },
-  "ptr": {
-    "vehicle_depot": "PTR/PUTTUR",
-    "region_code": "TIRUPATI",
-    "display_name": "PUTTUR"
-  },
-  "ctr1": {
-    "vehicle_depot": "CTR1/CHITTOOR-1",
-    "region_code": "CHITTOR",
-    "display_name": "CHITTOOR-1"
-  },
-  "ctr2": {
-    "vehicle_depot": "CTR2/CHITTOOR-2",
-    "region_code": "CHITTOR",
-    "display_name": "CHITTOOR-2"
-  },
-  "plmr": {
-    "vehicle_depot": "PLMR/PALAMANER",
-    "region_code": "CHITTOR",
-    "display_name": "PALAMANER"
-  },
-  "kpm": {
-    "vehicle_depot": "KPM/KUPPAM",
-    "region_code": "CHITTOR",
-    "display_name": "KUPPAM"
-  },
-  "plr": {
-    "vehicle_depot": "PLR/PILERU",
-    "region_code": "ANNAMAIAH",
-    "display_name": "PILERU"
-  },
-  "mpl1": {
-    "vehicle_depot": "MPL1/MADANAPALLE-1",
-    "region_code": "ANNAMAIAH",
-    "display_name": "MADANAPALLE-1"
-  },
-  "mpl2": {
-    "vehicle_depot": "MPL2/MADANAPALLE-2",
-    "region_code": "ANNAMAIAH",
-    "display_name": "MADANAPALLE-2"
-  },
-  "rcty": {
-    "vehicle_depot": "RCTY/RAYACHOTY",
-    "region_code": "ANNAMAIAH",
-    "display_name": "RAYACHOTY"
-  },
-  "pngr": {
-    "vehicle_depot": "PNGR/PUNGANUR",
-    "region_code": "ANNAMAIAH",
-    "display_name": "PUNGANUR"
-  },
-  "kdp": {
-    "vehicle_depot": "KDP/KADAPA",
-    "region_code": "YSRKADAPA",
-    "display_name": "KADAPA"
-  },
-  "bdvl": {
-    "vehicle_depot": "BDVL/BADVEL",
-    "region_code": "YSRKADAPA",
-    "display_name": "BADVEL"
-  },
-  "mydk": {
-    "vehicle_depot": "MYDK/MYDUKUR",
-    "region_code": "YSRKADAPA",
-    "display_name": "MYDUKUR"
-  },
-  "jmd": {
-    "vehicle_depot": "JMD/JAMMALAMADUGU",
-    "region_code": "YSRKADAPA",
-    "display_name": "JAMMALAMADUGU"
-  },
-  "pdtr": {
-    "vehicle_depot": "PDTR/PRODDATUR",
-    "region_code": "YSRKADAPA",
-    "display_name": "PRODDATUR"
-  },
-  "plvd": {
-    "vehicle_depot": "PLVD/PULIVENDULA",
-    "region_code": "YSRKADAPA",
-    "display_name": "PULIVENDULA"
-  },
-  "rjpt": {
-    "vehicle_depot": "RJPT/RAJAMPET",
-    "region_code": "YSRKADAPA",
-    "display_name": "RAJAMPET"
-  },
-  "knl1": {
-    "vehicle_depot": "KNL1/KURNOOL-1",
-    "region_code": "KURNOOL",
-    "display_name": "KURNOOL-1"
-  },
-  "knl2": {
-    "vehicle_depot": "KNL2/KURNOOL-2",
-    "region_code": "KURNOOL",
-    "display_name": "KURNOOL-2"
-  },
-  "adoni": {
-    "vehicle_depot": "ADONI/ADONI",
-    "region_code": "KURNOOL",
-    "display_name": "ADONI"
-  },
-  "ptkd": {
-    "vehicle_depot": "PTKD/PATTIKONDA",
-    "region_code": "KURNOOL",
-    "display_name": "PATTIKONDA"
-  },
-  "ymg": {
-    "vehicle_depot": "YMG/YEMMIGANUR",
-    "region_code": "KURNOOL",
-    "display_name": "YEMMIGANUR"
-  },
-  "alg": {
-    "vehicle_depot": "ALG/ALLAGADDA",
-    "region_code": "NANDYAL",
-    "display_name": "ALLAGADDA"
-  },
-  "atkk": {
-    "vehicle_depot": "ATKK/ATMAKUR-KURNOOL/NANDYAL",
-    "region_code": "NANDYAL",
-    "display_name": "ATMAKUR-KURNOOL/NANDYAL"
-  },
-  "bpl": {
-    "vehicle_depot": "BPL/BANAGANAPALLI",
-    "region_code": "NANDYAL",
-    "display_name": "BANAGANAPALLI"
-  },
-  "dhn": {
-    "vehicle_depot": "DHN/DHONE",
-    "region_code": "NANDYAL",
-    "display_name": "DHONE"
-  },
-  "kkl": {
-    "vehicle_depot": "KKL/KOILAKUNTLA",
-    "region_code": "NANDYAL",
-    "display_name": "KOILAKUNTLA"
-  },
-  "ndk": {
-    "vehicle_depot": "NDK/NANDIKOTKUR",
-    "region_code": "NANDYAL",
-    "display_name": "NANDIKOTKUR"
-  },
-  "ndl": {
-    "vehicle_depot": "NDL/NANDYAL",
-    "region_code": "NANDYAL",
-    "display_name": "NANDYAL"
-  },
-  "atp": {
-    "vehicle_depot": "ATP/ANANTAPUR",
-    "region_code": "ANANTAPUR",
-    "display_name": "ANANTAPUR"
-  },
-  "kldg": {
-    "vehicle_depot": "KLDG/KALYANDURGAM",
-    "region_code": "ANANTAPUR",
-    "display_name": "KALYANDURGAM"
-  },
-  "rdg": {
-    "vehicle_depot": "RDG/RAYADURGAM",
-    "region_code": "ANANTAPUR",
-    "display_name": "RAYADURGAM"
-  },
-  "tdp": {
-    "vehicle_depot": "TDP/TADIPATRI",
-    "region_code": "ANANTAPUR",
-    "display_name": "TADIPATRI"
-  },
-  "gtkl": {
-    "vehicle_depot": "GTKL/GUNTAKAL",
-    "region_code": "ANANTAPUR",
-    "display_name": "GUNTAKAL"
-  },
-  "ukd": {
-    "vehicle_depot": "UKD/URAVAKONDA",
-    "region_code": "ANANTAPUR",
-    "display_name": "URAVAKONDA"
-  },
-  "gty": {
-    "vehicle_depot": "GTY/GOOTY",
-    "region_code": "ANANTAPUR",
-    "display_name": "GOOTY"
-  },
-  "dmm": {
-    "vehicle_depot": "DMM/DHARMAVARAM",
-    "region_code": "SRISATYASAI",
-    "display_name": "DHARMAVARAM"
-  },
-  "hdp": {
-    "vehicle_depot": "HDP/HINDUPUR",
-    "region_code": "SRISATYASAI",
-    "display_name": "HINDUPUR"
-  },
-  "kdr": {
-    "vehicle_depot": "KDR/KADIRI",
-    "region_code": "SRISATYASAI",
-    "display_name": "KADIRI"
-  },
-  "mdks": {
-    "vehicle_depot": "MDKS/MADAKASIRA",
-    "region_code": "SRISATYASAI",
-    "display_name": "MADAKASIRA"
-  },
-  "pnkd": {
-    "vehicle_depot": "PNKD/PENUKONDA",
-    "region_code": "SRISATYASAI",
-    "display_name": "PENUKONDA"
-  },
-  "ptp": {
-    "vehicle_depot": "PTP/PUTTAPARTHI",
-    "region_code": "SRISATYASAI",
-    "display_name": "PUTTAPARTHI"
-  },
-  "rajampeta": {
-    "vehicle_depot": "RJPT/RAJAMPET",
-    "region_code": "YSRKADAPA",
-    "display_name": "RAJAMPET",
-    "_alias": "rajampet"
-  },
-  "tekkali": {
-    "vehicle_depot": "TKL/TEKKALI",
-    "region_code": "SRIKAKULAM",
-    "display_name": "TEKKALI",
-    "_alias": "tkl"
-  },
-  "srikakulam1": {
-    "vehicle_depot": "SKLM1/SRIKAKULAM-1",
-    "region_code": "SRIKAKULAM",
-    "display_name": "SRIKAKULAM-1",
-    "_alias": "sklm1"
-  },
-  "srikakulam2": {
-    "vehicle_depot": "SKLM2/SRIKAKULAM-2",
-    "region_code": "SRIKAKULAM",
-    "display_name": "SRIKAKULAM-2",
-    "_alias": "sklm2"
-  },
-  "palasa": {
-    "vehicle_depot": "PLS/PALASA",
-    "region_code": "SRIKAKULAM",
-    "display_name": "PALASA",
-    "_alias": "pls"
-  },
-  "srungavarapukotas.kota": {
-    "vehicle_depot": "SKT/SRUNGAVARAPUKOTA/S.KOTA",
-    "region_code": "VIZIANAGARAM",
-    "display_name": "SRUNGAVARAPUKOTA/S.KOTA",
-    "_alias": "skt"
-  },
-  "vizianagaram": {
-    "vehicle_depot": "VZM/VIZIANAGARAM",
-    "region_code": "VIZIANAGARAM",
-    "display_name": "VIZIANAGARAM",
-    "_alias": "vzm"
-  },
-  "palakonda": {
-    "vehicle_depot": "PLKD/PALAKONDA",
-    "region_code": "PPMMANYAM",
-    "display_name": "PALAKONDA",
-    "_alias": "plkd"
-  },
-  "parvathipuram": {
-    "vehicle_depot": "PPM/PARVATHIPURAM",
-    "region_code": "PPMMANYAM",
-    "display_name": "PARVATHIPURAM",
-    "_alias": "ppm"
-  },
-  "salur": {
-    "vehicle_depot": "SLR/SALUR",
-    "region_code": "PPMMANYAM",
-    "display_name": "SALUR",
-    "_alias": "slr"
-  },
-  "anakapalli": {
-    "vehicle_depot": "AKP/ANAKAPALLI",
-    "region_code": "ANAKAPALLI",
-    "display_name": "ANAKAPALLI",
-    "_alias": "akp"
-  },
-  "narsipatnam": {
-    "vehicle_depot": "NRPM/NARSIPATNAM",
-    "region_code": "ANAKAPALLI",
-    "display_name": "NARSIPATNAM",
-    "_alias": "nrpm"
-  },
-  "paderu": {
-    "vehicle_depot": "PDR/PADERU",
-    "region_code": "ASR",
-    "display_name": "PADERU",
-    "_alias": "pdr"
-  },
-  "visakhapatnam": {
-    "vehicle_depot": "VSP/VISAKHAPATNAM",
-    "region_code": "VISAKHAPATNAM",
-    "display_name": "VISAKHAPATNAM",
-    "_alias": "vsp"
-  },
-  "madhavadhara": {
-    "vehicle_depot": "MDWD/MADHAVADHARA",
-    "region_code": "VISAKHAPATNAM",
-    "display_name": "MADHAVADHARA",
-    "_alias": "mdwd"
-  },
-  "waltair": {
-    "vehicle_depot": "WLTR/WALTAIR",
-    "region_code": "VISAKHAPATNAM",
-    "display_name": "WALTAIR",
-    "_alias": "wltr"
-  },
-  "gajuwaka": {
-    "vehicle_depot": "GWK/GAJUWAKA",
-    "region_code": "VISAKHAPATNAM",
-    "display_name": "GAJUWAKA",
-    "_alias": "gwk"
-  },
-  "simhachalam": {
-    "vehicle_depot": "SML/SIMHACHALAM",
-    "region_code": "VISAKHAPATNAM",
-    "display_name": "SIMHACHALAM",
-    "_alias": "sml"
-  },
-  "visakhasteelcitydepot": {
-    "vehicle_depot": "VSCD/VISAKHASTEELCITYDEPOT",
-    "region_code": "VISAKHAPATNAM",
-    "display_name": "VISAKHASTEELCITYDEPOT",
-    "_alias": "vscd"
-  },
-  "maddilapalem": {
-    "vehicle_depot": "MDP/MADDILAPALEM",
-    "region_code": "VISAKHAPATNAM",
-    "display_name": "MADDILAPALEM",
-    "_alias": "mdp"
-  },
-  "kakinada": {
-    "vehicle_depot": "KKD/KAKINADA",
-    "region_code": "KAKINADA",
-    "display_name": "KAKINADA",
-    "_alias": "kkd"
-  },
-  "eleswaram": {
-    "vehicle_depot": "ELSM/ELESWARAM",
-    "region_code": "KAKINADA",
-    "display_name": "ELESWARAM",
-    "_alias": "elsm"
-  },
-  "ravulapalem": {
-    "vehicle_depot": "RVM/RAVULAPALEM",
-    "region_code": "KONASEEMA",
-    "display_name": "RAVULAPALEM",
-    "_alias": "rvm"
-  },
-  "razole": {
-    "vehicle_depot": "RZL/RAZOLE",
-    "region_code": "KONASEEMA",
-    "display_name": "RAZOLE",
-    "_alias": "rzl"
-  },
-  "amalapuram": {
-    "vehicle_depot": "AMP/AMALAPURAM",
-    "region_code": "KONASEEMA",
-    "display_name": "AMALAPURAM",
-    "_alias": "amp"
-  },
-  "ramachandrapuram": {
-    "vehicle_depot": "RCPM/RAMACHANDRAPURAM",
-    "region_code": "KONASEEMA",
-    "display_name": "RAMACHANDRAPURAM",
-    "_alias": "rcpm"
-  },
-  "rajamahendravaramrajahmundry": {
-    "vehicle_depot": "RJY/RAJAMAHENDRAVARAM/RAJAHMUNDRY",
-    "region_code": "EASTGODAVARI",
-    "display_name": "RAJAMAHENDRAVARAM/RAJAHMUNDRY",
-    "_alias": "rjy"
-  },
-  "gokavaram": {
-    "vehicle_depot": "GKRM/GOKAVARAM",
-    "region_code": "EASTGODAVARI",
-    "display_name": "GOKAVARAM",
-    "_alias": "gkrm"
-  },
-  "kovvur": {
-    "vehicle_depot": "KVR/KOVVUR",
-    "region_code": "EASTGODAVARI",
-    "display_name": "KOVVUR",
-    "_alias": "kvr"
-  },
-  "nidadavole": {
-    "vehicle_depot": "NDD/NIDADAVOLE",
-    "region_code": "EASTGODAVARI",
-    "display_name": "NIDADAVOLE",
-    "_alias": "ndd"
-  },
-  "narsapuram": {
-    "vehicle_depot": "NSP/NARSAPURAM",
-    "region_code": "WESTGODAVARI",
-    "display_name": "NARSAPURAM",
-    "_alias": "nsp"
-  },
-  "bhimavaram": {
-    "vehicle_depot": "BVRM/BHIMAVARAM",
-    "region_code": "WESTGODAVARI",
-    "display_name": "BHIMAVARAM",
-    "_alias": "bvrm"
-  },
-  "tanuku": {
-    "vehicle_depot": "TNK/TANUKU",
-    "region_code": "WESTGODAVARI",
-    "display_name": "TANUKU",
-    "_alias": "tnk"
-  },
-  "tadepalligudem": {
-    "vehicle_depot": "TPG/TADEPALLIGUDEM",
-    "region_code": "WESTGODAVARI",
-    "display_name": "TADEPALLIGUDEM",
-    "_alias": "tpg"
-  },
-  "eluru": {
-    "vehicle_depot": "ELR/ELURU",
-    "region_code": "ELURU",
-    "display_name": "ELURU",
-    "_alias": "elr"
-  },
-  "jangareddygudem": {
-    "vehicle_depot": "JRG/JANGAREDDYGUDEM",
-    "region_code": "ELURU",
-    "display_name": "JANGAREDDYGUDEM",
-    "_alias": "jrg"
-  },
-  "nuzvid": {
-    "vehicle_depot": "NZD/NUZVID",
-    "region_code": "ELURU",
-    "display_name": "NUZVID",
-    "_alias": "nzd"
-  },
-  "jaggaiahpeta": {
-    "vehicle_depot": "JPT/JAGGAIAHPETA",
-    "region_code": "NTR",
-    "display_name": "JAGGAIAHPETA",
-    "_alias": "jpt"
-  },
-  "tiruvuru": {
-    "vehicle_depot": "TVR/TIRUVURU",
-    "region_code": "NTR",
-    "display_name": "TIRUVURU",
-    "_alias": "tvr"
-  },
-  "vijayawadavidyadharapuram": {
-    "vehicle_depot": "VJA/VIJAYAWADA/VIDYADHARAPURAM",
-    "region_code": "NTR",
-    "display_name": "VIJAYAWADA/VIDYADHARAPURAM",
-    "_alias": "vja"
-  },
-  "autonagar": {
-    "vehicle_depot": "ATNR/AUTONAGAR",
-    "region_code": "NTR",
-    "display_name": "AUTONAGAR",
-    "_alias": "atnr"
-  },
-  "ibrahimpatnam": {
-    "vehicle_depot": "IBM/IBRAHIMPATNAM",
-    "region_code": "NTR",
-    "display_name": "IBRAHIMPATNAM",
-    "_alias": "ibm"
-  },
-  "governorpet1": {
-    "vehicle_depot": "GVPT1/GOVERNORPET-1",
-    "region_code": "NTR",
-    "display_name": "GOVERNORPET-1",
-    "_alias": "gvpt1"
-  },
-  "governorpet2": {
-    "vehicle_depot": "GVPT2/GOVERNORPET-2",
-    "region_code": "NTR",
-    "display_name": "GOVERNORPET-2",
-    "_alias": "gvpt2"
-  },
-  "gannavaram": {
-    "vehicle_depot": "GVRM/GANNAVARAM",
-    "region_code": "KRISHNA",
-    "display_name": "GANNAVARAM",
-    "_alias": "gvrm"
-  },
-  "machilipatnam": {
-    "vehicle_depot": "MTM/MACHILIPATNAM",
-    "region_code": "KRISHNA",
-    "display_name": "MACHILIPATNAM",
-    "_alias": "mtm"
-  },
-  "gudivada": {
-    "vehicle_depot": "GDV/GUDIVADA",
-    "region_code": "KRISHNA",
-    "display_name": "GUDIVADA",
-    "_alias": "gdv"
-  },
-  "avanigadda": {
-    "vehicle_depot": "AVG/AVANIGADDA",
-    "region_code": "KRISHNA",
-    "display_name": "AVANIGADDA",
-    "_alias": "avg"
-  },
-  "vuyyuru": {
-    "vehicle_depot": "VYR/VUYYURU",
-    "region_code": "KRISHNA",
-    "display_name": "VUYYURU",
-    "_alias": "vyr"
-  },
-  "guntur1": {
-    "vehicle_depot": "GNT1/GUNTUR-1",
-    "region_code": "GUNTUR",
-    "display_name": "GUNTUR-1",
-    "_alias": "gnt1"
-  },
-  "tenali": {
-    "vehicle_depot": "TNL/TENALI",
-    "region_code": "GUNTUR",
-    "display_name": "TENALI",
-    "_alias": "tnl"
-  },
-  "ponnur": {
-    "vehicle_depot": "PNR/PONNUR",
-    "region_code": "GUNTUR",
-    "display_name": "PONNUR",
-    "_alias": "pnr"
-  },
-  "mangalagiri": {
-    "vehicle_depot": "MGLR/MANGALAGIRI",
-    "region_code": "GUNTUR",
-    "display_name": "MANGALAGIRI",
-    "_alias": "mglr"
-  },
-  "piduguralla": {
-    "vehicle_depot": "PDRL/PIDUGURALLA",
-    "region_code": "PALNADU",
-    "display_name": "PIDUGURALLA",
-    "_alias": "pdrl"
-  },
-  "macherla": {
-    "vehicle_depot": "MCL/MACHERLA",
-    "region_code": "PALNADU",
-    "display_name": "MACHERLA",
-    "_alias": "mcl"
-  },
-  "narasaraopet": {
-    "vehicle_depot": "NRT/NARASARAOPET",
-    "region_code": "PALNADU",
-    "display_name": "NARASARAOPET",
-    "_alias": "nrt"
-  },
-  "chilakaluripeta": {
-    "vehicle_depot": "CPT/CHILAKALURIPETA",
-    "region_code": "PALNADU",
-    "display_name": "CHILAKALURIPETA",
-    "_alias": "cpt"
-  },
-  "sattenapalli": {
-    "vehicle_depot": "SAP/SATTENAPALLI",
-    "region_code": "PALNADU",
-    "display_name": "SATTENAPALLI",
-    "_alias": "sap"
-  },
-  "vinukonda": {
-    "vehicle_depot": "VNK/VINUKONDA",
-    "region_code": "PALNADU",
-    "display_name": "VINUKONDA",
-    "_alias": "vnk"
-  },
-  "bapatla": {
-    "vehicle_depot": "BPTL/BAPATLA",
-    "region_code": "BAPATLA",
-    "display_name": "BAPATLA",
-    "_alias": "bptl"
-  },
-  "repalle": {
-    "vehicle_depot": "RPL/REPALLE",
-    "region_code": "BAPATLA",
-    "display_name": "REPALLE",
-    "_alias": "rpl"
-  },
-  "chirala": {
-    "vehicle_depot": "CRL/CHIRALA",
-    "region_code": "BAPATLA",
-    "display_name": "CHIRALA",
-    "_alias": "crl"
-  },
-  "ongole": {
-    "vehicle_depot": "OGL/ONGOLE",
-    "region_code": "PRAKASAM",
-    "display_name": "ONGOLE",
-    "_alias": "ogl"
-  },
-  "addanki": {
-    "vehicle_depot": "ADK/ADDANKI",
-    "region_code": "PRAKASAM",
-    "display_name": "ADDANKI",
-    "_alias": "adk"
-  },
-  "kandukur": {
-    "vehicle_depot": "KDKR/KANDUKUR",
-    "region_code": "PRAKASAM",
-    "display_name": "KANDUKUR",
-    "_alias": "kdkr"
-  },
-  "podili": {
-    "vehicle_depot": "PDL/PODILI",
-    "region_code": "MARKAPURAM",
-    "display_name": "PODILI",
-    "_alias": "pdl"
-  },
-  "markapur": {
-    "vehicle_depot": "MRKP/MARKAPUR",
-    "region_code": "MARKAPURAM",
-    "display_name": "MARKAPUR",
-    "_alias": "mrkp"
-  },
-  "kanigiri": {
-    "vehicle_depot": "KNGR/KANIGIRI",
-    "region_code": "MARKAPURAM",
-    "display_name": "KANIGIRI",
-    "_alias": "kngr"
-  },
-  "giddalur": {
-    "vehicle_depot": "GDLR/GIDDALUR",
-    "region_code": "MARKAPURAM",
-    "display_name": "GIDDALUR",
-    "_alias": "gdlr"
-  },
-  "nellore1": {
-    "vehicle_depot": "NLR1/NELLORE-1",
-    "region_code": "SPSNELLORE",
-    "display_name": "NELLORE-1",
-    "_alias": "nlr1"
-  },
-  "atmakurnellore": {
-    "vehicle_depot": "ATKN/ATMAKUR-NELLORE",
-    "region_code": "SPSNELLORE",
-    "display_name": "ATMAKUR-NELLORE",
-    "_alias": "atkn"
-  },
-  "udayagiri": {
-    "vehicle_depot": "UDGR/UDAYAGIRI",
-    "region_code": "SPSNELLORE",
-    "display_name": "UDAYAGIRI",
-    "_alias": "udgr"
-  },
-  "kavali": {
-    "vehicle_depot": "KVL/KAVALI",
-    "region_code": "SPSNELLORE",
-    "display_name": "KAVALI",
-    "_alias": "kvl"
-  },
-  "rapur": {
-    "vehicle_depot": "RPR/RAPUR",
-    "region_code": "SPSNELLORE",
-    "display_name": "RAPUR",
-    "_alias": "rpr"
-  },
-  "gudur": {
-    "vehicle_depot": "GDT/GUDUR",
-    "region_code": "SPSNELLORE",
-    "display_name": "GUDUR",
-    "_alias": "gdt"
-  },
-  "vakapadu": {
-    "vehicle_depot": "VKD/VAKAPADU",
-    "region_code": "TIRUPATI",
-    "display_name": "VAKAPADU",
-    "_alias": "vkd"
-  },
-  "sullurpeta": {
-    "vehicle_depot": "SLPT/SULLURPETA",
-    "region_code": "TIRUPATI",
-    "display_name": "SULLURPETA",
-    "_alias": "slpt"
-  },
-  "venkatagiri": {
-    "vehicle_depot": "VGR/VENKATAGIRI",
-    "region_code": "TIRUPATI",
-    "display_name": "VENKATAGIRI",
-    "_alias": "vgr"
-  },
-  "tirupatimain": {
-    "vehicle_depot": "TPT/TIRUPATIMAIN",
-    "region_code": "TIRUPATI",
-    "display_name": "TIRUPATIMAIN",
-    "_alias": "tpt"
-  },
-  "mangalam": {
-    "vehicle_depot": "MGLM/MANGALAM",
-    "region_code": "TIRUPATI",
-    "display_name": "MANGALAM",
-    "_alias": "mglm"
-  },
-  "alipiri": {
-    "vehicle_depot": "ALPR/ALIPIRI",
-    "region_code": "TIRUPATI",
-    "display_name": "ALIPIRI",
-    "_alias": "alpr"
-  },
-  "tirumala": {
-    "vehicle_depot": "TML/TIRUMALA",
-    "region_code": "TIRUPATI",
-    "display_name": "TIRUMALA",
-    "_alias": "tml"
-  },
-  "srikalahasti": {
-    "vehicle_depot": "SKHT/SRIKALAHASTI",
-    "region_code": "TIRUPATI",
-    "display_name": "SRIKALAHASTI",
-    "_alias": "skht"
-  },
-  "satyavedu": {
-    "vehicle_depot": "STVD/SATYAVEDU",
-    "region_code": "TIRUPATI",
-    "display_name": "SATYAVEDU",
-    "_alias": "stvd"
-  },
-  "puttur": {
-    "vehicle_depot": "PTR/PUTTUR",
-    "region_code": "TIRUPATI",
-    "display_name": "PUTTUR",
-    "_alias": "ptr"
-  },
-  "chittoor1": {
-    "vehicle_depot": "CTR1/CHITTOOR-1",
-    "region_code": "CHITTOR",
-    "display_name": "CHITTOOR-1",
-    "_alias": "ctr1"
-  },
-  "chittoor2": {
-    "vehicle_depot": "CTR2/CHITTOOR-2",
-    "region_code": "CHITTOR",
-    "display_name": "CHITTOOR-2",
-    "_alias": "ctr2"
-  },
-  "palamaner": {
-    "vehicle_depot": "PLMR/PALAMANER",
-    "region_code": "CHITTOR",
-    "display_name": "PALAMANER",
-    "_alias": "plmr"
-  },
-  "kuppam": {
-    "vehicle_depot": "KPM/KUPPAM",
-    "region_code": "CHITTOR",
-    "display_name": "KUPPAM",
-    "_alias": "kpm"
-  },
-  "pileru": {
-    "vehicle_depot": "PLR/PILERU",
-    "region_code": "ANNAMAIAH",
-    "display_name": "PILERU",
-    "_alias": "plr"
-  },
-  "madanapalle1": {
-    "vehicle_depot": "MPL1/MADANAPALLE-1",
-    "region_code": "ANNAMAIAH",
-    "display_name": "MADANAPALLE-1",
-    "_alias": "mpl1"
-  },
-  "madanapalle2": {
-    "vehicle_depot": "MPL2/MADANAPALLE-2",
-    "region_code": "ANNAMAIAH",
-    "display_name": "MADANAPALLE-2",
-    "_alias": "mpl2"
-  },
-  "rayachoty": {
-    "vehicle_depot": "RCTY/RAYACHOTY",
-    "region_code": "ANNAMAIAH",
-    "display_name": "RAYACHOTY",
-    "_alias": "rcty"
-  },
-  "punganur": {
-    "vehicle_depot": "PNGR/PUNGANUR",
-    "region_code": "ANNAMAIAH",
-    "display_name": "PUNGANUR",
-    "_alias": "pngr"
-  },
-  "kadapa": {
-    "vehicle_depot": "KDP/KADAPA",
-    "region_code": "YSRKADAPA",
-    "display_name": "KADAPA",
-    "_alias": "kdp"
-  },
-  "badvel": {
-    "vehicle_depot": "BDVL/BADVEL",
-    "region_code": "YSRKADAPA",
-    "display_name": "BADVEL",
-    "_alias": "bdvl"
-  },
-  "mydukur": {
-    "vehicle_depot": "MYDK/MYDUKUR",
-    "region_code": "YSRKADAPA",
-    "display_name": "MYDUKUR",
-    "_alias": "mydk"
-  },
-  "jammalamadugu": {
-    "vehicle_depot": "JMD/JAMMALAMADUGU",
-    "region_code": "YSRKADAPA",
-    "display_name": "JAMMALAMADUGU",
-    "_alias": "jmd"
-  },
-  "proddatur": {
-    "vehicle_depot": "PDTR/PRODDATUR",
-    "region_code": "YSRKADAPA",
-    "display_name": "PRODDATUR",
-    "_alias": "pdtr"
-  },
-  "pulivendula": {
-    "vehicle_depot": "PLVD/PULIVENDULA",
-    "region_code": "YSRKADAPA",
-    "display_name": "PULIVENDULA",
-    "_alias": "plvd"
-  },
-  "rajampet": {
-    "vehicle_depot": "RJPT/RAJAMPET",
-    "region_code": "YSRKADAPA",
-    "display_name": "RAJAMPET",
-    "_alias": "rjpt"
-  },
-  "kurnool1": {
-    "vehicle_depot": "KNL1/KURNOOL-1",
-    "region_code": "KURNOOL",
-    "display_name": "KURNOOL-1",
-    "_alias": "knl1"
-  },
-  "kurnool2": {
-    "vehicle_depot": "KNL2/KURNOOL-2",
-    "region_code": "KURNOOL",
-    "display_name": "KURNOOL-2",
-    "_alias": "knl2"
-  },
-  "pattikonda": {
-    "vehicle_depot": "PTKD/PATTIKONDA",
-    "region_code": "KURNOOL",
-    "display_name": "PATTIKONDA",
-    "_alias": "ptkd"
-  },
-  "yemmiganur": {
-    "vehicle_depot": "YMG/YEMMIGANUR",
-    "region_code": "KURNOOL",
-    "display_name": "YEMMIGANUR",
-    "_alias": "ymg"
-  },
-  "allagadda": {
-    "vehicle_depot": "ALG/ALLAGADDA",
-    "region_code": "NANDYAL",
-    "display_name": "ALLAGADDA",
-    "_alias": "alg"
-  },
-  "atmakurkurnoolnandyal": {
-    "vehicle_depot": "ATKK/ATMAKUR-KURNOOL/NANDYAL",
-    "region_code": "NANDYAL",
-    "display_name": "ATMAKUR-KURNOOL/NANDYAL",
-    "_alias": "atkk"
-  },
-  "banaganapalli": {
-    "vehicle_depot": "BPL/BANAGANAPALLI",
-    "region_code": "NANDYAL",
-    "display_name": "BANAGANAPALLI",
-    "_alias": "bpl"
-  },
-  "dhone": {
-    "vehicle_depot": "DHN/DHONE",
-    "region_code": "NANDYAL",
-    "display_name": "DHONE",
-    "_alias": "dhn"
-  },
-  "koilakuntla": {
-    "vehicle_depot": "KKL/KOILAKUNTLA",
-    "region_code": "NANDYAL",
-    "display_name": "KOILAKUNTLA",
-    "_alias": "kkl"
-  },
-  "nandikotkur": {
-    "vehicle_depot": "NDK/NANDIKOTKUR",
-    "region_code": "NANDYAL",
-    "display_name": "NANDIKOTKUR",
-    "_alias": "ndk"
-  },
-  "nandyal": {
-    "vehicle_depot": "NDL/NANDYAL",
-    "region_code": "NANDYAL",
-    "display_name": "NANDYAL",
-    "_alias": "ndl"
-  },
-  "anantapur": {
-    "vehicle_depot": "ATP/ANANTAPUR",
-    "region_code": "ANANTAPUR",
-    "display_name": "ANANTAPUR",
-    "_alias": "atp"
-  },
-  "kalyandurgam": {
-    "vehicle_depot": "KLDG/KALYANDURGAM",
-    "region_code": "ANANTAPUR",
-    "display_name": "KALYANDURGAM",
-    "_alias": "kldg"
-  },
-  "rayadurgam": {
-    "vehicle_depot": "RDG/RAYADURGAM",
-    "region_code": "ANANTAPUR",
-    "display_name": "RAYADURGAM",
-    "_alias": "rdg"
-  },
-  "tadipatri": {
-    "vehicle_depot": "TDP/TADIPATRI",
-    "region_code": "ANANTAPUR",
-    "display_name": "TADIPATRI",
-    "_alias": "tdp"
-  },
-  "guntakal": {
-    "vehicle_depot": "GTKL/GUNTAKAL",
-    "region_code": "ANANTAPUR",
-    "display_name": "GUNTAKAL",
-    "_alias": "gtkl"
-  },
-  "uravakonda": {
-    "vehicle_depot": "UKD/URAVAKONDA",
-    "region_code": "ANANTAPUR",
-    "display_name": "URAVAKONDA",
-    "_alias": "ukd"
-  },
-  "gooty": {
-    "vehicle_depot": "GTY/GOOTY",
-    "region_code": "ANANTAPUR",
-    "display_name": "GOOTY",
-    "_alias": "gty"
-  },
-  "dharmavaram": {
-    "vehicle_depot": "DMM/DHARMAVARAM",
-    "region_code": "SRISATYASAI",
-    "display_name": "DHARMAVARAM",
-    "_alias": "dmm"
-  },
-  "hindupur": {
-    "vehicle_depot": "HDP/HINDUPUR",
-    "region_code": "SRISATYASAI",
-    "display_name": "HINDUPUR",
-    "_alias": "hdp"
-  },
-  "kadiri": {
-    "vehicle_depot": "KDR/KADIRI",
-    "region_code": "SRISATYASAI",
-    "display_name": "KADIRI",
-    "_alias": "kdr"
-  },
-  "madakasira": {
-    "vehicle_depot": "MDKS/MADAKASIRA",
-    "region_code": "SRISATYASAI",
-    "display_name": "MADAKASIRA",
-    "_alias": "mdks"
-  },
-  "penukonda": {
-    "vehicle_depot": "PNKD/PENUKONDA",
-    "region_code": "SRISATYASAI",
-    "display_name": "PENUKONDA",
-    "_alias": "pnkd"
-  },
-  "puttaparthi": {
-    "vehicle_depot": "PTP/PUTTAPARTHI",
-    "region_code": "SRISATYASAI",
-    "display_name": "PUTTAPARTHI",
-    "_alias": "ptp"
-  },
-  "TEKKALI": {
-    "vehicle_depot": "TKL/TEKKALI",
-    "region_code": "SRIKAKULAM",
-    "display_name": "TEKKALI",
-    "_alias": "tkl"
-  },
-  "SRIKAKULAM-1": {
-    "vehicle_depot": "SKLM1/SRIKAKULAM-1",
-    "region_code": "SRIKAKULAM",
-    "display_name": "SRIKAKULAM-1",
-    "_alias": "sklm1"
-  },
-  "SRIKAKULAM-2": {
-    "vehicle_depot": "SKLM2/SRIKAKULAM-2",
-    "region_code": "SRIKAKULAM",
-    "display_name": "SRIKAKULAM-2",
-    "_alias": "sklm2"
-  },
-  "PALASA": {
-    "vehicle_depot": "PLS/PALASA",
-    "region_code": "SRIKAKULAM",
-    "display_name": "PALASA",
-    "_alias": "pls"
-  },
-  "SRUNGAVARAPUKOTA/S.KOTA": {
-    "vehicle_depot": "SKT/SRUNGAVARAPUKOTA/S.KOTA",
-    "region_code": "VIZIANAGARAM",
-    "display_name": "SRUNGAVARAPUKOTA/S.KOTA",
-    "_alias": "skt"
-  },
-  "VIZIANAGARAM": {
-    "vehicle_depot": "VZM/VIZIANAGARAM",
-    "region_code": "VIZIANAGARAM",
-    "display_name": "VIZIANAGARAM",
-    "_alias": "vzm"
-  },
-  "PALAKONDA": {
-    "vehicle_depot": "PLKD/PALAKONDA",
-    "region_code": "PPMMANYAM",
-    "display_name": "PALAKONDA",
-    "_alias": "plkd"
-  },
-  "PARVATHIPURAM": {
-    "vehicle_depot": "PPM/PARVATHIPURAM",
-    "region_code": "PPMMANYAM",
-    "display_name": "PARVATHIPURAM",
-    "_alias": "ppm"
-  },
-  "SALUR": {
-    "vehicle_depot": "SLR/SALUR",
-    "region_code": "PPMMANYAM",
-    "display_name": "SALUR",
-    "_alias": "slr"
-  },
-  "ANAKAPALLI": {
-    "vehicle_depot": "AKP/ANAKAPALLI",
-    "region_code": "ANAKAPALLI",
-    "display_name": "ANAKAPALLI",
-    "_alias": "akp"
-  },
-  "NARSIPATNAM": {
-    "vehicle_depot": "NRPM/NARSIPATNAM",
-    "region_code": "ANAKAPALLI",
-    "display_name": "NARSIPATNAM",
-    "_alias": "nrpm"
-  },
-  "PADERU": {
-    "vehicle_depot": "PDR/PADERU",
-    "region_code": "ASR",
-    "display_name": "PADERU",
-    "_alias": "pdr"
-  },
-  "VISAKHAPATNAM": {
-    "vehicle_depot": "VSP/VISAKHAPATNAM",
-    "region_code": "VISAKHAPATNAM",
-    "display_name": "VISAKHAPATNAM",
-    "_alias": "vsp"
-  },
-  "MADHAVADHARA": {
-    "vehicle_depot": "MDWD/MADHAVADHARA",
-    "region_code": "VISAKHAPATNAM",
-    "display_name": "MADHAVADHARA",
-    "_alias": "mdwd"
-  },
-  "WALTAIR": {
-    "vehicle_depot": "WLTR/WALTAIR",
-    "region_code": "VISAKHAPATNAM",
-    "display_name": "WALTAIR",
-    "_alias": "wltr"
-  },
-  "GAJUWAKA": {
-    "vehicle_depot": "GWK/GAJUWAKA",
-    "region_code": "VISAKHAPATNAM",
-    "display_name": "GAJUWAKA",
-    "_alias": "gwk"
-  },
-  "SIMHACHALAM": {
-    "vehicle_depot": "SML/SIMHACHALAM",
-    "region_code": "VISAKHAPATNAM",
-    "display_name": "SIMHACHALAM",
-    "_alias": "sml"
-  },
-  "VISAKHASTEELCITYDEPOT": {
-    "vehicle_depot": "VSCD/VISAKHASTEELCITYDEPOT",
-    "region_code": "VISAKHAPATNAM",
-    "display_name": "VISAKHASTEELCITYDEPOT",
-    "_alias": "vscd"
-  },
-  "MADDILAPALEM": {
-    "vehicle_depot": "MDP/MADDILAPALEM",
-    "region_code": "VISAKHAPATNAM",
-    "display_name": "MADDILAPALEM",
-    "_alias": "mdp"
-  },
-  "KAKINADA": {
-    "vehicle_depot": "KKD/KAKINADA",
-    "region_code": "KAKINADA",
-    "display_name": "KAKINADA",
-    "_alias": "kkd"
-  },
-  "ELESWARAM": {
-    "vehicle_depot": "ELSM/ELESWARAM",
-    "region_code": "KAKINADA",
-    "display_name": "ELESWARAM",
-    "_alias": "elsm"
-  },
-  "TUNI": {
-    "vehicle_depot": "TUNI/TUNI",
-    "region_code": "KAKINADA",
-    "display_name": "TUNI",
-    "_alias": "tuni"
-  },
-  "RAVULAPALEM": {
-    "vehicle_depot": "RVM/RAVULAPALEM",
-    "region_code": "KONASEEMA",
-    "display_name": "RAVULAPALEM",
-    "_alias": "rvm"
-  },
-  "RAZOLE": {
-    "vehicle_depot": "RZL/RAZOLE",
-    "region_code": "KONASEEMA",
-    "display_name": "RAZOLE",
-    "_alias": "rzl"
-  },
-  "AMALAPURAM": {
-    "vehicle_depot": "AMP/AMALAPURAM",
-    "region_code": "KONASEEMA",
-    "display_name": "AMALAPURAM",
-    "_alias": "amp"
-  },
-  "RAMACHANDRAPURAM": {
-    "vehicle_depot": "RCPM/RAMACHANDRAPURAM",
-    "region_code": "KONASEEMA",
-    "display_name": "RAMACHANDRAPURAM",
-    "_alias": "rcpm"
-  },
-  "RAJAMAHENDRAVARAM/RAJAHMUNDRY": {
-    "vehicle_depot": "RJY/RAJAMAHENDRAVARAM/RAJAHMUNDRY",
-    "region_code": "EASTGODAVARI",
-    "display_name": "RAJAMAHENDRAVARAM/RAJAHMUNDRY",
-    "_alias": "rjy"
-  },
-  "GOKAVARAM": {
-    "vehicle_depot": "GKRM/GOKAVARAM",
-    "region_code": "EASTGODAVARI",
-    "display_name": "GOKAVARAM",
-    "_alias": "gkrm"
-  },
-  "KOVVUR": {
-    "vehicle_depot": "KVR/KOVVUR",
-    "region_code": "EASTGODAVARI",
-    "display_name": "KOVVUR",
-    "_alias": "kvr"
-  },
-  "NIDADAVOLE": {
-    "vehicle_depot": "NDD/NIDADAVOLE",
-    "region_code": "EASTGODAVARI",
-    "display_name": "NIDADAVOLE",
-    "_alias": "ndd"
-  },
-  "NARSAPURAM": {
-    "vehicle_depot": "NSP/NARSAPURAM",
-    "region_code": "WESTGODAVARI",
-    "display_name": "NARSAPURAM",
-    "_alias": "nsp"
-  },
-  "BHIMAVARAM": {
-    "vehicle_depot": "BVRM/BHIMAVARAM",
-    "region_code": "WESTGODAVARI",
-    "display_name": "BHIMAVARAM",
-    "_alias": "bvrm"
-  },
-  "TANUKU": {
-    "vehicle_depot": "TNK/TANUKU",
-    "region_code": "WESTGODAVARI",
-    "display_name": "TANUKU",
-    "_alias": "tnk"
-  },
-  "TADEPALLIGUDEM": {
-    "vehicle_depot": "TPG/TADEPALLIGUDEM",
-    "region_code": "WESTGODAVARI",
-    "display_name": "TADEPALLIGUDEM",
-    "_alias": "tpg"
-  },
-  "ELURU": {
-    "vehicle_depot": "ELR/ELURU",
-    "region_code": "ELURU",
-    "display_name": "ELURU",
-    "_alias": "elr"
-  },
-  "JANGAREDDYGUDEM": {
-    "vehicle_depot": "JRG/JANGAREDDYGUDEM",
-    "region_code": "ELURU",
-    "display_name": "JANGAREDDYGUDEM",
-    "_alias": "jrg"
-  },
-  "NUZVID": {
-    "vehicle_depot": "NZD/NUZVID",
-    "region_code": "ELURU",
-    "display_name": "NUZVID",
-    "_alias": "nzd"
-  },
-  "JAGGAIAHPETA": {
-    "vehicle_depot": "JPT/JAGGAIAHPETA",
-    "region_code": "NTR",
-    "display_name": "JAGGAIAHPETA",
-    "_alias": "jpt"
-  },
-  "TIRUVURU": {
-    "vehicle_depot": "TVR/TIRUVURU",
-    "region_code": "NTR",
-    "display_name": "TIRUVURU",
-    "_alias": "tvr"
-  },
-  "VIJAYAWADA/VIDYADHARAPURAM": {
-    "vehicle_depot": "VJA/VIJAYAWADA/VIDYADHARAPURAM",
-    "region_code": "NTR",
-    "display_name": "VIJAYAWADA/VIDYADHARAPURAM",
-    "_alias": "vja"
-  },
-  "AUTONAGAR": {
-    "vehicle_depot": "ATNR/AUTONAGAR",
-    "region_code": "NTR",
-    "display_name": "AUTONAGAR",
-    "_alias": "atnr"
-  },
-  "IBRAHIMPATNAM": {
-    "vehicle_depot": "IBM/IBRAHIMPATNAM",
-    "region_code": "NTR",
-    "display_name": "IBRAHIMPATNAM",
-    "_alias": "ibm"
-  },
-  "GOVERNORPET-1": {
-    "vehicle_depot": "GVPT1/GOVERNORPET-1",
-    "region_code": "NTR",
-    "display_name": "GOVERNORPET-1",
-    "_alias": "gvpt1"
-  },
-  "GOVERNORPET-2": {
-    "vehicle_depot": "GVPT2/GOVERNORPET-2",
-    "region_code": "NTR",
-    "display_name": "GOVERNORPET-2",
-    "_alias": "gvpt2"
-  },
-  "GANNAVARAM": {
-    "vehicle_depot": "GVRM/GANNAVARAM",
-    "region_code": "KRISHNA",
-    "display_name": "GANNAVARAM",
-    "_alias": "gvrm"
-  },
-  "MACHILIPATNAM": {
-    "vehicle_depot": "MTM/MACHILIPATNAM",
-    "region_code": "KRISHNA",
-    "display_name": "MACHILIPATNAM",
-    "_alias": "mtm"
-  },
-  "GUDIVADA": {
-    "vehicle_depot": "GDV/GUDIVADA",
-    "region_code": "KRISHNA",
-    "display_name": "GUDIVADA",
-    "_alias": "gdv"
-  },
-  "AVANIGADDA": {
-    "vehicle_depot": "AVG/AVANIGADDA",
-    "region_code": "KRISHNA",
-    "display_name": "AVANIGADDA",
-    "_alias": "avg"
-  },
-  "VUYYURU": {
-    "vehicle_depot": "VYR/VUYYURU",
-    "region_code": "KRISHNA",
-    "display_name": "VUYYURU",
-    "_alias": "vyr"
-  },
-  "GUNTUR-1": {
-    "vehicle_depot": "GNT1/GUNTUR-1",
-    "region_code": "GUNTUR",
-    "display_name": "GUNTUR-1",
-    "_alias": "gnt1"
-  },
-  "TENALI": {
-    "vehicle_depot": "TNL/TENALI",
-    "region_code": "GUNTUR",
-    "display_name": "TENALI",
-    "_alias": "tnl"
-  },
-  "PONNUR": {
-    "vehicle_depot": "PNR/PONNUR",
-    "region_code": "GUNTUR",
-    "display_name": "PONNUR",
-    "_alias": "pnr"
-  },
-  "MANGALAGIRI": {
-    "vehicle_depot": "MGLR/MANGALAGIRI",
-    "region_code": "GUNTUR",
-    "display_name": "MANGALAGIRI",
-    "_alias": "mglr"
-  },
-  "PIDUGURALLA": {
-    "vehicle_depot": "PDRL/PIDUGURALLA",
-    "region_code": "PALNADU",
-    "display_name": "PIDUGURALLA",
-    "_alias": "pdrl"
-  },
-  "MACHERLA": {
-    "vehicle_depot": "MCL/MACHERLA",
-    "region_code": "PALNADU",
-    "display_name": "MACHERLA",
-    "_alias": "mcl"
-  },
-  "NARASARAOPET": {
-    "vehicle_depot": "NRT/NARASARAOPET",
-    "region_code": "PALNADU",
-    "display_name": "NARASARAOPET",
-    "_alias": "nrt"
-  },
-  "CHILAKALURIPETA": {
-    "vehicle_depot": "CPT/CHILAKALURIPETA",
-    "region_code": "PALNADU",
-    "display_name": "CHILAKALURIPETA",
-    "_alias": "cpt"
-  },
-  "SATTENAPALLI": {
-    "vehicle_depot": "SAP/SATTENAPALLI",
-    "region_code": "PALNADU",
-    "display_name": "SATTENAPALLI",
-    "_alias": "sap"
-  },
-  "VINUKONDA": {
-    "vehicle_depot": "VNK/VINUKONDA",
-    "region_code": "PALNADU",
-    "display_name": "VINUKONDA",
-    "_alias": "vnk"
-  },
-  "BAPATLA": {
-    "vehicle_depot": "BPTL/BAPATLA",
-    "region_code": "BAPATLA",
-    "display_name": "BAPATLA",
-    "_alias": "bptl"
-  },
-  "REPALLE": {
-    "vehicle_depot": "RPL/REPALLE",
-    "region_code": "BAPATLA",
-    "display_name": "REPALLE",
-    "_alias": "rpl"
-  },
-  "CHIRALA": {
-    "vehicle_depot": "CRL/CHIRALA",
-    "region_code": "BAPATLA",
-    "display_name": "CHIRALA",
-    "_alias": "crl"
-  },
-  "ONGOLE": {
-    "vehicle_depot": "OGL/ONGOLE",
-    "region_code": "PRAKASAM",
-    "display_name": "ONGOLE",
-    "_alias": "ogl"
   },
   "ADDANKI": {
     "vehicle_depot": "ADK/ADDANKI",
@@ -1763,101 +10,21 @@
     "display_name": "ADDANKI",
     "_alias": "adk"
   },
-  "KANDUKUR": {
-    "vehicle_depot": "KDKR/KANDUKUR",
-    "region_code": "PRAKASAM",
-    "display_name": "KANDUKUR",
-    "_alias": "kdkr"
+  "adn": {
+    "vehicle_depot": "ADN/ADONI",
+    "region_code": "KURNOOL",
+    "display_name": "ADONI"
   },
-  "PODILI": {
-    "vehicle_depot": "PDL/PODILI",
-    "region_code": "MARKAPURAM",
-    "display_name": "PODILI",
-    "_alias": "pdl"
+  "ADONI": {
+    "vehicle_depot": "ADN/ADONI",
+    "region_code": "KURNOOL",
+    "display_name": "ADONI",
+    "_alias": "adn"
   },
-  "MARKAPUR": {
-    "vehicle_depot": "MRKP/MARKAPUR",
-    "region_code": "MARKAPURAM",
-    "display_name": "MARKAPUR",
-    "_alias": "mrkp"
-  },
-  "KANIGIRI": {
-    "vehicle_depot": "KNGR/KANIGIRI",
-    "region_code": "MARKAPURAM",
-    "display_name": "KANIGIRI",
-    "_alias": "kngr"
-  },
-  "GIDDALUR": {
-    "vehicle_depot": "GDLR/GIDDALUR",
-    "region_code": "MARKAPURAM",
-    "display_name": "GIDDALUR",
-    "_alias": "gdlr"
-  },
-  "NELLORE-1": {
-    "vehicle_depot": "NLR1/NELLORE-1",
-    "region_code": "SPSNELLORE",
-    "display_name": "NELLORE-1",
-    "_alias": "nlr1"
-  },
-  "ATMAKUR-NELLORE": {
-    "vehicle_depot": "ATKN/ATMAKUR-NELLORE",
-    "region_code": "SPSNELLORE",
-    "display_name": "ATMAKUR-NELLORE",
-    "_alias": "atkn"
-  },
-  "UDAYAGIRI": {
-    "vehicle_depot": "UDGR/UDAYAGIRI",
-    "region_code": "SPSNELLORE",
-    "display_name": "UDAYAGIRI",
-    "_alias": "udgr"
-  },
-  "KAVALI": {
-    "vehicle_depot": "KVL/KAVALI",
-    "region_code": "SPSNELLORE",
-    "display_name": "KAVALI",
-    "_alias": "kvl"
-  },
-  "RAPUR": {
-    "vehicle_depot": "RPR/RAPUR",
-    "region_code": "SPSNELLORE",
-    "display_name": "RAPUR",
-    "_alias": "rpr"
-  },
-  "GUDUR": {
-    "vehicle_depot": "GDT/GUDUR",
-    "region_code": "SPSNELLORE",
-    "display_name": "GUDUR",
-    "_alias": "gdt"
-  },
-  "VAKAPADU": {
-    "vehicle_depot": "VKD/VAKAPADU",
+  "alpr": {
+    "vehicle_depot": "ALPR/ALIPIRI",
     "region_code": "TIRUPATI",
-    "display_name": "VAKAPADU",
-    "_alias": "vkd"
-  },
-  "SULLURPETA": {
-    "vehicle_depot": "SLPT/SULLURPETA",
-    "region_code": "TIRUPATI",
-    "display_name": "SULLURPETA",
-    "_alias": "slpt"
-  },
-  "VENKATAGIRI": {
-    "vehicle_depot": "VGR/VENKATAGIRI",
-    "region_code": "TIRUPATI",
-    "display_name": "VENKATAGIRI",
-    "_alias": "vgr"
-  },
-  "TIRUPATIMAIN": {
-    "vehicle_depot": "TPT/TIRUPATIMAIN",
-    "region_code": "TIRUPATI",
-    "display_name": "TIRUPATIMAIN",
-    "_alias": "tpt"
-  },
-  "MANGALAM": {
-    "vehicle_depot": "MGLM/MANGALAM",
-    "region_code": "TIRUPATI",
-    "display_name": "MANGALAM",
-    "_alias": "mglm"
+    "display_name": "ALIPIRI"
   },
   "ALIPIRI": {
     "vehicle_depot": "ALPR/ALIPIRI",
@@ -1865,155 +32,10 @@
     "display_name": "ALIPIRI",
     "_alias": "alpr"
   },
-  "TIRUMALA": {
-    "vehicle_depot": "TML/TIRUMALA",
-    "region_code": "TIRUPATI",
-    "display_name": "TIRUMALA",
-    "_alias": "tml"
-  },
-  "SRIKALAHASTI": {
-    "vehicle_depot": "SKHT/SRIKALAHASTI",
-    "region_code": "TIRUPATI",
-    "display_name": "SRIKALAHASTI",
-    "_alias": "skht"
-  },
-  "SATYAVEDU": {
-    "vehicle_depot": "STVD/SATYAVEDU",
-    "region_code": "TIRUPATI",
-    "display_name": "SATYAVEDU",
-    "_alias": "stvd"
-  },
-  "PUTTUR": {
-    "vehicle_depot": "PTR/PUTTUR",
-    "region_code": "TIRUPATI",
-    "display_name": "PUTTUR",
-    "_alias": "ptr"
-  },
-  "CHITTOOR-1": {
-    "vehicle_depot": "CTR1/CHITTOOR-1",
-    "region_code": "CHITTOR",
-    "display_name": "CHITTOOR-1",
-    "_alias": "ctr1"
-  },
-  "CHITTOOR-2": {
-    "vehicle_depot": "CTR2/CHITTOOR-2",
-    "region_code": "CHITTOR",
-    "display_name": "CHITTOOR-2",
-    "_alias": "ctr2"
-  },
-  "PALAMANER": {
-    "vehicle_depot": "PLMR/PALAMANER",
-    "region_code": "CHITTOR",
-    "display_name": "PALAMANER",
-    "_alias": "plmr"
-  },
-  "KUPPAM": {
-    "vehicle_depot": "KPM/KUPPAM",
-    "region_code": "CHITTOR",
-    "display_name": "KUPPAM",
-    "_alias": "kpm"
-  },
-  "PILERU": {
-    "vehicle_depot": "PLR/PILERU",
-    "region_code": "ANNAMAIAH",
-    "display_name": "PILERU",
-    "_alias": "plr"
-  },
-  "MADANAPALLE-1": {
-    "vehicle_depot": "MPL1/MADANAPALLE-1",
-    "region_code": "ANNAMAIAH",
-    "display_name": "MADANAPALLE-1",
-    "_alias": "mpl1"
-  },
-  "MADANAPALLE-2": {
-    "vehicle_depot": "MPL2/MADANAPALLE-2",
-    "region_code": "ANNAMAIAH",
-    "display_name": "MADANAPALLE-2",
-    "_alias": "mpl2"
-  },
-  "RAYACHOTY": {
-    "vehicle_depot": "RCTY/RAYACHOTY",
-    "region_code": "ANNAMAIAH",
-    "display_name": "RAYACHOTY",
-    "_alias": "rcty"
-  },
-  "PUNGANUR": {
-    "vehicle_depot": "PNGR/PUNGANUR",
-    "region_code": "ANNAMAIAH",
-    "display_name": "PUNGANUR",
-    "_alias": "pngr"
-  },
-  "KADAPA": {
-    "vehicle_depot": "KDP/KADAPA",
-    "region_code": "YSRKADAPA",
-    "display_name": "KADAPA",
-    "_alias": "kdp"
-  },
-  "BADVEL": {
-    "vehicle_depot": "BDVL/BADVEL",
-    "region_code": "YSRKADAPA",
-    "display_name": "BADVEL",
-    "_alias": "bdvl"
-  },
-  "MYDUKUR": {
-    "vehicle_depot": "MYDK/MYDUKUR",
-    "region_code": "YSRKADAPA",
-    "display_name": "MYDUKUR",
-    "_alias": "mydk"
-  },
-  "JAMMALAMADUGU": {
-    "vehicle_depot": "JMD/JAMMALAMADUGU",
-    "region_code": "YSRKADAPA",
-    "display_name": "JAMMALAMADUGU",
-    "_alias": "jmd"
-  },
-  "PRODDATUR": {
-    "vehicle_depot": "PDTR/PRODDATUR",
-    "region_code": "YSRKADAPA",
-    "display_name": "PRODDATUR",
-    "_alias": "pdtr"
-  },
-  "PULIVENDULA": {
-    "vehicle_depot": "PLVD/PULIVENDULA",
-    "region_code": "YSRKADAPA",
-    "display_name": "PULIVENDULA",
-    "_alias": "plvd"
-  },
-  "RAJAMPET": {
-    "vehicle_depot": "RJPT/RAJAMPET",
-    "region_code": "YSRKADAPA",
-    "display_name": "RAJAMPET",
-    "_alias": "rjpt"
-  },
-  "KURNOOL-1": {
-    "vehicle_depot": "KNL1/KURNOOL-1",
-    "region_code": "KURNOOL",
-    "display_name": "KURNOOL-1",
-    "_alias": "knl1"
-  },
-  "KURNOOL-2": {
-    "vehicle_depot": "KNL2/KURNOOL-2",
-    "region_code": "KURNOOL",
-    "display_name": "KURNOOL-2",
-    "_alias": "knl2"
-  },
-  "ADONI": {
-    "vehicle_depot": "ADONI/ADONI",
-    "region_code": "KURNOOL",
-    "display_name": "ADONI",
-    "_alias": "adoni"
-  },
-  "PATTIKONDA": {
-    "vehicle_depot": "PTKD/PATTIKONDA",
-    "region_code": "KURNOOL",
-    "display_name": "PATTIKONDA",
-    "_alias": "ptkd"
-  },
-  "YEMMIGANUR": {
-    "vehicle_depot": "YMG/YEMMIGANUR",
-    "region_code": "KURNOOL",
-    "display_name": "YEMMIGANUR",
-    "_alias": "ymg"
+  "alg": {
+    "vehicle_depot": "ALG/ALLAGADDA",
+    "region_code": "NANDYAL",
+    "display_name": "ALLAGADDA"
   },
   "ALLAGADDA": {
     "vehicle_depot": "ALG/ALLAGADDA",
@@ -2021,41 +43,32 @@
     "display_name": "ALLAGADDA",
     "_alias": "alg"
   },
-  "ATMAKUR-KURNOOL/NANDYAL": {
-    "vehicle_depot": "ATKK/ATMAKUR-KURNOOL/NANDYAL",
-    "region_code": "NANDYAL",
-    "display_name": "ATMAKUR-KURNOOL/NANDYAL",
-    "_alias": "atkk"
+  "amp": {
+    "vehicle_depot": "AMP/AMALAPURAM",
+    "region_code": "KONASEEMA",
+    "display_name": "AMALAPURAM"
   },
-  "BANAGANAPALLI": {
-    "vehicle_depot": "BPL/BANAGANAPALLI",
-    "region_code": "NANDYAL",
-    "display_name": "BANAGANAPALLI",
-    "_alias": "bpl"
+  "AMALAPURAM": {
+    "vehicle_depot": "AMP/AMALAPURAM",
+    "region_code": "KONASEEMA",
+    "display_name": "AMALAPURAM",
+    "_alias": "amp"
   },
-  "DHONE": {
-    "vehicle_depot": "DHN/DHONE",
-    "region_code": "NANDYAL",
-    "display_name": "DHONE",
-    "_alias": "dhn"
+  "akp": {
+    "vehicle_depot": "AKP/ANAKAPALLI",
+    "region_code": "ANAKAPALLI",
+    "display_name": "ANAKAPALLI"
   },
-  "KOILAKUNTLA": {
-    "vehicle_depot": "KKL/KOILAKUNTLA",
-    "region_code": "NANDYAL",
-    "display_name": "KOILAKUNTLA",
-    "_alias": "kkl"
+  "ANAKAPALLI": {
+    "vehicle_depot": "AKP/ANAKAPALLI",
+    "region_code": "ANAKAPALLI",
+    "display_name": "ANAKAPALLI",
+    "_alias": "akp"
   },
-  "NANDIKOTKUR": {
-    "vehicle_depot": "NDK/NANDIKOTKUR",
-    "region_code": "NANDYAL",
-    "display_name": "NANDIKOTKUR",
-    "_alias": "ndk"
-  },
-  "NANDYAL": {
-    "vehicle_depot": "NDL/NANDYAL",
-    "region_code": "NANDYAL",
-    "display_name": "NANDYAL",
-    "_alias": "ndl"
+  "atp": {
+    "vehicle_depot": "ATP/ANANTAPUR",
+    "region_code": "ANANTAPUR",
+    "display_name": "ANANTAPUR"
   },
   "ANANTAPUR": {
     "vehicle_depot": "ATP/ANANTAPUR",
@@ -2063,35 +76,252 @@
     "display_name": "ANANTAPUR",
     "_alias": "atp"
   },
-  "KALYANDURGAM": {
-    "vehicle_depot": "KLDG/KALYANDURGAM",
-    "region_code": "ANANTAPUR",
-    "display_name": "KALYANDURGAM",
-    "_alias": "kldg"
+  "atkn": {
+    "vehicle_depot": "ATK-N/ATMAKUR",
+    "region_code": "SPSNELLORE",
+    "display_name": "ATMAKUR"
   },
-  "RAYADURGAM": {
-    "vehicle_depot": "RDG/RAYADURGAM",
-    "region_code": "ANANTAPUR",
-    "display_name": "RAYADURGAM",
-    "_alias": "rdg"
+  "ATMAKUR": {
+    "vehicle_depot": "ATK-N/ATMAKUR",
+    "region_code": "SPSNELLORE",
+    "display_name": "ATMAKUR",
+    "_alias": "atkn"
   },
-  "TADIPATRI": {
-    "vehicle_depot": "TDP/TADIPATRI",
-    "region_code": "ANANTAPUR",
-    "display_name": "TADIPATRI",
-    "_alias": "tdp"
+  "atk": {
+    "vehicle_depot": "ATK/ATMAKUR(K)",
+    "region_code": "NANDYAL",
+    "display_name": "ATMAKUR(K)"
   },
-  "GUNTAKAL": {
-    "vehicle_depot": "GTKL/GUNTAKAL",
-    "region_code": "ANANTAPUR",
-    "display_name": "GUNTAKAL",
-    "_alias": "gtkl"
+  "ATMAKUR(K)": {
+    "vehicle_depot": "ATK/ATMAKUR(K)",
+    "region_code": "NANDYAL",
+    "display_name": "ATMAKUR(K)",
+    "_alias": "atk"
   },
-  "URAVAKONDA": {
-    "vehicle_depot": "UKD/URAVAKONDA",
+  "atnr": {
+    "vehicle_depot": "ATNR/AUTONAGAR",
+    "region_code": "NTR",
+    "display_name": "AUTONAGAR"
+  },
+  "AUTONAGAR": {
+    "vehicle_depot": "ATNR/AUTONAGAR",
+    "region_code": "NTR",
+    "display_name": "AUTONAGAR",
+    "_alias": "atnr"
+  },
+  "avg": {
+    "vehicle_depot": "AVG/AVANIGADDA",
+    "region_code": "KRISHNA",
+    "display_name": "AVANIGADDA"
+  },
+  "AVANIGADDA": {
+    "vehicle_depot": "AVG/AVANIGADDA",
+    "region_code": "KRISHNA",
+    "display_name": "AVANIGADDA",
+    "_alias": "avg"
+  },
+  "bdvl": {
+    "vehicle_depot": "BDVL/BADVEL",
+    "region_code": "YSRKADAPA",
+    "display_name": "BADVEL"
+  },
+  "BADVEL": {
+    "vehicle_depot": "BDVL/BADVEL",
+    "region_code": "YSRKADAPA",
+    "display_name": "BADVEL",
+    "_alias": "bdvl"
+  },
+  "bpl": {
+    "vehicle_depot": "BPL/BANAGANAPALLI",
+    "region_code": "NANDYAL",
+    "display_name": "BANAGANAPALLI"
+  },
+  "BANAGANAPALLI": {
+    "vehicle_depot": "BPL/BANAGANAPALLI",
+    "region_code": "NANDYAL",
+    "display_name": "BANAGANAPALLI",
+    "_alias": "bpl"
+  },
+  "bptl": {
+    "vehicle_depot": "BPTL/BAPATLA",
+    "region_code": "BAPATLA",
+    "display_name": "BAPATLA"
+  },
+  "BAPATLA": {
+    "vehicle_depot": "BPTL/BAPATLA",
+    "region_code": "BAPATLA",
+    "display_name": "BAPATLA",
+    "_alias": "bptl"
+  },
+  "bvrm": {
+    "vehicle_depot": "BVRM/BHIMAVARAM",
+    "region_code": "WESTGODAVARI",
+    "display_name": "BHIMAVARAM"
+  },
+  "BHIMAVARAM": {
+    "vehicle_depot": "BVRM/BHIMAVARAM",
+    "region_code": "WESTGODAVARI",
+    "display_name": "BHIMAVARAM",
+    "_alias": "bvrm"
+  },
+  "cpt": {
+    "vehicle_depot": "CPT/CHILAKALURIPET",
+    "region_code": "PALNADU",
+    "display_name": "CHILAKALURIPET"
+  },
+  "CHILAKALURIPET": {
+    "vehicle_depot": "CPT/CHILAKALURIPET",
+    "region_code": "PALNADU",
+    "display_name": "CHILAKALURIPET",
+    "_alias": "cpt"
+  },
+  "crl": {
+    "vehicle_depot": "CRL/CHIRALA",
+    "region_code": "BAPATLA",
+    "display_name": "CHIRALA"
+  },
+  "CHIRALA": {
+    "vehicle_depot": "CRL/CHIRALA",
+    "region_code": "BAPATLA",
+    "display_name": "CHIRALA",
+    "_alias": "crl"
+  },
+  "ctr1": {
+    "vehicle_depot": "CTR1/CHITTOR-I",
+    "region_code": "CHITTOR",
+    "display_name": "CHITTOR-I"
+  },
+  "CHITTOR-I": {
+    "vehicle_depot": "CTR1/CHITTOR-I",
+    "region_code": "CHITTOR",
+    "display_name": "CHITTOR-I",
+    "_alias": "ctr1"
+  },
+  "ctr2": {
+    "vehicle_depot": "CTR2/CHITTOR-II",
+    "region_code": "CHITTOR",
+    "display_name": "CHITTOR-II"
+  },
+  "CHITTOR-II": {
+    "vehicle_depot": "CTR2/CHITTOR-II",
+    "region_code": "CHITTOR",
+    "display_name": "CHITTOR-II",
+    "_alias": "ctr2"
+  },
+  "dbsc": {
+    "vehicle_depot": "DBSC/DBSC",
+    "region_code": "VISAKHAPATNAM",
+    "display_name": "DBSC"
+  },
+  "DBSC": {
+    "vehicle_depot": "DBSC/DBSC",
+    "region_code": "VISAKHAPATNAM",
+    "display_name": "DBSC",
+    "_alias": "dbsc"
+  },
+  "dvrm": {
+    "vehicle_depot": "DVRM/DHARMAVARAM",
+    "region_code": "SRISATYASAI",
+    "display_name": "DHARMAVARAM"
+  },
+  "DHARMAVARAM": {
+    "vehicle_depot": "DVRM/DHARMAVARAM",
+    "region_code": "SRISATYASAI",
+    "display_name": "DHARMAVARAM",
+    "_alias": "dvrm"
+  },
+  "dhn": {
+    "vehicle_depot": "DHN/DHONE",
+    "region_code": "NANDYAL",
+    "display_name": "DHONE"
+  },
+  "DHONE": {
+    "vehicle_depot": "DHN/DHONE",
+    "region_code": "NANDYAL",
+    "display_name": "DHONE",
+    "_alias": "dhn"
+  },
+  "elsm": {
+    "vehicle_depot": "ELSM/ELESWARAM",
+    "region_code": "KAKINADA",
+    "display_name": "ELESWARAM"
+  },
+  "ELESWARAM": {
+    "vehicle_depot": "ELSM/ELESWARAM",
+    "region_code": "KAKINADA",
+    "display_name": "ELESWARAM",
+    "_alias": "elsm"
+  },
+  "elr": {
+    "vehicle_depot": "ELR/ELURU",
+    "region_code": "ELURU",
+    "display_name": "ELURU"
+  },
+  "ELURU": {
+    "vehicle_depot": "ELR/ELURU",
+    "region_code": "ELURU",
+    "display_name": "ELURU",
+    "_alias": "elr"
+  },
+  "gwk": {
+    "vehicle_depot": "GWK/GAJUWAKA",
+    "region_code": "VISAKHAPATNAM",
+    "display_name": "GAJUWAKA"
+  },
+  "GAJUWAKA": {
+    "vehicle_depot": "GWK/GAJUWAKA",
+    "region_code": "VISAKHAPATNAM",
+    "display_name": "GAJUWAKA",
+    "_alias": "gwk"
+  },
+  "gwk2": {
+    "vehicle_depot": "GWK2/GAJUWAKA-2",
+    "region_code": "VISAKHAPATNAM",
+    "display_name": "GAJUWAKA-2"
+  },
+  "GAJUWAKA-2": {
+    "vehicle_depot": "GWK2/GAJUWAKA-2",
+    "region_code": "VISAKHAPATNAM",
+    "display_name": "GAJUWAKA-2",
+    "_alias": "gwk2"
+  },
+  "gvrm": {
+    "vehicle_depot": "GVRM/GANNAVARAM",
+    "region_code": "KRISHNA",
+    "display_name": "GANNAVARAM"
+  },
+  "GANNAVARAM": {
+    "vehicle_depot": "GVRM/GANNAVARAM",
+    "region_code": "KRISHNA",
+    "display_name": "GANNAVARAM",
+    "_alias": "gvrm"
+  },
+  "gdlr": {
+    "vehicle_depot": "GDLR/GIDDALUR",
+    "region_code": "MARKAPURAM",
+    "display_name": "GIDDALUR"
+  },
+  "GIDDALUR": {
+    "vehicle_depot": "GDLR/GIDDALUR",
+    "region_code": "MARKAPURAM",
+    "display_name": "GIDDALUR",
+    "_alias": "gdlr"
+  },
+  "gkrm": {
+    "vehicle_depot": "GKRM/GOKAVARAM",
+    "region_code": "EASTGODAVARI",
+    "display_name": "GOKAVARAM"
+  },
+  "GOKAVARAM": {
+    "vehicle_depot": "GKRM/GOKAVARAM",
+    "region_code": "EASTGODAVARI",
+    "display_name": "GOKAVARAM",
+    "_alias": "gkrm"
+  },
+  "gty": {
+    "vehicle_depot": "GTY/GOOTY",
     "region_code": "ANANTAPUR",
-    "display_name": "URAVAKONDA",
-    "_alias": "ukd"
+    "display_name": "GOOTY"
   },
   "GOOTY": {
     "vehicle_depot": "GTY/GOOTY",
@@ -2099,11 +329,87 @@
     "display_name": "GOOTY",
     "_alias": "gty"
   },
-  "DHARMAVARAM": {
-    "vehicle_depot": "DMM/DHARMAVARAM",
+  "gvpt1": {
+    "vehicle_depot": "GVPT1/GOVERNERPET-I",
+    "region_code": "NTR",
+    "display_name": "GOVERNERPET-I"
+  },
+  "GOVERNERPET-I": {
+    "vehicle_depot": "GVPT1/GOVERNERPET-I",
+    "region_code": "NTR",
+    "display_name": "GOVERNERPET-I",
+    "_alias": "gvpt1"
+  },
+  "gvpt2": {
+    "vehicle_depot": "GVPT2/GOVERNERPET-II",
+    "region_code": "NTR",
+    "display_name": "GOVERNERPET-II"
+  },
+  "GOVERNERPET-II": {
+    "vehicle_depot": "GVPT2/GOVERNERPET-II",
+    "region_code": "NTR",
+    "display_name": "GOVERNERPET-II",
+    "_alias": "gvpt2"
+  },
+  "gdv": {
+    "vehicle_depot": "GDV/GUDIVADA",
+    "region_code": "KRISHNA",
+    "display_name": "GUDIVADA"
+  },
+  "GUDIVADA": {
+    "vehicle_depot": "GDV/GUDIVADA",
+    "region_code": "KRISHNA",
+    "display_name": "GUDIVADA",
+    "_alias": "gdv"
+  },
+  "gdr": {
+    "vehicle_depot": "GDR/GUDUR",
+    "region_code": "SPSNELLORE",
+    "display_name": "GUDUR"
+  },
+  "GUDUR": {
+    "vehicle_depot": "GDR/GUDUR",
+    "region_code": "SPSNELLORE",
+    "display_name": "GUDUR",
+    "_alias": "gdr"
+  },
+  "gtkl": {
+    "vehicle_depot": "GTKL/GUNTAKAL",
+    "region_code": "ANANTAPUR",
+    "display_name": "GUNTAKAL"
+  },
+  "GUNTAKAL": {
+    "vehicle_depot": "GTKL/GUNTAKAL",
+    "region_code": "ANANTAPUR",
+    "display_name": "GUNTAKAL",
+    "_alias": "gtkl"
+  },
+  "gnt1": {
+    "vehicle_depot": "GNT1/GUNTUR-I",
+    "region_code": "GUNTUR",
+    "display_name": "GUNTUR-I"
+  },
+  "GUNTUR-I": {
+    "vehicle_depot": "GNT1/GUNTUR-I",
+    "region_code": "GUNTUR",
+    "display_name": "GUNTUR-I",
+    "_alias": "gnt1"
+  },
+  "gnt2": {
+    "vehicle_depot": "GNT2/GUNTUR-II",
+    "region_code": "GUNTUR",
+    "display_name": "GUNTUR-II"
+  },
+  "GUNTUR-II": {
+    "vehicle_depot": "GNT2/GUNTUR-II",
+    "region_code": "GUNTUR",
+    "display_name": "GUNTUR-II",
+    "_alias": "gnt2"
+  },
+  "hdp": {
+    "vehicle_depot": "HDP/HINDUPUR",
     "region_code": "SRISATYASAI",
-    "display_name": "DHARMAVARAM",
-    "_alias": "dmm"
+    "display_name": "HINDUPUR"
   },
   "HINDUPUR": {
     "vehicle_depot": "HDP/HINDUPUR",
@@ -2111,11 +417,208 @@
     "display_name": "HINDUPUR",
     "_alias": "hdp"
   },
+  "ibm": {
+    "vehicle_depot": "IBM/IBRAHIMPATNAM-V",
+    "region_code": "NTR",
+    "display_name": "IBRAHIMPATNAM-V"
+  },
+  "IBRAHIMPATNAM-V": {
+    "vehicle_depot": "IBM/IBRAHIMPATNAM-V",
+    "region_code": "NTR",
+    "display_name": "IBRAHIMPATNAM-V",
+    "_alias": "ibm"
+  },
+  "jpt": {
+    "vehicle_depot": "JPT/JAGGAIAHPET",
+    "region_code": "NTR",
+    "display_name": "JAGGAIAHPET"
+  },
+  "JAGGAIAHPET": {
+    "vehicle_depot": "JPT/JAGGAIAHPET",
+    "region_code": "NTR",
+    "display_name": "JAGGAIAHPET",
+    "_alias": "jpt"
+  },
+  "jmd": {
+    "vehicle_depot": "JMD/JAMMALAMADUGU",
+    "region_code": "YSRKADAPA",
+    "display_name": "JAMMALAMADUGU"
+  },
+  "JAMMALAMADUGU": {
+    "vehicle_depot": "JMD/JAMMALAMADUGU",
+    "region_code": "YSRKADAPA",
+    "display_name": "JAMMALAMADUGU",
+    "_alias": "jmd"
+  },
+  "jrg": {
+    "vehicle_depot": "JRG/JANGAREDDIGUDEM",
+    "region_code": "ELURU",
+    "display_name": "JANGAREDDIGUDEM"
+  },
+  "JANGAREDDIGUDEM": {
+    "vehicle_depot": "JRG/JANGAREDDIGUDEM",
+    "region_code": "ELURU",
+    "display_name": "JANGAREDDIGUDEM",
+    "_alias": "jrg"
+  },
+  "kdp": {
+    "vehicle_depot": "KDP/KADAPA",
+    "region_code": "YSRKADAPA",
+    "display_name": "KADAPA"
+  },
+  "KADAPA": {
+    "vehicle_depot": "KDP/KADAPA",
+    "region_code": "YSRKADAPA",
+    "display_name": "KADAPA",
+    "_alias": "kdp"
+  },
+  "kdr": {
+    "vehicle_depot": "KDR/KADIRI",
+    "region_code": "SRISATYASAI",
+    "display_name": "KADIRI"
+  },
   "KADIRI": {
     "vehicle_depot": "KDR/KADIRI",
     "region_code": "SRISATYASAI",
     "display_name": "KADIRI",
     "_alias": "kdr"
+  },
+  "kkd": {
+    "vehicle_depot": "KKD/KAKINADA",
+    "region_code": "KAKINADA",
+    "display_name": "KAKINADA"
+  },
+  "KAKINADA": {
+    "vehicle_depot": "KKD/KAKINADA",
+    "region_code": "KAKINADA",
+    "display_name": "KAKINADA",
+    "_alias": "kkd"
+  },
+  "kld": {
+    "vehicle_depot": "KLD/KALYANDURG",
+    "region_code": "ANANTAPUR",
+    "display_name": "KALYANDURG"
+  },
+  "KALYANDURG": {
+    "vehicle_depot": "KLD/KALYANDURG",
+    "region_code": "ANANTAPUR",
+    "display_name": "KALYANDURG",
+    "_alias": "kld"
+  },
+  "kkr": {
+    "vehicle_depot": "KKR/KANDUKUR",
+    "region_code": "PRAKASAM",
+    "display_name": "KANDUKUR"
+  },
+  "KANDUKUR": {
+    "vehicle_depot": "KKR/KANDUKUR",
+    "region_code": "PRAKASAM",
+    "display_name": "KANDUKUR",
+    "_alias": "kkr"
+  },
+  "kng": {
+    "vehicle_depot": "KNG/KANIGIRI",
+    "region_code": "UNKNOWN",
+    "display_name": "KANIGIRI"
+  },
+  "KANIGIRI": {
+    "vehicle_depot": "KNG/KANIGIRI",
+    "region_code": "UNKNOWN",
+    "display_name": "KANIGIRI",
+    "_alias": "kng"
+  },
+  "kvl": {
+    "vehicle_depot": "KVL/KAVALI",
+    "region_code": "SPSNELLORE",
+    "display_name": "KAVALI"
+  },
+  "KAVALI": {
+    "vehicle_depot": "KVL/KAVALI",
+    "region_code": "SPSNELLORE",
+    "display_name": "KAVALI",
+    "_alias": "kvl"
+  },
+  "kkl": {
+    "vehicle_depot": "KKL/KOILKUNTLA",
+    "region_code": "NANDYAL",
+    "display_name": "KOILKUNTLA"
+  },
+  "KOILKUNTLA": {
+    "vehicle_depot": "KKL/KOILKUNTLA",
+    "region_code": "NANDYAL",
+    "display_name": "KOILKUNTLA",
+    "_alias": "kkl"
+  },
+  "kvr": {
+    "vehicle_depot": "KVR/KOVVUR",
+    "region_code": "EASTGODAVARI",
+    "display_name": "KOVVUR"
+  },
+  "KOVVUR": {
+    "vehicle_depot": "KVR/KOVVUR",
+    "region_code": "EASTGODAVARI",
+    "display_name": "KOVVUR",
+    "_alias": "kvr"
+  },
+  "kpm": {
+    "vehicle_depot": "KPM/KUPPAM",
+    "region_code": "CHITTOR",
+    "display_name": "KUPPAM"
+  },
+  "KUPPAM": {
+    "vehicle_depot": "KPM/KUPPAM",
+    "region_code": "CHITTOR",
+    "display_name": "KUPPAM",
+    "_alias": "kpm"
+  },
+  "krnl1": {
+    "vehicle_depot": "KRNL1/KURNOOL-I",
+    "region_code": "KURNOOL",
+    "display_name": "KURNOOL-I"
+  },
+  "KURNOOL-I": {
+    "vehicle_depot": "KRNL1/KURNOOL-I",
+    "region_code": "KURNOOL",
+    "display_name": "KURNOOL-I",
+    "_alias": "krnl1"
+  },
+  "krnl2": {
+    "vehicle_depot": "KRNL2/KURNOOL-II",
+    "region_code": "KURNOOL",
+    "display_name": "KURNOOL-II"
+  },
+  "KURNOOL-II": {
+    "vehicle_depot": "KRNL2/KURNOOL-II",
+    "region_code": "KURNOOL",
+    "display_name": "KURNOOL-II",
+    "_alias": "krnl2"
+  },
+  "mcl": {
+    "vehicle_depot": "MCL/MACHERLA",
+    "region_code": "PALNADU",
+    "display_name": "MACHERLA"
+  },
+  "MACHERLA": {
+    "vehicle_depot": "MCL/MACHERLA",
+    "region_code": "PALNADU",
+    "display_name": "MACHERLA",
+    "_alias": "mcl"
+  },
+  "mtm": {
+    "vehicle_depot": "MTM/MACHILIPATNAM",
+    "region_code": "KRISHNA",
+    "display_name": "MACHILIPATNAM"
+  },
+  "MACHILIPATNAM": {
+    "vehicle_depot": "MTM/MACHILIPATNAM",
+    "region_code": "KRISHNA",
+    "display_name": "MACHILIPATNAM",
+    "_alias": "mtm"
+  },
+  "mdks": {
+    "vehicle_depot": "MDKS/MADAKASIRA",
+    "region_code": "SRISATYASAI",
+    "display_name": "MADAKASIRA"
   },
   "MADAKASIRA": {
     "vehicle_depot": "MDKS/MADAKASIRA",
@@ -2123,16 +626,841 @@
     "display_name": "MADAKASIRA",
     "_alias": "mdks"
   },
+  "mpl1": {
+    "vehicle_depot": "MPL1/MADANAPALLI-I",
+    "region_code": "ANNAMAIAH",
+    "display_name": "MADANAPALLI-I"
+  },
+  "MADANAPALLI-I": {
+    "vehicle_depot": "MPL1/MADANAPALLI-I",
+    "region_code": "ANNAMAIAH",
+    "display_name": "MADANAPALLI-I",
+    "_alias": "mpl1"
+  },
+  "mpl2": {
+    "vehicle_depot": "MPL2/MADANAPALLI-II",
+    "region_code": "ANNAMAIAH",
+    "display_name": "MADANAPALLI-II"
+  },
+  "MADANAPALLI-II": {
+    "vehicle_depot": "MPL2/MADANAPALLI-II",
+    "region_code": "ANNAMAIAH",
+    "display_name": "MADANAPALLI-II",
+    "_alias": "mpl2"
+  },
+  "mdp": {
+    "vehicle_depot": "MDP/MADDILAPALEM",
+    "region_code": "VISAKHAPATNAM",
+    "display_name": "MADDILAPALEM"
+  },
+  "MADDILAPALEM": {
+    "vehicle_depot": "MDP/MADDILAPALEM",
+    "region_code": "VISAKHAPATNAM",
+    "display_name": "MADDILAPALEM",
+    "_alias": "mdp"
+  },
+  "mdwd": {
+    "vehicle_depot": "MDWD/MADHURAWADA",
+    "region_code": "VISAKHAPATNAM",
+    "display_name": "MADHURAWADA"
+  },
+  "MADHURAWADA": {
+    "vehicle_depot": "MDWD/MADHURAWADA",
+    "region_code": "VISAKHAPATNAM",
+    "display_name": "MADHURAWADA",
+    "_alias": "mdwd"
+  },
+  "mngr": {
+    "vehicle_depot": "MNGR/MANGALAGIRI",
+    "region_code": "GUNTUR",
+    "display_name": "MANGALAGIRI"
+  },
+  "MANGALAGIRI": {
+    "vehicle_depot": "MNGR/MANGALAGIRI",
+    "region_code": "GUNTUR",
+    "display_name": "MANGALAGIRI",
+    "_alias": "mngr"
+  },
+  "mglm": {
+    "vehicle_depot": "MGLM/MANGALAM",
+    "region_code": "TIRUPATI",
+    "display_name": "MANGALAM"
+  },
+  "MANGALAM": {
+    "vehicle_depot": "MGLM/MANGALAM",
+    "region_code": "TIRUPATI",
+    "display_name": "MANGALAM",
+    "_alias": "mglm"
+  },
+  "mrkp": {
+    "vehicle_depot": "MRKP/MARKAPUR",
+    "region_code": "MARKAPURAM",
+    "display_name": "MARKAPUR"
+  },
+  "MARKAPUR": {
+    "vehicle_depot": "MRKP/MARKAPUR",
+    "region_code": "MARKAPURAM",
+    "display_name": "MARKAPUR",
+    "_alias": "mrkp"
+  },
+  "mydk": {
+    "vehicle_depot": "MYDK/MYDUKUR",
+    "region_code": "YSRKADAPA",
+    "display_name": "MYDUKUR"
+  },
+  "MYDUKUR": {
+    "vehicle_depot": "MYDK/MYDUKUR",
+    "region_code": "YSRKADAPA",
+    "display_name": "MYDUKUR",
+    "_alias": "mydk"
+  },
+  "ndkr": {
+    "vehicle_depot": "NDKR/NANDIKOTKUR",
+    "region_code": "NANDYAL",
+    "display_name": "NANDIKOTKUR"
+  },
+  "NANDIKOTKUR": {
+    "vehicle_depot": "NDKR/NANDIKOTKUR",
+    "region_code": "NANDYAL",
+    "display_name": "NANDIKOTKUR",
+    "_alias": "ndkr"
+  },
+  "ndl": {
+    "vehicle_depot": "NDL/NANDYAL",
+    "region_code": "NANDYAL",
+    "display_name": "NANDYAL"
+  },
+  "NANDYAL": {
+    "vehicle_depot": "NDL/NANDYAL",
+    "region_code": "NANDYAL",
+    "display_name": "NANDYAL",
+    "_alias": "ndl"
+  },
+  "nsp": {
+    "vehicle_depot": "NSP/NARSAPUR",
+    "region_code": "WESTGODAVARI",
+    "display_name": "NARSAPUR"
+  },
+  "NARSAPUR": {
+    "vehicle_depot": "NSP/NARSAPUR",
+    "region_code": "WESTGODAVARI",
+    "display_name": "NARSAPUR",
+    "_alias": "nsp"
+  },
+  "nrt": {
+    "vehicle_depot": "NRT/NARSARAOPET",
+    "region_code": "PALNADU",
+    "display_name": "NARSARAOPET"
+  },
+  "NARSARAOPET": {
+    "vehicle_depot": "NRT/NARSARAOPET",
+    "region_code": "PALNADU",
+    "display_name": "NARSARAOPET",
+    "_alias": "nrt"
+  },
+  "nrpm": {
+    "vehicle_depot": "NRPM/NARSIPATNAM",
+    "region_code": "ANAKAPALLI",
+    "display_name": "NARSIPATNAM"
+  },
+  "NARSIPATNAM": {
+    "vehicle_depot": "NRPM/NARSIPATNAM",
+    "region_code": "ANAKAPALLI",
+    "display_name": "NARSIPATNAM",
+    "_alias": "nrpm"
+  },
+  "nlr1": {
+    "vehicle_depot": "NLR1/NELLORE-I",
+    "region_code": "SPSNELLORE",
+    "display_name": "NELLORE-I"
+  },
+  "NELLORE-I": {
+    "vehicle_depot": "NLR1/NELLORE-I",
+    "region_code": "SPSNELLORE",
+    "display_name": "NELLORE-I",
+    "_alias": "nlr1"
+  },
+  "nlr2": {
+    "vehicle_depot": "NLR2/NELLORE-II",
+    "region_code": "SPSNELLORE",
+    "display_name": "NELLORE-II"
+  },
+  "NELLORE-II": {
+    "vehicle_depot": "NLR2/NELLORE-II",
+    "region_code": "SPSNELLORE",
+    "display_name": "NELLORE-II",
+    "_alias": "nlr2"
+  },
+  "ndvl": {
+    "vehicle_depot": "NDVL/NIDADAVOLU",
+    "region_code": "EASTGODAVARI",
+    "display_name": "NIDADAVOLU"
+  },
+  "NIDADAVOLU": {
+    "vehicle_depot": "NDVL/NIDADAVOLU",
+    "region_code": "EASTGODAVARI",
+    "display_name": "NIDADAVOLU",
+    "_alias": "ndvl"
+  },
+  "nzd": {
+    "vehicle_depot": "NZD/NUZVID",
+    "region_code": "ELURU",
+    "display_name": "NUZVID"
+  },
+  "NUZVID": {
+    "vehicle_depot": "NZD/NUZVID",
+    "region_code": "ELURU",
+    "display_name": "NUZVID",
+    "_alias": "nzd"
+  },
+  "ogl": {
+    "vehicle_depot": "OGL/ONGOLE",
+    "region_code": "PRAKASAM",
+    "display_name": "ONGOLE"
+  },
+  "ONGOLE": {
+    "vehicle_depot": "OGL/ONGOLE",
+    "region_code": "PRAKASAM",
+    "display_name": "ONGOLE",
+    "_alias": "ogl"
+  },
+  "pdr": {
+    "vehicle_depot": "PDR/PADERU",
+    "region_code": "ASR",
+    "display_name": "PADERU"
+  },
+  "PADERU": {
+    "vehicle_depot": "PDR/PADERU",
+    "region_code": "ASR",
+    "display_name": "PADERU",
+    "_alias": "pdr"
+  },
+  "plkd": {
+    "vehicle_depot": "PLKD/PALAKONDA",
+    "region_code": "PPMMANYAM",
+    "display_name": "PALAKONDA"
+  },
+  "PALAKONDA": {
+    "vehicle_depot": "PLKD/PALAKONDA",
+    "region_code": "PPMMANYAM",
+    "display_name": "PALAKONDA",
+    "_alias": "plkd"
+  },
+  "plmnr": {
+    "vehicle_depot": "PLMNR/PALAMANERU",
+    "region_code": "CHITTOR",
+    "display_name": "PALAMANERU"
+  },
+  "PALAMANERU": {
+    "vehicle_depot": "PLMNR/PALAMANERU",
+    "region_code": "CHITTOR",
+    "display_name": "PALAMANERU",
+    "_alias": "plmnr"
+  },
+  "pls": {
+    "vehicle_depot": "PLS/PALASA",
+    "region_code": "SRIKAKULAM",
+    "display_name": "PALASA"
+  },
+  "PALASA": {
+    "vehicle_depot": "PLS/PALASA",
+    "region_code": "SRIKAKULAM",
+    "display_name": "PALASA",
+    "_alias": "pls"
+  },
+  "ppm": {
+    "vehicle_depot": "PPM/PARVATHIPURAM",
+    "region_code": "PPMMANYAM",
+    "display_name": "PARVATHIPURAM"
+  },
+  "PARVATHIPURAM": {
+    "vehicle_depot": "PPM/PARVATHIPURAM",
+    "region_code": "PPMMANYAM",
+    "display_name": "PARVATHIPURAM",
+    "_alias": "ppm"
+  },
+  "pkd": {
+    "vehicle_depot": "PKD/PATHIKONDA",
+    "region_code": "UNKNOWN",
+    "display_name": "PATHIKONDA"
+  },
+  "PATHIKONDA": {
+    "vehicle_depot": "PKD/PATHIKONDA",
+    "region_code": "UNKNOWN",
+    "display_name": "PATHIKONDA",
+    "_alias": "pkd"
+  },
+  "pnkd": {
+    "vehicle_depot": "PNKD/PENUKONDA",
+    "region_code": "SRISATYASAI",
+    "display_name": "PENUKONDA"
+  },
   "PENUKONDA": {
     "vehicle_depot": "PNKD/PENUKONDA",
     "region_code": "SRISATYASAI",
     "display_name": "PENUKONDA",
     "_alias": "pnkd"
   },
-  "PUTTAPARTHI": {
-    "vehicle_depot": "PTP/PUTTAPARTHI",
+  "pdrl": {
+    "vehicle_depot": "PDRL/PIDUGURALLA",
+    "region_code": "PALNADU",
+    "display_name": "PIDUGURALLA"
+  },
+  "PIDUGURALLA": {
+    "vehicle_depot": "PDRL/PIDUGURALLA",
+    "region_code": "PALNADU",
+    "display_name": "PIDUGURALLA",
+    "_alias": "pdrl"
+  },
+  "plr": {
+    "vehicle_depot": "PLR/PILERU",
+    "region_code": "ANNAMAIAH",
+    "display_name": "PILERU"
+  },
+  "PILERU": {
+    "vehicle_depot": "PLR/PILERU",
+    "region_code": "ANNAMAIAH",
+    "display_name": "PILERU",
+    "_alias": "plr"
+  },
+  "pnbs": {
+    "vehicle_depot": "PNBS/PNBS",
+    "region_code": "NTR",
+    "display_name": "PNBS"
+  },
+  "PNBS": {
+    "vehicle_depot": "PNBS/PNBS",
+    "region_code": "NTR",
+    "display_name": "PNBS",
+    "_alias": "pnbs"
+  },
+  "pdl": {
+    "vehicle_depot": "PDL/PODILI",
+    "region_code": "MARKAPURAM",
+    "display_name": "PODILI"
+  },
+  "PODILI": {
+    "vehicle_depot": "PDL/PODILI",
+    "region_code": "MARKAPURAM",
+    "display_name": "PODILI",
+    "_alias": "pdl"
+  },
+  "pnr": {
+    "vehicle_depot": "PNR/PONNUR",
+    "region_code": "GUNTUR",
+    "display_name": "PONNUR"
+  },
+  "PONNUR": {
+    "vehicle_depot": "PNR/PONNUR",
+    "region_code": "GUNTUR",
+    "display_name": "PONNUR",
+    "_alias": "pnr"
+  },
+  "pdtr": {
+    "vehicle_depot": "PDTR/PRODDUTUR",
+    "region_code": "YSRKADAPA",
+    "display_name": "PRODDUTUR"
+  },
+  "PRODDUTUR": {
+    "vehicle_depot": "PDTR/PRODDUTUR",
+    "region_code": "YSRKADAPA",
+    "display_name": "PRODDUTUR",
+    "_alias": "pdtr"
+  },
+  "pvl": {
+    "vehicle_depot": "PVL/PULIVENDULA",
+    "region_code": "YSRKADAPA",
+    "display_name": "PULIVENDULA"
+  },
+  "PULIVENDULA": {
+    "vehicle_depot": "PVL/PULIVENDULA",
+    "region_code": "YSRKADAPA",
+    "display_name": "PULIVENDULA",
+    "_alias": "pvl"
+  },
+  "pgr": {
+    "vehicle_depot": "PGR/PUNGANURU",
+    "region_code": "ANNAMAIAH",
+    "display_name": "PUNGANURU"
+  },
+  "PUNGANURU": {
+    "vehicle_depot": "PGR/PUNGANURU",
+    "region_code": "ANNAMAIAH",
+    "display_name": "PUNGANURU",
+    "_alias": "pgr"
+  },
+  "ptp": {
+    "vehicle_depot": "PTP/PUTTAPARTHY",
     "region_code": "SRISATYASAI",
-    "display_name": "PUTTAPARTHI",
+    "display_name": "PUTTAPARTHY"
+  },
+  "PUTTAPARTHY": {
+    "vehicle_depot": "PTP/PUTTAPARTHY",
+    "region_code": "SRISATYASAI",
+    "display_name": "PUTTAPARTHY",
     "_alias": "ptp"
+  },
+  "ptr": {
+    "vehicle_depot": "PTR/PUTTUR",
+    "region_code": "TIRUPATI",
+    "display_name": "PUTTUR"
+  },
+  "PUTTUR": {
+    "vehicle_depot": "PTR/PUTTUR",
+    "region_code": "TIRUPATI",
+    "display_name": "PUTTUR",
+    "_alias": "ptr"
+  },
+  "rjy": {
+    "vehicle_depot": "RJY/RAJAHMUNDRY",
+    "region_code": "EASTGODAVARI",
+    "display_name": "RAJAHMUNDRY"
+  },
+  "RAJAHMUNDRY": {
+    "vehicle_depot": "RJY/RAJAHMUNDRY",
+    "region_code": "EASTGODAVARI",
+    "display_name": "RAJAHMUNDRY",
+    "_alias": "rjy"
+  },
+  "rjpt": {
+    "vehicle_depot": "RJPT/RAJAMPET",
+    "region_code": "YSRKADAPA",
+    "display_name": "RAJAMPET"
+  },
+  "RAJAMPET": {
+    "vehicle_depot": "RJPT/RAJAMPET",
+    "region_code": "YSRKADAPA",
+    "display_name": "RAJAMPET",
+    "_alias": "rjpt"
+  },
+  "rcpm": {
+    "vehicle_depot": "RCPM/RAMACHANDRAPURAM",
+    "region_code": "KONASEEMA",
+    "display_name": "RAMACHANDRAPURAM"
+  },
+  "RAMACHANDRAPURAM": {
+    "vehicle_depot": "RCPM/RAMACHANDRAPURAM",
+    "region_code": "KONASEEMA",
+    "display_name": "RAMACHANDRAPURAM",
+    "_alias": "rcpm"
+  },
+  "rpr": {
+    "vehicle_depot": "RPR/RAPUR",
+    "region_code": "SPSNELLORE",
+    "display_name": "RAPUR"
+  },
+  "RAPUR": {
+    "vehicle_depot": "RPR/RAPUR",
+    "region_code": "SPSNELLORE",
+    "display_name": "RAPUR",
+    "_alias": "rpr"
+  },
+  "rvpm": {
+    "vehicle_depot": "RVPM/RAVULAPALEM",
+    "region_code": "UNKNOWN",
+    "display_name": "RAVULAPALEM"
+  },
+  "RAVULAPALEM": {
+    "vehicle_depot": "RVPM/RAVULAPALEM",
+    "region_code": "UNKNOWN",
+    "display_name": "RAVULAPALEM",
+    "_alias": "rvpm"
+  },
+  "rcty": {
+    "vehicle_depot": "RCTY/RAYACHOTI",
+    "region_code": "ANNAMAIAH",
+    "display_name": "RAYACHOTI"
+  },
+  "RAYACHOTI": {
+    "vehicle_depot": "RCTY/RAYACHOTI",
+    "region_code": "ANNAMAIAH",
+    "display_name": "RAYACHOTI",
+    "_alias": "rcty"
+  },
+  "rdg": {
+    "vehicle_depot": "RDG/RAYADURG",
+    "region_code": "ANANTAPUR",
+    "display_name": "RAYADURG"
+  },
+  "RAYADURG": {
+    "vehicle_depot": "RDG/RAYADURG",
+    "region_code": "ANANTAPUR",
+    "display_name": "RAYADURG",
+    "_alias": "rdg"
+  },
+  "rzl": {
+    "vehicle_depot": "RZL/RAZOLE",
+    "region_code": "KONASEEMA",
+    "display_name": "RAZOLE"
+  },
+  "RAZOLE": {
+    "vehicle_depot": "RZL/RAZOLE",
+    "region_code": "KONASEEMA",
+    "display_name": "RAZOLE",
+    "_alias": "rzl"
+  },
+  "rpl": {
+    "vehicle_depot": "RPL/REPALLE",
+    "region_code": "BAPATLA",
+    "display_name": "REPALLE"
+  },
+  "REPALLE": {
+    "vehicle_depot": "RPL/REPALLE",
+    "region_code": "BAPATLA",
+    "display_name": "REPALLE",
+    "_alias": "rpl"
+  },
+  "slr": {
+    "vehicle_depot": "SLR/SALUR",
+    "region_code": "PPMMANYAM",
+    "display_name": "SALUR"
+  },
+  "SALUR": {
+    "vehicle_depot": "SLR/SALUR",
+    "region_code": "PPMMANYAM",
+    "display_name": "SALUR",
+    "_alias": "slr"
+  },
+  "sap": {
+    "vehicle_depot": "SAP/SATTENAPALLI",
+    "region_code": "PALNADU",
+    "display_name": "SATTENAPALLI"
+  },
+  "SATTENAPALLI": {
+    "vehicle_depot": "SAP/SATTENAPALLI",
+    "region_code": "PALNADU",
+    "display_name": "SATTENAPALLI",
+    "_alias": "sap"
+  },
+  "stvd": {
+    "vehicle_depot": "STVD/SATYAVEEDU",
+    "region_code": "TIRUPATI",
+    "display_name": "SATYAVEEDU"
+  },
+  "SATYAVEEDU": {
+    "vehicle_depot": "STVD/SATYAVEEDU",
+    "region_code": "TIRUPATI",
+    "display_name": "SATYAVEEDU",
+    "_alias": "stvd"
+  },
+  "sml": {
+    "vehicle_depot": "SML/SIMHACHALAM",
+    "region_code": "VISAKHAPATNAM",
+    "display_name": "SIMHACHALAM"
+  },
+  "SIMHACHALAM": {
+    "vehicle_depot": "SML/SIMHACHALAM",
+    "region_code": "VISAKHAPATNAM",
+    "display_name": "SIMHACHALAM",
+    "_alias": "sml"
+  },
+  "sklm1": {
+    "vehicle_depot": "SKLM1/SRIKAKULAM-I",
+    "region_code": "SRIKAKULAM",
+    "display_name": "SRIKAKULAM-I"
+  },
+  "SRIKAKULAM-I": {
+    "vehicle_depot": "SKLM1/SRIKAKULAM-I",
+    "region_code": "SRIKAKULAM",
+    "display_name": "SRIKAKULAM-I",
+    "_alias": "sklm1"
+  },
+  "sklm2": {
+    "vehicle_depot": "SKLM2/SRIKAKULAM-II",
+    "region_code": "SRIKAKULAM",
+    "display_name": "SRIKAKULAM-II"
+  },
+  "SRIKAKULAM-II": {
+    "vehicle_depot": "SKLM2/SRIKAKULAM-II",
+    "region_code": "SRIKAKULAM",
+    "display_name": "SRIKAKULAM-II",
+    "_alias": "sklm2"
+  },
+  "skht": {
+    "vehicle_depot": "SKHT/SRIKALAHASTHI",
+    "region_code": "TIRUPATI",
+    "display_name": "SRIKALAHASTHI"
+  },
+  "SRIKALAHASTHI": {
+    "vehicle_depot": "SKHT/SRIKALAHASTHI",
+    "region_code": "TIRUPATI",
+    "display_name": "SRIKALAHASTHI",
+    "_alias": "skht"
+  },
+  "skota": {
+    "vehicle_depot": "SKOTA/SRUNGAVARAPUKOTA",
+    "region_code": "UNKNOWN",
+    "display_name": "SRUNGAVARAPUKOTA"
+  },
+  "SRUNGAVARAPUKOTA": {
+    "vehicle_depot": "SKOTA/SRUNGAVARAPUKOTA",
+    "region_code": "UNKNOWN",
+    "display_name": "SRUNGAVARAPUKOTA",
+    "_alias": "skota"
+  },
+  "vscd": {
+    "vehicle_depot": "VSCD/STEELCITY",
+    "region_code": "VISAKHAPATNAM",
+    "display_name": "STEELCITY"
+  },
+  "STEELCITY": {
+    "vehicle_depot": "VSCD/STEELCITY",
+    "region_code": "VISAKHAPATNAM",
+    "display_name": "STEELCITY",
+    "_alias": "vscd"
+  },
+  "slrpt": {
+    "vehicle_depot": "SLRPT/SULLURPET",
+    "region_code": "TIRUPATI",
+    "display_name": "SULLURPET"
+  },
+  "SULLURPET": {
+    "vehicle_depot": "SLRPT/SULLURPET",
+    "region_code": "TIRUPATI",
+    "display_name": "SULLURPET",
+    "_alias": "slrpt"
+  },
+  "tpg": {
+    "vehicle_depot": "TPG/TADEPALLIGUDEM",
+    "region_code": "WESTGODAVARI",
+    "display_name": "TADEPALLIGUDEM"
+  },
+  "TADEPALLIGUDEM": {
+    "vehicle_depot": "TPG/TADEPALLIGUDEM",
+    "region_code": "WESTGODAVARI",
+    "display_name": "TADEPALLIGUDEM",
+    "_alias": "tpg"
+  },
+  "tdp": {
+    "vehicle_depot": "TDP/TADIPATRI",
+    "region_code": "ANANTAPUR",
+    "display_name": "TADIPATRI"
+  },
+  "TADIPATRI": {
+    "vehicle_depot": "TDP/TADIPATRI",
+    "region_code": "ANANTAPUR",
+    "display_name": "TADIPATRI",
+    "_alias": "tdp"
+  },
+  "tnk": {
+    "vehicle_depot": "TNK/TANUKU",
+    "region_code": "WESTGODAVARI",
+    "display_name": "TANUKU"
+  },
+  "TANUKU": {
+    "vehicle_depot": "TNK/TANUKU",
+    "region_code": "WESTGODAVARI",
+    "display_name": "TANUKU",
+    "_alias": "tnk"
+  },
+  "tkl": {
+    "vehicle_depot": "TKL/TEKKALI",
+    "region_code": "SRIKAKULAM",
+    "display_name": "TEKKALI"
+  },
+  "TEKKALI": {
+    "vehicle_depot": "TKL/TEKKALI",
+    "region_code": "SRIKAKULAM",
+    "display_name": "TEKKALI",
+    "_alias": "tkl"
+  },
+  "tnl": {
+    "vehicle_depot": "TNL/TENALI",
+    "region_code": "GUNTUR",
+    "display_name": "TENALI"
+  },
+  "TENALI": {
+    "vehicle_depot": "TNL/TENALI",
+    "region_code": "GUNTUR",
+    "display_name": "TENALI",
+    "_alias": "tnl"
+  },
+  "tml": {
+    "vehicle_depot": "TML/TIRUMALA",
+    "region_code": "TIRUPATI",
+    "display_name": "TIRUMALA"
+  },
+  "TIRUMALA": {
+    "vehicle_depot": "TML/TIRUMALA",
+    "region_code": "TIRUPATI",
+    "display_name": "TIRUMALA",
+    "_alias": "tml"
+  },
+  "tpt": {
+    "vehicle_depot": "TPT/TIRUPATHI",
+    "region_code": "TIRUPATI",
+    "display_name": "TIRUPATHI"
+  },
+  "TIRUPATHI": {
+    "vehicle_depot": "TPT/TIRUPATHI",
+    "region_code": "TIRUPATI",
+    "display_name": "TIRUPATHI",
+    "_alias": "tpt"
+  },
+  "tvr": {
+    "vehicle_depot": "TVR/TIRUVUR",
+    "region_code": "NTR",
+    "display_name": "TIRUVUR"
+  },
+  "TIRUVUR": {
+    "vehicle_depot": "TVR/TIRUVUR",
+    "region_code": "NTR",
+    "display_name": "TIRUVUR",
+    "_alias": "tvr"
+  },
+  "tuni": {
+    "vehicle_depot": "TUNI/TUNI",
+    "region_code": "KAKINADA",
+    "display_name": "TUNI"
+  },
+  "TUNI": {
+    "vehicle_depot": "TUNI/TUNI",
+    "region_code": "KAKINADA",
+    "display_name": "TUNI",
+    "_alias": "tuni"
+  },
+  "udgr": {
+    "vehicle_depot": "UDGR/UDAYAGIRI",
+    "region_code": "SPSNELLORE",
+    "display_name": "UDAYAGIRI"
+  },
+  "UDAYAGIRI": {
+    "vehicle_depot": "UDGR/UDAYAGIRI",
+    "region_code": "SPSNELLORE",
+    "display_name": "UDAYAGIRI",
+    "_alias": "udgr"
+  },
+  "urkd": {
+    "vehicle_depot": "URKD/URAVAKONDA",
+    "region_code": "ANANTAPUR",
+    "display_name": "URAVAKONDA"
+  },
+  "URAVAKONDA": {
+    "vehicle_depot": "URKD/URAVAKONDA",
+    "region_code": "ANANTAPUR",
+    "display_name": "URAVAKONDA",
+    "_alias": "urkd"
+  },
+  "vgr": {
+    "vehicle_depot": "VGR/VENKATAGIRI",
+    "region_code": "TIRUPATI",
+    "display_name": "VENKATAGIRI"
+  },
+  "VENKATAGIRI": {
+    "vehicle_depot": "VGR/VENKATAGIRI",
+    "region_code": "TIRUPATI",
+    "display_name": "VENKATAGIRI",
+    "_alias": "vgr"
+  },
+  "vdpm": {
+    "vehicle_depot": "VDPM/VIDYADHARAPURAM",
+    "region_code": "NTR",
+    "display_name": "VIDYADHARAPURAM"
+  },
+  "VIDYADHARAPURAM": {
+    "vehicle_depot": "VDPM/VIDYADHARAPURAM",
+    "region_code": "NTR",
+    "display_name": "VIDYADHARAPURAM",
+    "_alias": "vdpm"
+  },
+  "vja": {
+    "vehicle_depot": "VJA/VIJAYAWADA-I",
+    "region_code": "NTR",
+    "display_name": "VIJAYAWADA-I"
+  },
+  "VIJAYAWADA-I": {
+    "vehicle_depot": "VJA/VIJAYAWADA-I",
+    "region_code": "NTR",
+    "display_name": "VIJAYAWADA-I",
+    "_alias": "vja"
+  },
+  "vnk": {
+    "vehicle_depot": "VNK/VINUKONDA",
+    "region_code": "PALNADU",
+    "display_name": "VINUKONDA"
+  },
+  "VINUKONDA": {
+    "vehicle_depot": "VNK/VINUKONDA",
+    "region_code": "PALNADU",
+    "display_name": "VINUKONDA",
+    "_alias": "vnk"
+  },
+  "vsp": {
+    "vehicle_depot": "VSP/VISAKHAPATNAM",
+    "region_code": "VISAKHAPATNAM",
+    "display_name": "VISAKHAPATNAM"
+  },
+  "VISAKHAPATNAM": {
+    "vehicle_depot": "VSP/VISAKHAPATNAM",
+    "region_code": "VISAKHAPATNAM",
+    "display_name": "VISAKHAPATNAM",
+    "_alias": "vsp"
+  },
+  "vzm": {
+    "vehicle_depot": "VZM/VIZIANAGARAM",
+    "region_code": "VIZIANAGARAM",
+    "display_name": "VIZIANAGARAM"
+  },
+  "VIZIANAGARAM": {
+    "vehicle_depot": "VZM/VIZIANAGARAM",
+    "region_code": "VIZIANAGARAM",
+    "display_name": "VIZIANAGARAM",
+    "_alias": "vzm"
+  },
+  "vyr": {
+    "vehicle_depot": "VYR/VUYYURU",
+    "region_code": "KRISHNA",
+    "display_name": "VUYYURU"
+  },
+  "VUYYURU": {
+    "vehicle_depot": "VYR/VUYYURU",
+    "region_code": "KRISHNA",
+    "display_name": "VUYYURU",
+    "_alias": "vyr"
+  },
+  "vkd": {
+    "vehicle_depot": "VKD/WAKADU",
+    "region_code": "TIRUPATI",
+    "display_name": "WAKADU"
+  },
+  "WAKADU": {
+    "vehicle_depot": "VKD/WAKADU",
+    "region_code": "TIRUPATI",
+    "display_name": "WAKADU",
+    "_alias": "vkd"
+  },
+  "wltr": {
+    "vehicle_depot": "WLTR/WALTAIR",
+    "region_code": "VISAKHAPATNAM",
+    "display_name": "WALTAIR"
+  },
+  "WALTAIR": {
+    "vehicle_depot": "WLTR/WALTAIR",
+    "region_code": "VISAKHAPATNAM",
+    "display_name": "WALTAIR",
+    "_alias": "wltr"
+  },
+  "ymgr": {
+    "vehicle_depot": "YMGR/YEMMIGANUR",
+    "region_code": "UNKNOWN",
+    "display_name": "YEMMIGANUR"
+  },
+  "YEMMIGANUR": {
+    "vehicle_depot": "YMGR/YEMMIGANUR",
+    "region_code": "UNKNOWN",
+    "display_name": "YEMMIGANUR",
+    "_alias": "ymgr"
+  },
+  "PRODDATUR": {
+    "vehicle_depot": "PDTR/PRODDUTUR",
+    "region_code": "YSRKADAPA",
+    "display_name": "PRODDUTUR",
+    "_alias": "pdtr"
+  },
+  "RAJAMPETA": {
+    "vehicle_depot": "RJPT/RAJAMPET",
+    "region_code": "YSRKADAPA",
+    "display_name": "RAJAMPET",
+    "_alias": "rjpt"
   }
 }
