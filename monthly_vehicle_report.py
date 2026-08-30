@@ -7,11 +7,10 @@ import os
 import sys
 import json
 import re
-import tempfile
 import subprocess
 from datetime import datetime
 from calendar import monthrange
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional
 import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill, Font, Border, Side, Alignment
@@ -22,9 +21,8 @@ from src.parser.vehicle_parser import parse_vehicle_rows
 
 PROJECT_DIR = "/home/imran/apsrtc-kmpl"
 MAPPING_FILE = os.path.join(PROJECT_DIR, "depot_mapping.json")
-GDRIVE_FOLDER_MONTHLY = "1O6rKH39INogYxsNI9IepEO9UJq1MMnPj"
+GDRIVE_FOLDER = "1O6rKH39INogYxsNI9IepEO9UJq1MMnPj"
 
-# --- Styling constants ---
 THIN_BORDER = Border(
     left=Side(style='thin'),
     right=Side(style='thin'),
@@ -95,14 +93,11 @@ def fetch_daily_data(session, date_obj, vehicle_depot):
 
 def apply_formatting(wb):
     ws = wb.active
-
-    # Round all numeric values to 2 decimals
     for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=5, max_col=ws.max_column):
         for cell in row:
             if cell.value is not None and isinstance(cell.value, (int, float)):
                 cell.value = round(cell.value, 2)
 
-    # Apply conditional colors
     for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=5, max_col=ws.max_column):
         for cell in row:
             if cell.value is None:
@@ -118,14 +113,12 @@ def apply_formatting(wb):
                 cell.font = font
             cell.border = THIN_BORDER
 
-    # Header styling
     for cell in ws[1]:
         cell.font = Font(bold=True, color="FFFFFF")
         cell.fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
         cell.alignment = Alignment(horizontal='center', vertical='center')
         cell.border = THIN_BORDER
 
-    # Auto-fit column widths
     for col in ws.columns:
         max_length = 0
         col_letter = get_column_letter(col[0].column)
@@ -138,6 +131,11 @@ def apply_formatting(wb):
         adjusted_width = max_length + 2
         ws.column_dimensions[col_letter].width = min(adjusted_width, 30)
 
+def ensure_gdrive_account():
+    result = subprocess.run(["gdrive", "account", "list"], capture_output=True, text=True)
+    if "iamrebel1984@gmail.com" not in result.stdout:
+        subprocess.run(["gdrive", "account", "switch", "iamrebel1984@gmail.com"], check=True)
+
 def extract_drive_link(output: str) -> Optional[str]:
     patterns = [
         r'ViewUrl:\s*(https://drive\.google\.com/file/d/[^\s]+)',
@@ -149,6 +147,14 @@ def extract_drive_link(output: str) -> Optional[str]:
         if m:
             return m.group(0) if 'http' in m.group(0) else m.group(1)
     return None
+
+def upload_to_drive(file_path):
+    ensure_gdrive_account()
+    cmd = ["gdrive", "files", "upload", "--parent", GDRIVE_FOLDER, file_path]
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"Upload failed: {result.stderr}")
+    return result.stdout
 
 def main():
     import argparse
@@ -211,34 +217,33 @@ def main():
 
     df = pd.DataFrame(rows)
 
-    with tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as tmp:
-        tmp_path = tmp.name
+    # Create a proper filename
+    reports_dir = os.path.join(PROJECT_DIR, "reports")
+    os.makedirs(reports_dir, exist_ok=True)
+    filename = f"{display_name}_{args.month}.xlsx"
+    file_path = os.path.join(reports_dir, filename)
 
-    with pd.ExcelWriter(tmp_path, engine='openpyxl') as writer:
+    with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
         df.to_excel(writer, sheet_name="Monthly KMPL", index=False)
 
     print("🎨 Applying formatting...")
-    wb = load_workbook(tmp_path)
+    wb = load_workbook(file_path)
     apply_formatting(wb)
-    wb.save(tmp_path)
+    wb.save(file_path)
 
     print("⬆️ Uploading to Google Drive...")
-    cmd = ["gdrive", "files", "upload", "--parent", GDRIVE_FOLDER_MONTHLY, tmp_path]
-    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    upload_output = upload_to_drive(file_path)
+    print(upload_output)
 
-    if result.returncode != 0:
-        print(f"❌ Upload failed: {result.stderr}")
-        sys.exit(1)
-
-    print(result.stdout)  # show output for debugging
-
-    link = extract_drive_link(result.stdout)
+    link = extract_drive_link(upload_output)
     if link:
         print(f"✅ Upload successful!\n🔗 {link}")
     else:
-        print(f"✅ Upload successful!\n📁 Folder: https://drive.google.com/drive/folders/{GDRIVE_FOLDER_MONTHLY}")
+        print(f"✅ Upload successful!\n📁 Folder: https://drive.google.com/drive/folders/{GDRIVE_FOLDER}")
 
-    os.unlink(tmp_path)
+    # Optionally, keep the file locally (do not delete)
+    # If you want to clean up, uncomment:
+    # os.unlink(file_path)
 
 if __name__ == "__main__":
     main()
