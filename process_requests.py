@@ -11,7 +11,6 @@ from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 
 PROJECT_DIR = "/home/imran/apsrtc-kmpl"
-GDRIVE_FOLDER = "1tU9aw7Cdw-Q-7mr9BMhayORKMy61_DOz"  # daily folder
 SHEET_ID_DAILY = "1wt8UQ7_U5OgGpiCW30UF9Sl9BxMlWwg3NrYfQEvtEQM"
 SHEET_ID_MONTHLY = "1kyxBOqa98pll_NeJrLQVDuuCUUhVoupE7JW_HiupPFs"
 REFRESH_TOKEN_FILE = "/home/imran/apsrtc-kmpl/refresh_token.json"
@@ -39,26 +38,20 @@ def format_date(date_str):
     raise ValueError(f"Unknown date: {date_str}")
 
 def format_month(month_str):
-    """Convert a date-like string to YYYY-MM, or return as-is if already YYYY-MM."""
     month_str = month_str.strip()
-    # If it contains '/', treat as date and extract YYYY-MM
     if '/' in month_str:
         try:
-            # Try common date formats
             for fmt in ('%m/%d/%Y', '%d/%m/%Y', '%Y/%m/%d'):
                 try:
                     dt = datetime.strptime(month_str, fmt)
                     return dt.strftime('%Y-%m')
                 except ValueError:
                     continue
-            # If all fail, try to parse with dateutil? We'll just raise.
             raise ValueError(f"Cannot parse date: {month_str}")
         except Exception as e:
             raise ValueError(f"Invalid month/date: {month_str} - {e}")
-    # If it's already YYYY-MM, return as-is
     if re.match(r'^\d{4}-\d{2}$', month_str):
         return month_str
-    # If it's just YYYY-MM-DD (hyphen-separated), extract first 7 chars
     if re.match(r'^\d{4}-\d{2}-\d{2}$', month_str):
         return month_str[:7]
     raise ValueError(f"Invalid month format: {month_str} (expected YYYY-MM)")
@@ -108,23 +101,33 @@ def process_sheet(service, sheet_id, is_monthly=False):
                 "--month", req['month']
             ]
         result = subprocess.run(cmd, cwd=PROJECT_DIR, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+
+        if "REPORT GENERATION FAILED" in result.stdout:
+            match = re.search(r"Reason: (.*)", result.stdout)
+            reason = match.group(1) if match else "Unknown reason"
+            update_sheet_cell(service, sheet_id, req["row"], "D", f"❌ Failed: {reason}")
+            print(f"  Failed: {reason}")
+            continue
+
         if result.returncode != 0:
             error_msg = result.stderr[:300] if result.stderr else "Unknown error"
-            # Also include stdout if it has useful info
             if result.stdout:
                 error_msg += f" | stdout: {result.stdout[:200]}"
             update_sheet_cell(service, sheet_id, req["row"], "D", f"❌ Failed: {error_msg}")
             print(f"  Failed: {error_msg}")
             continue
 
-        # Extract Drive link from output
-        match = re.search(r'🔗 (https://drive\.google\.com/file/d/[^\s]+)', result.stdout) or re.search(r'ViewUrl:\s*(https://drive\.google\.com/file/d/[^\s]+)', result.stdout)
+        # Capture VIEW_URL: line from the script output
+        match = re.search(r'VIEW_URL:\s*(https://[^\s]+)', result.stdout)
         if match:
-            drive_link = match.group(1)
+            drive_link = match.group(1)  # take the URL only
         else:
-            # fallback: search for any Drive link
-            m2 = re.search(r'https://drive\.google\.com/file/d/[^\s]+', result.stdout)
-            drive_link = m2.group(0) if m2 else "Link not found (check Drive folder)"
+            # fallback: try to find any Drive link
+            match2 = re.search(r'https://drive\.google\.com/file/d/[^\s]+', result.stdout)
+            if match2:
+                drive_link = match2.group(0)
+            else:
+                drive_link = "Link not found (check Drive folder)"
 
         update_sheet_cell(service, sheet_id, req["row"], "D", "✅ Processed")
         update_sheet_cell(service, sheet_id, req["row"], "E", drive_link)
@@ -148,13 +151,11 @@ def main():
         print(f"Authentication failed: {e}")
         sys.exit(1)
 
-    # Process daily sheet
     try:
         process_sheet(service, SHEET_ID_DAILY, is_monthly=False)
     except Exception as e:
         print(f"Error processing daily sheet: {e}")
 
-    # Process monthly sheet
     try:
         process_sheet(service, SHEET_ID_MONTHLY, is_monthly=True)
     except Exception as e:

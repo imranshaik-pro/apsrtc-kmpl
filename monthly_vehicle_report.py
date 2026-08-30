@@ -137,15 +137,18 @@ def ensure_gdrive_account():
         subprocess.run(["gdrive", "account", "switch", "iamrebel1984@gmail.com"], check=True)
 
 def extract_drive_link(output: str) -> Optional[str]:
+    # Try to capture the ViewUrl from gdrive output (the actual file link)
     patterns = [
+        r'ViewUrl:\s*(https://docs\.google\.com/spreadsheets/d/[^\s]+)',
         r'ViewUrl:\s*(https://drive\.google\.com/file/d/[^\s]+)',
-        r'ViewUrl: (https://drive\.google\.com/file/d/[^\s]+)',
+        r'https://docs\.google\.com/spreadsheets/d/[^\s]+',
         r'https://drive\.google\.com/file/d/[^\s]+',
     ]
     for pat in patterns:
         m = re.search(pat, output)
         if m:
-            return m.group(0) if 'http' in m.group(0) else m.group(1)
+            # If the pattern has a group, use group(1); otherwise use group(0)
+            return m.group(1) if '(' in pat else m.group(0)
     return None
 
 def upload_to_drive(file_path):
@@ -235,15 +238,17 @@ def main():
     upload_output = upload_to_drive(file_path)
     print(upload_output)
 
+    # Extract the actual file link from the upload output
     link = extract_drive_link(upload_output)
     if link:
+        # Print the link in a format the poller can capture
+        print(f"VIEW_URL: {link}")
         print(f"✅ Upload successful!\n🔗 {link}")
     else:
-        print(f"✅ Upload successful!\n📁 Folder: https://drive.google.com/drive/folders/{GDRIVE_FOLDER}")
-
-    # Optionally, keep the file locally (do not delete)
-    # If you want to clean up, uncomment:
-    # os.unlink(file_path)
+        # Fallback to folder URL if no link found
+        folder_url = f"https://drive.google.com/drive/folders/{GDRIVE_FOLDER}"
+        print(f"VIEW_URL: {folder_url}")
+        print(f"✅ Upload successful!\n📁 Folder: {folder_url}")
 
 if __name__ == "__main__":
     main()
