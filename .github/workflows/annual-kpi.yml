@@ -17,7 +17,7 @@ on:
 jobs:
   annual-kpi:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     env:
       APSRTC_USERNAME: ${{ secrets.APSRTC_USERNAME }}
       APSRTC_PASSWORD: ${{ secrets.APSRTC_PASSWORD }}
@@ -44,7 +44,7 @@ jobs:
           echo "Selected month: ${{ inputs.selected_month }}"
           echo "Financial year: ${{ inputs.financial_years }}"
 
-      - name: Incrementally update annual KPI dashboard
+      - name: Build or incrementally update annual KPI dashboard
         run: |
           python annual_kpi_runner.py \
             --depot "${{ inputs.depot }}" \
