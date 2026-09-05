@@ -1,0 +1,16 @@
+{
+  "timezone": "Asia/Kolkata",
+  "daily": {
+    "default_depot": "PRODDUTUR",
+    "drive_folder_id": "1tU9aw7Cdw-Q-7mr9BMhayORKMy61_DOz",
+    "retry_hours_ist": [5, 6, 7, 8, 9, 10, 11, 12],
+    "report_date_rule": "yesterday_for_scheduled_runs"
+  },
+  "monthly": {
+    "drive_folder_id": "1O6rKH39INogYxsNI9IepEO9UJq1MMnPj"
+  },
+  "telegram": {
+    "enabled": false,
+    "phase": "after_all_three_objectives"
+  }
+}
