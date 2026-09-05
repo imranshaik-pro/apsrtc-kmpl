@@ -1,0 +1,64 @@
+name: APSRTC Daily Report
+
+on:
+  workflow_dispatch:
+    inputs:
+      depot:
+        description: Depot key or display name
+        required: true
+        default: PRODDUTUR
+      report_date:
+        description: Optional selected date (YYYY-MM-DD). Today means yesterday; future dates are rejected.
+        required: false
+        default: ''
+
+# Scheduled retries will be enabled after Google OAuth secrets are installed.
+# 05:00-12:00 IST corresponds to 23:30 and 00:30-06:30 UTC.
+# schedule:
+#   - cron: '30 23,0-6 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  generate-daily-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate and upload daily report
+        env:
+          APSRTC_USERNAME: ${{ secrets.APSRTC_USERNAME }}
+          APSRTC_PASSWORD: ${{ secrets.APSRTC_PASSWORD }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          DAILY_DRIVE_FOLDER_ID: 1tU9aw7Cdw-Q-7mr9BMhayORKMy61_DOz
+        shell: bash
+        run: |
+          ARGS=(--depot "${{ inputs.depot }}")
+          if [ -n "${{ inputs.report_date }}" ]; then
+            ARGS+=(--date "${{ inputs.report_date }}")
+          fi
+          python run_automated_daily.py "${ARGS[@]}"
+
+      - name: Upload generated report as workflow artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apsrtc-daily-report-${{ github.run_number }}
+          path: reports/*.txt
+          if-no-files-found: ignore
+          retention-days: 7
