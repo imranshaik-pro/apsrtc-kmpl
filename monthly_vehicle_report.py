@@ -102,19 +102,26 @@ def apply_formatting(workbook):
     ws = workbook.active
     ws.freeze_panes = "E2"
 
+    # Columns E onward contain daily KMPL and the month-end KMPL.
+    # Normalize every nonblank value to a real numeric cell and force two-decimal
+    # display so 5 -> 5.00 and 5.1 -> 5.10 after conversion to Google Sheets.
     for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=5, max_col=ws.max_column):
         for cell in row:
-            if isinstance(cell.value, (int, float)):
-                cell.value = round(cell.value, 2)
-                # Keep numeric values numeric, but always display two decimal places
-                # (for example 5 -> 5.00 and 5.1 -> 5.10) in Excel/Google Sheets.
-                cell.number_format = "0.00"
-                fill, font = get_style(float(cell.value))
-                if fill:
-                    cell.fill = fill
-                if font:
-                    cell.font = font
-                cell.border = THIN_BORDER
+            if cell.value in (None, ""):
+                continue
+            try:
+                numeric_value = float(str(cell.value).replace(",", "").strip())
+            except (TypeError, ValueError):
+                continue
+
+            cell.value = round(numeric_value, 2)
+            cell.number_format = "0.00"
+            fill, font = get_style(numeric_value)
+            if fill:
+                cell.fill = fill
+            if font:
+                cell.font = font
+            cell.border = THIN_BORDER
 
     for cell in ws[1]:
         cell.font = Font(bold=True, color="FFFFFF")
