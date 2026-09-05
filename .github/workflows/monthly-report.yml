@@ -1,0 +1,55 @@
+name: APSRTC Monthly Report
+
+on:
+  workflow_dispatch:
+    inputs:
+      depot:
+        description: Depot key or display name
+        required: true
+        default: PRODDUTUR
+      month:
+        description: Report month (YYYY-MM)
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  generate-monthly-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate and upload monthly Google Sheet
+        env:
+          APSRTC_USERNAME: ${{ secrets.APSRTC_USERNAME }}
+          APSRTC_PASSWORD: ${{ secrets.APSRTC_PASSWORD }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          MONTHLY_DRIVE_FOLDER_ID: 1O6rKH39INogYxsNI9IepEO9UJq1MMnPj
+        run: |
+          python monthly_vehicle_report.py \
+            --depot "${{ inputs.depot }}" \
+            --month "${{ inputs.month }}"
+
+      - name: Upload XLSX backup as workflow artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apsrtc-monthly-report-${{ github.run_number }}
+          path: reports/*.xlsx
+          if-no-files-found: ignore
+          retention-days: 7
