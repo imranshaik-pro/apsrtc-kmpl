@@ -15,6 +15,7 @@ from googleapiclient.http import MediaFileUpload
 
 
 DRIVE_SCOPE = "https://www.googleapis.com/auth/drive"
+GOOGLE_SHEET_MIME = "application/vnd.google-apps.spreadsheet"
 
 
 def _credentials() -> Credentials:
@@ -52,7 +53,12 @@ def find_file(folder_id: str, filename: str) -> Optional[dict]:
     response = (
         drive_service()
         .files()
-        .list(q=query, spaces="drive", fields="files(id,name,webViewLink)", pageSize=10)
+        .list(
+            q=query,
+            spaces="drive",
+            fields="files(id,name,mimeType,webViewLink)",
+            pageSize=10,
+        )
         .execute()
     )
     files = response.get("files", [])
@@ -60,7 +66,7 @@ def find_file(folder_id: str, filename: str) -> Optional[dict]:
 
 
 def upload_file(file_path: str | Path, folder_id: str) -> dict:
-    """Upload once. If filename already exists, return that existing Drive file."""
+    """Upload a text report once; return existing file when the name already exists."""
     path = Path(file_path)
     if not path.exists():
         raise FileNotFoundError(path)
@@ -75,7 +81,41 @@ def upload_file(file_path: str | Path, folder_id: str) -> dict:
     created = (
         drive_service()
         .files()
-        .create(body=metadata, media_body=media, fields="id,name,webViewLink")
+        .create(body=metadata, media_body=media, fields="id,name,mimeType,webViewLink")
+        .execute()
+    )
+    created["already_existed"] = False
+    return created
+
+
+def upload_xlsx_as_google_sheet(
+    file_path: str | Path, folder_id: str, sheet_name: str | None = None
+) -> dict:
+    """Upload an XLSX and convert it to a native Google Sheet, idempotently by name."""
+    path = Path(file_path)
+    if not path.exists():
+        raise FileNotFoundError(path)
+
+    target_name = sheet_name or path.stem
+    existing = find_file(folder_id=folder_id, filename=target_name)
+    if existing:
+        existing["already_existed"] = True
+        return existing
+
+    metadata = {
+        "name": target_name,
+        "parents": [folder_id],
+        "mimeType": GOOGLE_SHEET_MIME,
+    }
+    media = MediaFileUpload(
+        str(path),
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        resumable=False,
+    )
+    created = (
+        drive_service()
+        .files()
+        .create(body=metadata, media_body=media, fields="id,name,mimeType,webViewLink")
         .execute()
     )
     created["already_existed"] = False
