@@ -11,11 +11,8 @@ on:
         description: Optional selected date (YYYY-MM-DD). Today means yesterday; future dates are rejected.
         required: false
         default: ''
-
-# Scheduled retries will be enabled after Google OAuth secrets are installed.
-# 05:00-12:00 IST corresponds to 23:30 and 00:30-06:30 UTC.
-# schedule:
-#   - cron: '30 23,0-6 * * *'
+  schedule:
+    - cron: '30 23,0-6 * * *'
 
 permissions:
   contents: read
@@ -48,11 +45,15 @@ jobs:
           DAILY_DRIVE_FOLDER_ID: 1tU9aw7Cdw-Q-7mr9BMhayORKMy61_DOz
         shell: bash
         run: |
-          ARGS=(--depot "${{ inputs.depot }}")
-          if [ -n "${{ inputs.report_date }}" ]; then
-            ARGS+=(--date "${{ inputs.report_date }}")
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            python run_automated_daily.py --depot PRODDUTUR --scheduled
+          else
+            ARGS=(--depot "${{ inputs.depot }}")
+            if [ -n "${{ inputs.report_date }}" ]; then
+              ARGS+=(--date "${{ inputs.report_date }}")
+            fi
+            python run_automated_daily.py "${ARGS[@]}"
           fi
-          python run_automated_daily.py "${ARGS[@]}"
 
       - name: Upload generated report as workflow artifact
         if: always()
