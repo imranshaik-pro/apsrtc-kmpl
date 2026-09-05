@@ -1,0 +1,52 @@
+name: Annual KPI Dashboard
+
+on:
+  workflow_dispatch:
+    inputs:
+      depot:
+        description: Depot name
+        required: true
+        default: PRODDUTUR
+      financial_years:
+        description: Comma-separated FYs (YYYY-YY)
+        required: false
+        default: 2023-24,2024-25,2025-26
+
+jobs:
+  annual-kpi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      APSRTC_USERNAME: ${{ secrets.APSRTC_USERNAME }}
+      APSRTC_PASSWORD: ${{ secrets.APSRTC_PASSWORD }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+      KPI_DRIVE_FOLDER_ID: 1uQlJJcrv7TbKAXtkFtrrCqZac31aWqL9
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate annual KPI dashboard
+        run: |
+          python annual_kpi_report.py \
+            --depot "${{ inputs.depot }}" \
+            --years "${{ inputs.financial_years }}"
+
+      - name: Upload XLSX backup
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: annual-kpi-${{ inputs.depot }}
+          path: reports/*ANNUAL_KPI*.xlsx
+          if-no-files-found: ignore
+          retention-days: 7
