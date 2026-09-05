@@ -1,4 +1,5 @@
 /* APSRTC Annual KPI - Google Form / Response Sheet trigger
+ * Form inputs: Depot + Month only.
  * Bind this script to the ANNUAL KPI response spreadsheet.
  * Script Property required: GITHUB_TOKEN
  */
@@ -6,7 +7,6 @@
 const REPO = 'imranshaik-pro/apsrtc-kmpl';
 const WORKFLOW = 'annual-kpi.yml';
 const BRANCH = 'master';
-const DEFAULT_FYS = '2023-24,2024-25,2025-26';
 
 function onFormSubmit(e) {
   const sheet = e.range.getSheet();
@@ -17,15 +17,18 @@ function onFormSubmit(e) {
     const depot = pickValue_(named, ['depot']);
     if (!depot) throw new Error('Depot was not found in the form response.');
 
-    let fys = pickValue_(named, ['financial year', 'financial_year', 'fy', 'year']);
-    if (!fys) fys = DEFAULT_FYS;
-    fys = normalizeFYs_(fys);
+    const rawMonth = pickValue_(named, ['month']);
+    if (!rawMonth) throw new Error('Month was not found in the form response.');
+
+    const selectedMonth = normalizeMonth_(rawMonth);
+    const fy = financialYearForMonth_(selectedMonth);
 
     dispatch_(WORKFLOW, {
       depot: depot,
-      financial_years: fys
+      selected_month: selectedMonth,
+      financial_years: fy
     });
-    setStatus_(sheet, row, 'Submitted to GitHub');
+    setStatus_(sheet, row, `Submitted to GitHub | ${selectedMonth} | FY ${fy}`);
   } catch (err) {
     setStatus_(sheet, row, 'ERROR: ' + err.message);
     throw err;
@@ -40,25 +43,33 @@ function setupAnnualKpiTrigger() {
     .create();
 }
 
-function normalizeFYs_(raw) {
-  const parts = String(raw).split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
-  const normalized = parts.map(normalizeFY_);
-  return [...new Set(normalized)].join(',');
+function normalizeMonth_(raw) {
+  const text = String(raw).trim();
+  let m = text.match(/^(20\d{2})[-\/]([01]?\d)$/);
+  if (m) {
+    const month = Number(m[2]);
+    if (month >= 1 && month <= 12) return `${m[1]}-${String(month).padStart(2, '0')}`;
+  }
+  m = text.match(/^([A-Za-z]{3,9})[\s\-\/]+(20\d{2})$/);
+  if (m) {
+    const names = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+    const idx = names.indexOf(m[1].slice(0,3).toLowerCase());
+    if (idx >= 0) return `${m[2]}-${String(idx + 1).padStart(2, '0')}`;
+  }
+  m = text.match(/^([01]?\d)[\s\-\/]+(20\d{2})$/);
+  if (m) {
+    const month = Number(m[1]);
+    if (month >= 1 && month <= 12) return `${m[2]}-${String(month).padStart(2, '0')}`;
+  }
+  throw new Error('Month must identify a month and year, for example Aug 2026 or 2026-08. Received: ' + text);
 }
 
-function normalizeFY_(raw) {
-  raw = String(raw).trim();
-  let m = raw.match(/^(20\d{2})\s*[-/]\s*(\d{2})$/);
-  if (m) {
-    const expected = String(Number(m[1]) + 1).slice(-2);
-    if (m[2] !== expected) throw new Error('Invalid financial year: ' + raw);
-    return m[1] + '-' + m[2];
-  }
-  m = raw.match(/^(20\d{2})\s*[-/]\s*(20\d{2})$/);
-  if (m && Number(m[2]) === Number(m[1]) + 1) {
-    return m[1] + '-' + m[2].slice(-2);
-  }
-  throw new Error('Financial year must be like 2025-26.');
+function financialYearForMonth_(yyyyMm) {
+  const parts = yyyyMm.split('-');
+  const year = Number(parts[0]);
+  const month = Number(parts[1]);
+  const start = month >= 4 ? year : year - 1;
+  return `${start}-${String(start + 1).slice(-2)}`;
 }
 
 function dispatch_(workflow, inputs) {
