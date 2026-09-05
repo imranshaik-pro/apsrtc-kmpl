@@ -7,10 +7,12 @@ on:
         description: Depot name
         required: true
         default: PRODDUTUR
-      financial_years:
-        description: Comma-separated FYs (YYYY-YY)
+      selected_month:
+        description: Selected report month (YYYY-MM)
         required: false
-        default: 2023-24,2024-25,2025-26
+      financial_years:
+        description: Financial year derived from selected month (YYYY-YY)
+        required: true
 
 jobs:
   annual-kpi:
@@ -36,6 +38,12 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Show annual KPI request
+        run: |
+          echo "Depot: ${{ inputs.depot }}"
+          echo "Selected month: ${{ inputs.selected_month }}"
+          echo "Financial year: ${{ inputs.financial_years }}"
+
       - name: Incrementally update annual KPI dashboard
         run: |
           python annual_kpi_runner.py \
@@ -46,7 +54,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: annual-kpi-${{ inputs.depot }}
+          name: annual-kpi-${{ inputs.depot }}-${{ inputs.selected_month }}
           path: reports/*ANNUAL_KPI*.xlsx
           if-no-files-found: ignore
           retention-days: 7
