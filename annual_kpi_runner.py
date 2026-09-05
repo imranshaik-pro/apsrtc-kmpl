@@ -7,7 +7,8 @@ Rules enforced here:
 - Tyre Statement D uses only the exact `All Tyre Sizes Total` row.
 - Tyre depot codes come from the tyre website mapping, not the vehicle prefix.
 - MED cancellation, breakdown and spring use their verified APSRTC source paths.
-- If a known KPI source is unavailable, do not guess a substitute value.
+- LUB is accepted only when the returned APSRTC report month matches the selected month.
+- If a known KPI source is unavailable or unverified, do not guess a substitute value.
 """
 
 from datetime import datetime
@@ -84,6 +85,7 @@ def strict_fetch_tyre(session, display, vehicle, region, y, m):
         headers = []
 
     if not row:
+        print(f"TYRE MANUAL INPUT REQUIRED: exact All Tyre Sizes Total row not found for {display}")
         return {name: (None, "0.00") for name in annual.TYRE_KPIS}
 
     rv = lambda aliases: core.row_value(headers, row, aliases)
@@ -91,7 +93,9 @@ def strict_fetch_tyre(session, display, vehicle, region, y, m):
         "AVG TYRE LIFE": (rv(["AVG TOTAL MILEAGE", "AVERAGE TOTAL MILEAGE"]), "lakh"),
         "NEW TYRE LIFE": (rv(["NEW MILEAGE"]), "lakh"),
         "RC TYRE LIFE": (rv(["RC MILEAGE"]), "lakh"),
-        "N.T.S RATE": (rv(["NEW %", "NTS", "N.T.S"]), "0.00"),
+        # APSRTC Statement D exposes `New %`, but the business definition of
+        # N.T.S RATE has not yet been verified as identical. Never substitute it.
+        "N.T.S RATE": (None, "0.00"),
         "Ist RC S Rate": (rv(["IST RC %", "IST RC SCP %", "1ST RC %"]), "0.00"),
         "TTL SCP Rate": (rv(["TOTAL %", "TTL.SCP %", "TOTAL SCRAP %"]), "0.00"),
         "RT Factor": (rv(["RT_FACTOR", "RT FACTOR"]), "0.00"),
@@ -115,12 +119,23 @@ def second_matching_column(headers, text):
     return matches[0] if matches else None
 
 
-def third_matching_column(headers, text):
-    wanted = core.norm(text)
-    matches = [i for i, h in enumerate(headers) if wanted in core.norm(h)]
-    if len(matches) >= 3:
-        return matches[2]
-    return matches[-1] if matches else None
+def find_verified_depot_table(html, display, vehicle, required_tokens):
+    """Find a table only when it contains the requested depot and required tokens."""
+    soup = core.BeautifulSoup(html, "html.parser")
+    wanted_depots = {
+        core.norm(display),
+        core.norm(vehicle),
+        core.norm(vehicle.split("/")[-1]),
+    }
+    for table in soup.find_all("table"):
+        text = core.norm(table.get_text(" ", strip=True))
+        if not all(core.norm(token) in text for token in required_tokens):
+            continue
+        headers, rows = core.expanded_headers(table)
+        row = core.depot_row(headers, rows, display, vehicle)
+        if row and any(core.norm(cell) in wanted_depots for cell in row):
+            return headers, rows, row
+    return None, None, None
 
 
 def verified_fetch_med(session, display, vehicle, region, y, m):
@@ -131,12 +146,17 @@ def verified_fetch_med(session, display, vehicle, region, y, m):
     }
     try:
         html = core.request_html(session, core.MEDNEW_BASE, "medcan_um_dpt.php", params)
-        headers, rows = core.find_table(html, ["DEPOT", "% OF CANC"], ["UP TO THE MONTH", "TOTAL CY"])
-        row = core.depot_row(headers, rows, display, vehicle)
+        headers, rows, row = find_verified_depot_table(html, display, vehicle, ["DEPOT", "CANC"])
         if not row:
+            print("MED CANCL. MANUAL INPUT REQUIRED: verified depot cancellation table not found")
             return None
         idx = second_matching_column(headers, "% OF CANC")
-        return core.number(row[idx]) if idx is not None and idx < len(row) else None
+        if idx is None:
+            idx = second_matching_column(headers, "% CANC")
+        if idx is None or idx >= len(row):
+            print("MED CANCL. MANUAL INPUT REQUIRED: cumulative cancellation-rate column not found")
+            return None
+        return core.number(row[idx])
     except Exception as exc:
         print(f"MED CANCL. MANUAL INPUT REQUIRED: {exc}")
         return None
@@ -177,12 +197,40 @@ def verified_fetch_spring(session, display, vehicle, region, y, m):
         row = core.depot_row(headers, rows, display, vehicle)
         if not row:
             return None
-        # This source presents the direct per-lakh-km KPI repeatedly for the
-        # month / cumulative CY / comparison period. Annual uses cumulative CY.
+        # The source repeats the direct KPI for month / cumulative CY /
+        # comparison period. Annual uses cumulative CY (second occurrence).
         idx = second_matching_column(headers, "SPRING CONSUMPTION PER LAKH KMS")
         return core.number(row[idx]) if idx is not None and idx < len(row) else None
     except Exception as exc:
         print(f"SPRING CONS MANUAL INPUT REQUIRED: {exc}")
+        return None
+
+
+def verified_fetch_lub(session, display, vehicle, region, y, m):
+    """Use Total Lub KMPL only if APSRTC returned the requested report month."""
+    try:
+        html = core.request_html(session, core.MED_BASE, "lub_rgn_rpt.php", {})
+        soup = core.BeautifulSoup(html, "html.parser")
+        text = core.norm(soup.get_text(" ", strip=True))
+        month_name = datetime(y, m, 1).strftime("%B").upper()
+        month_tokens = {
+            f"{month_name}_{y}",
+            f"{month_name} {y}",
+            f"{month_name}-{y}",
+        }
+        if not any(token in text for token in month_tokens):
+            print(
+                f"TOTAL LUB KMPL MANUAL INPUT REQUIRED: APSRTC LUB page does not match selected month {month_name} {y}"
+            )
+            return None
+        headers, rows = core.find_table(html, ["TOTAL LUB KMPL"], ["DISTRICT", "UPTO THE MONTH CY"])
+        row = core.depot_row(headers, rows, display, vehicle)
+        if not row:
+            print(f"TOTAL LUB KMPL MANUAL INPUT REQUIRED: row not found for {display}")
+            return None
+        return core.row_value(headers, row, ["TOTAL LUB KMPL"])
+    except Exception as exc:
+        print(f"TOTAL LUB KMPL MANUAL INPUT REQUIRED: {exc}")
         return None
 
 
@@ -218,6 +266,7 @@ def install_selected_month_override():
 annual.tyre_total_row = exact_tyre_total_row
 annual.fetch_tyre = strict_fetch_tyre
 core.fetch_tyre = strict_fetch_tyre
+core.fetch_lub = verified_fetch_lub
 core.fetch_med = verified_fetch_med
 core.fetch_breakdown = verified_fetch_breakdown
 core.fetch_spring = verified_fetch_spring
