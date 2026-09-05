@@ -9,7 +9,7 @@ on:
         default: PRODDUTUR
       selected_month:
         description: Selected report month (YYYY-MM)
-        required: false
+        required: true
       financial_years:
         description: Financial year derived from selected month (YYYY-YY)
         required: true
@@ -48,7 +48,8 @@ jobs:
         run: |
           python annual_kpi_runner.py \
             --depot "${{ inputs.depot }}" \
-            --years "${{ inputs.financial_years }}"
+            --years "${{ inputs.financial_years }}" \
+            --selected-month "${{ inputs.selected_month }}"
 
       - name: Upload XLSX backup
         if: always()
