@@ -7,6 +7,8 @@ Rules:
 - Current FY refreshes only when the cumulative source month advances.
 - Product/Engine rows remain exactly as APSRTC returns them; no merging.
 - Tyre pages use depot code (e.g. KDP, PDTR, BDVL), not display name.
+- Never substitute or guess a KPI value from another APSRTC column/source.
+- If the correct source has no value, write MANUAL INPUT REQUIRED.
 """
 
 from __future__ import annotations
@@ -28,6 +30,7 @@ from src.integrations.google_sheets import (
 
 SHEET_TITLE = "Annual KPI"
 META_TITLE = "_META"
+MANUAL_INPUT = "MANUAL INPUT REQUIRED"
 FIXED_KPIS = [
     "HSD KMPL INCL AC",
     "HSD KMPL EXCL AC",
@@ -50,6 +53,15 @@ def blank(value):
     return value is None or str(value).strip() == ""
 
 
+def safe_value(value):
+    """Return the source value, or an explicit manual-input marker.
+
+    We intentionally do not infer, substitute, or calculate a replacement from
+    another APSRTC column when the correct KPI source is blank/unavailable.
+    """
+    return MANUAL_INPUT if value is None else value
+
+
 def tyre_total_row(headers, rows, display, vehicle):
     di = core.col(headers, ["DEPOT"])
     si = core.col(headers, ["TYRE SIZE", "SIZE"])
@@ -60,14 +72,12 @@ def tyre_total_row(headers, rows, display, vehicle):
         core.norm(vehicle),
         core.norm(vehicle.split("/")[-1]),
     }
-    fallback = None
     for row in rows:
         if di is None or di >= len(row) or core.norm(row[di]) not in wanted:
             continue
-        fallback = fallback or row
-        if si is not None and si < len(row) and "ALL TYRE" in core.norm(row[si]):
+        if si is not None and si < len(row) and core.norm(row[si]) == core.norm("All Tyre Sizes Total"):
             return row
-    return fallback
+    return None
 
 
 def fetch_tyre(session, display, vehicle, region, y, m):
@@ -88,7 +98,7 @@ def fetch_tyre(session, display, vehicle, region, y, m):
     )
     row = tyre_total_row(h, rows, display, vehicle)
     if not row:
-        return {}
+        return {name: (None, "0.00") for name in TYRE_KPIS}
     rv = lambda aliases: core.row_value(h, row, aliases)
     return {
         "AVG TYRE LIFE": (rv(["AVG TOTAL MILEAGE", "AVERAGE TOTAL MILEAGE"]), "lakh"),
@@ -201,7 +211,6 @@ def update_existing_sheet(spreadsheet_id, years, display, vehicle, region):
     header_idx, year_cols, rows = parsed
     metadata = metadata_map(spreadsheet_id)
     session = None
-    formats = {}
 
     for fy in years:
         y, m = core.effective_month_for_fy(fy)
@@ -221,7 +230,6 @@ def update_existing_sheet(spreadsheet_id, years, display, vehicle, region):
         for group in groups:
             fetched.extend(fetch_group(session, group, display, vehicle, region, y, m))
 
-        # Add FY column if the existing sheet does not have it.
         col = year_cols.get(fy)
         if col is None:
             col = len(matrix[header_idx])
@@ -229,8 +237,8 @@ def update_existing_sheet(spreadsheet_id, years, display, vehicle, region):
             matrix[header_idx][col] = fy
             year_cols[fy] = col
 
+        manual_required = []
         for name, value, fmt in fetched:
-            formats[name] = fmt
             if name not in rows:
                 new_row = len(matrix)
                 ensure_size(matrix, new_row + 1, max(len(matrix[header_idx]), col + 1))
@@ -238,11 +246,15 @@ def update_existing_sheet(spreadsheet_id, years, display, vehicle, region):
                 rows[name] = new_row
             r = rows[name]
             ensure_size(matrix, r + 1, col + 1)
-            # Closed FY: never overwrite valid historical values.
-            # Current FY with a newer cumulative month: refresh fetched values.
             if current_refresh or blank(matrix[r][col]):
-                matrix[r][col] = "" if value is None else value
+                matrix[r][col] = safe_value(value)
+                if value is None:
+                    manual_required.append(name)
 
+        if manual_required:
+            print(
+                f"FY {fy}: MANUAL INPUT REQUIRED for: " + ", ".join(sorted(set(manual_required)))
+            )
         metadata[fy] = source_month
 
     width = max((len(row) for row in matrix), default=1)
@@ -264,9 +276,21 @@ def update_existing_sheet(spreadsheet_id, years, display, vehicle, region):
 
 def create_new_sheet(folder_id, sheet_name, display, vehicle, region, years):
     session = login()
-    # Correct tyre handling for the initial build too.
     core.fetch_tyre = fetch_tyre
     fy_rows = {fy: core.collect_fy(session, display, vehicle, region, fy) for fy in years}
+
+    # Never leave an unavailable fixed KPI looking like a valid zero/blank.
+    # Explicitly mark it for manual input instead of substituting another value.
+    for fy, rows in fy_rows.items():
+        fixed_seen = {name for name, _, _ in rows if name in FIXED_KPIS}
+        converted = []
+        for name, value, fmt in rows:
+            converted.append((name, safe_value(value) if name in FIXED_KPIS else value, fmt))
+        for name in FIXED_KPIS:
+            if name not in fixed_seen:
+                converted.append((name, MANUAL_INPUT, "0" if name == "TOTAL LUB KMPL" else "0.00"))
+        fy_rows[fy] = converted
+
     reports = core.PROJECT_DIR / "reports"
     reports.mkdir(exist_ok=True)
     year_tag = "_".join(fy.replace("-", "_") for fy in years)
