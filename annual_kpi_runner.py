@@ -125,24 +125,32 @@ def install_selected_month_override():
     print(f"Selected month override active: {raw} -> FY {selected_fy}")
 
 
-def install_safe_med_source():
-    """MED cancellation source failure becomes manual input, not report failure."""
-    original = core.fetch_med
+def install_safe_fixed_sources():
+    """Unavailable fixed KPI sources become manual input, not report failure."""
+    wrappers = {
+        "MED CANCL.": "fetch_med",
+        "SPRING CONS": "fetch_spring",
+    }
 
-    def safe_fetch_med(*args, **kwargs):
-        try:
-            return original(*args, **kwargs)
-        except Exception as exc:
-            print(f"MED CANCL. MANUAL INPUT REQUIRED: {exc}")
-            return None
+    for label, attr in wrappers.items():
+        original = getattr(core, attr)
 
-    core.fetch_med = safe_fetch_med
+        def make_safe(fn, kpi_label):
+            def safe_fetch(*args, **kwargs):
+                try:
+                    return fn(*args, **kwargs)
+                except Exception as exc:
+                    print(f"{kpi_label} MANUAL INPUT REQUIRED: {exc}")
+                    return None
+            return safe_fetch
+
+        setattr(core, attr, make_safe(original, label))
 
 
 annual.tyre_total_row = exact_tyre_total_row
 annual.fetch_tyre = strict_fetch_tyre
 core.fetch_tyre = strict_fetch_tyre
-install_safe_med_source()
+install_safe_fixed_sources()
 install_selected_month_override()
 
 
