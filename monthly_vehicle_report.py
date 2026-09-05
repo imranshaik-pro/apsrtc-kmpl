@@ -106,6 +106,9 @@ def apply_formatting(workbook):
         for cell in row:
             if isinstance(cell.value, (int, float)):
                 cell.value = round(cell.value, 2)
+                # Keep numeric values numeric, but always display two decimal places
+                # (for example 5 -> 5.00 and 5.1 -> 5.10) in Excel/Google Sheets.
+                cell.number_format = "0.00"
                 fill, font = get_style(float(cell.value))
                 if fill:
                     cell.fill = fill
