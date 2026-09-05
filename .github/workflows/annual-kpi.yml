@@ -46,7 +46,7 @@ jobs:
 
       - name: Build or repair annual KPI dashboard
         run: |
-          python annual_kpi_runner_v3.py \
+          python annual_kpi_runner_v4.py \
             --depot "${{ inputs.depot }}" \
             --years "${{ inputs.financial_years }}" \
             --selected-month "${{ inputs.selected_month }}"
