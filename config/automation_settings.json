@@ -9,6 +9,12 @@
   "monthly": {
     "drive_folder_id": "1O6rKH39INogYxsNI9IepEO9UJq1MMnPj"
   },
+  "annual_kpi": {
+    "drive_folder_id": "1uQlJJcrv7TbKAXtkFtrrCqZac31aWqL9",
+    "default_financial_years": ["2023-24", "2024-25", "2025-26"],
+    "financial_year_rule": "april_to_march",
+    "current_fy_rule": "latest_completed_month"
+  },
   "telegram": {
     "enabled": false,
     "phase": "after_all_three_objectives"
