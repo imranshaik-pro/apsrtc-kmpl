@@ -40,30 +40,24 @@ def print_hsd(session,y,mo):
 
 def print_lub(session,y,mo):
     print(f'\n=== LUB {y:04d}-{mo:02d} ===')
-    # Use the same confirmed POST helper as production v8.
-    html=m.lub_html(session,y,mo)
-    soup=BeautifulSoup(html,'html.parser')
-    for ti,t in enumerate(soup.find_all('table'),start=1):
-        txt=m.n(t.get_text(' ',strip=True))
-        if 'LUB' not in txt: continue
-        try: h,rows=m.core.expanded_headers(t)
-        except Exception as e:
-            print(f'TABLE {ti} HEADER ERROR:',repr(e)); continue
-        hits=[]
-        for row in rows:
-            rt=' | '.join(str(x) for x in row)
-            if 'PRODDUTUR' in m.n(rt) or 'PDTR' in m.n(rt): hits.append(row)
-        print(f'TABLE {ti} HEADERS:',h)
-        for r in hits: print('PRODDUTUR ROW:',r)
-    try: print('PARSED:', v8.fetch_lub_depotwise(session,DISPLAY,VEHICLE,REGION,y,mo))
-    except Exception as e: print('PARSED ERROR:',repr(e))
+    try:
+        parsed=v8.fetch_lub_depotwise(session,DISPLAY,VEHICLE,REGION,y,mo)
+        print('PARSED:',parsed)
+    except Exception as e:
+        print('PARSED ERROR:',repr(e))
+        return
 
 
 def main():
     s=login()
     print_hsd(s,2024,9)
     print_hsd(s,2025,1)
+
+    # Historical LUB values specifically requested for diagnosis, plus May-2026 screenshot comparison.
+    print_lub(s,2024,9)
+    print_lub(s,2025,1)
     print_lub(s,2026,5)
+
     print('\n=== APR-2026 TARGETS ===')
     try: print('HSD:', v8.v7.hsd_targets(s,DISPLAY,VEHICLE,REGION,2026,4))
     except Exception as e: print('HSD TARGET ERROR:',repr(e))
