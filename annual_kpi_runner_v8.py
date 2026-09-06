@@ -1,16 +1,26 @@
 #!/usr/bin/env python3
-"""Annual KPI v8 target expansion.
+"""Annual KPI v8 target expansion + exact depot-wise LUB parsing.
 
-Adds exact-depot source targets for:
-- HSD KMPL INCL AC / EXCL AC (already in v7)
+Target rules:
+- Targets are FY attributes and are fetched from APRIL of each FY only.
+- HSD KMPL INCL AC / EXCL AC
 - B.D RATE
 - MED CANCL.
 - SPRING CONS
 - tyre KPIs where an exact-depot target exists
 All other KPI target cells remain blank.
+
+LUB rule:
+- POST dt=Month_Year to lub_rgn_rpt.php
+- select ONLY the DEPOT-WISE LUB KMPL table
+- select the exact depot row (e.g. PRODDUTUR)
+- monthly = For the Month CY -> Total Lub KMPL
+- upto = Upto the Month CY -> Total Lub KMPL
+- never use district/zone/corporation rows and never calculate the value
 """
 import sys
 from calendar import monthrange
+from bs4 import BeautifulSoup
 import annual_kpi_runner_v7 as v7
 
 m = v7.m
@@ -79,10 +89,72 @@ def operational_targets(s, display, vehicle, region, y, month):
     return out
 
 
+def _pick_lub_column(headers, group_words):
+    """Pick Total Lub KMPL under the requested grouped header only."""
+    for i, h in enumerate(headers or []):
+        nh = m.n(h)
+        if "TOTAL LUB KMPL" not in nh:
+            continue
+        if all(word in nh for word in group_words):
+            return i
+    return None
+
+
+def fetch_lub_depotwise(s, display, vehicle, region, y, month):
+    """Exact parser for the DEPOT-WISE LUB KMPL table shown on APSRTC."""
+    html = m.lub_html(s, y, month)  # confirmed POST dt=Month_Year
+    soup = BeautifulSoup(html, "html.parser")
+
+    wanted = {m.n(display), m.n(vehicle)}
+    for table in soup.find_all("table"):
+        text = m.n(table.get_text(" ", strip=True))
+        # Critical discriminator: district-wise table also has Total Lub KMPL.
+        # We accept only a table whose headers include DEPOT.
+        if "DEPOT" not in text or "TOTAL LUB KMPL" not in text:
+            continue
+
+        headers, rows = m.core.expanded_headers(table)
+        depot_i = m.core.col(headers, ["DEPOT", "DEPOT NAME"])
+        if depot_i is None:
+            continue
+
+        row = None
+        for r in rows:
+            if depot_i < len(r) and m.n(r[depot_i]) in wanted:
+                row = r
+                break
+        if row is None:
+            continue
+
+        month_i = _pick_lub_column(headers, ["FOR", "MONTH", "CY"])
+        upto_i = _pick_lub_column(headers, ["UPTO", "MONTH", "CY"])
+        if upto_i is None:
+            upto_i = _pick_lub_column(headers, ["UP TO", "MONTH", "CY"])
+
+        # Some expanded-header implementations may normalize the group wording
+        # differently. Fall back only among TOTAL LUB KMPL columns in this exact
+        # DEPOT table, preserving left-to-right group order from the report:
+        # For Month CY, Upto Month CY, Upto Month LY.
+        total_cols = [i for i, h in enumerate(headers or []) if "TOTAL LUB KMPL" in m.n(h)]
+        if month_i is None and total_cols:
+            month_i = total_cols[0]
+        if upto_i is None and len(total_cols) >= 2:
+            upto_i = total_cols[1]
+
+        mv = m.at(row, month_i)
+        uv = m.at(row, upto_i)
+        print(f"LUB depot-wise {display} {y:04d}-{month:02d}: month={mv} upto={uv}; total_cols={total_cols}")
+        return {"TOTAL LUB KMPL": {"month": mv, "upto": uv}}
+
+    raise RuntimeError(f"DEPOT-WISE LUB KMPL row not found for {display} {y:04d}-{month:02d}")
+
+
 def populate_targets_v8(st, s, display, vehicle, region, sy, sm):
     v7.ensure_target_slots(st)
     for fy in st["fys"]:
         start_y, _ = m.core.parse_fy(fy)
+        # Locked business rule: target comes from APRIL and remains unchanged
+        # for every month of that FY.
         source_y, source_m = start_y, 4
 
         try:
@@ -116,6 +188,7 @@ def populate_targets_v8(st, s, display, vehicle, region, sy, sm):
 # Patch v7 before its main runs.
 v7.populate_targets = populate_targets_v8
 v7.LAYOUT_VERSION = LAYOUT_VERSION
+m.fetch_lub = fetch_lub_depotwise
 
 _orig_meta = v7.meta_version_v7
 
