@@ -1,0 +1,24 @@
+name: Annual KPI Source Diagnostic
+
+on:
+  push:
+    paths:
+      - diagnose_annual_sources.py
+      - .github/workflows/annual-kpi-diagnostic.yml
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      APSRTC_USERNAME: ${{ secrets.APSRTC_USERNAME }}
+      APSRTC_PASSWORD: ${{ secrets.APSRTC_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Run focused diagnostics
+        run: python diagnose_annual_sources.py
