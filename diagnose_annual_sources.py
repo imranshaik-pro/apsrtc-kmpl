@@ -60,6 +60,7 @@ def submit_candidate(session, method, action, data, referer, label, y, mo):
     headers={
         'Referer': referer,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/152 Safari/537.36',
+        'Content-Type': 'application/x-www-form-urlencoded',
     }
     try:
         if method == 'GET':
@@ -80,6 +81,7 @@ def inspect_lub_contract(session,y,mo):
     print(f'\n=== LUB CONTRACT TEST {y:04d}-{mo:02d} ===')
     url=f"{m.core.MED_BASE}/lub_rgn_rpt.php"
     wanted=f"{datetime(y,mo,1).strftime('%B')}_{y}"
+    yymm=f"{y:04d}{mo:02d}{wanted}"
     landing=session.get(url,timeout=45)
     landing.raise_for_status()
     print('LANDING:',landing.status_code,landing.url,'heading=',repr(lub_heading(landing.text)))
@@ -138,9 +140,10 @@ def inspect_lub_contract(session,y,mo):
                     one=dict(base_data); one[sn]=sv
                     candidates.append((method,action,one,f'form{fi}-submit-{sn}'))
 
-    # Explicit fallbacks are diagnostics only. We will not promote any fallback to production
-    # unless it returns the requested month and the known May-2026 PRODDUTUR values.
+    # Exact browser contract supplied from Chrome DevTools.
     candidates.extend([
+        ('POST',url,{'yymm':yymm},'exact-post-yymm'),
+        # Legacy guesses retained only for comparison.
         ('POST',url,{'dt':wanted},'fallback-post-dt'),
         ('GET',url,{'dt':wanted},'fallback-get-dt'),
     ])
