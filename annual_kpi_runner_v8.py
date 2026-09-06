@@ -11,7 +11,8 @@ Target rules:
 All other KPI target cells remain blank.
 
 LUB rule:
-- submit the site's own month form and verify the returned report month
+- POST the verified browser contract yymm=YYYYMMMonth_YYYY
+- verify the returned report month
 - select ONLY the DEPOT-WISE LUB KMPL table
 - select the exact depot row (e.g. PRODDUTUR)
 - monthly = For the Month CY -> Total Lub KMPL
@@ -19,7 +20,6 @@ LUB rule:
 """
 import sys
 from datetime import datetime
-from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 import annual_kpi_runner_v7 as v7
 
@@ -35,8 +35,6 @@ def _exact_target_from_page(s,base,path,params,display,vehicle,required):
     h,row=m.find_depot(html,display,vehicle,required)
     if not row:
         return None
-    # APSRTC operational reports use a plain explicit depot-level Target column.
-    # Do not require the KPI name to be repeated in that header.
     for i,header in enumerate(h or []):
         nh=m.n(header)
         if nh == "TARGET" or nh == "TGT" or "| TARGET" in nh or "TARGET |" in nh:
@@ -91,54 +89,19 @@ def _depot_row_has_data(html,display,vehicle):
 def lub_html_v8(s,y,month,display=None,vehicle=None):
     url=f"{m.core.MED_BASE}/lub_rgn_rpt.php"
     wanted=f"{datetime(y,month,1).strftime('%B')}_{y}"
-    landing=s.get(url,timeout=45)
-    landing.raise_for_status()
-    soup=BeautifulSoup(landing.text,"html.parser")
-
-    # Reproduce the browser's own form submission, including named submit controls.
-    candidates=[]
-    for form in soup.find_all("form"):
-        data={}
-        found=False
-        for inp in form.find_all("input"):
-            name=inp.get("name")
-            if name:
-                data[name]=inp.get("value","")
-        for sel in form.find_all("select"):
-            name=sel.get("name")
-            if not name:
-                continue
-            for opt in sel.find_all("option"):
-                ov=opt.get("value","")
-                ot=opt.get_text(" ",strip=True)
-                if m.n(wanted) in {m.n(ov),m.n(ot)}:
-                    data[name]=ov or ot
-                    found=True
-                    break
-        if found:
-            action=urljoin(url,form.get("action") or url)
-            candidates.append((action,data,"site-form"))
-
-    # Keep exact dt as a fallback because older APSRTC markup used it.
-    candidates.append((url,{"dt":wanted},"dt-fallback"))
-
-    best_zero=None
-    for action,data,label in candidates:
-        rr=s.post(action,data=data,timeout=45)
-        rr.raise_for_status()
-        if not _page_month(rr.text,y,month):
-            continue
-        row,vals=_depot_row_has_data(rr.text,display,vehicle) if display else (None,[])
-        print(f"LUB POST verified {wanted} via {label}; fields={','.join(sorted(data))}; depot_totals={vals}")
-        if not display:
-            return rr.text
-        if row is not None and any(v not in (None,0,0.0) for v in vals):
-            return rr.text
-        if row is not None:
-            best_zero=rr.text
-    if best_zero is not None:
-        return best_zero
-    raise RuntimeError(f"LUB POST month not verified: {wanted}")
+    # Verified from Chrome Network and Diagnostic #7:
+    # POST yymm=202605May_2026 -> PRODDUTUR totals 1993 / 1829 / 2296.
+    yymm=f"{y:04d}{month:02d}{wanted}"
+    rr=s.post(url,data={"yymm":yymm},headers={"Referer":url},timeout=45)
+    rr.raise_for_status()
+    if not _page_month(rr.text,y,month):
+        raise RuntimeError(f"LUB POST month not verified: {wanted}")
+    if display:
+        row,vals=_depot_row_has_data(rr.text,display,vehicle)
+        if row is None:
+            raise RuntimeError(f"LUB depot row not found for {display}: {wanted}")
+        print(f"LUB POST verified {wanted} via yymm; depot_totals={vals}")
+    return rr.text
 
 
 def _pick_lub_column(headers,words):
