@@ -12,7 +12,10 @@ on:
         required: false
         default: ''
   schedule:
-    - cron: '30 23,0-6 * * *'
+    # GitHub scheduled workflows can be delayed at heavily used clock boundaries.
+    # Run at :17 UTC-minute instead of :30 while preserving the same hourly retry window.
+    # IST nominal times: 04:47, 05:47, 06:47, 07:47, 08:47, 09:47, 10:47, 11:47.
+    - cron: '17 23,0-6 * * *'
 
 permissions:
   contents: read
