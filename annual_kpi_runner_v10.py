@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Annual KPI v10: safe historical backfill + tyre recursion fix.
+"""Annual KPI v10: safe historical backfill + source-availability rules.
 
 Rules enforced here:
 - Never replace an already-valid monthly value with blank/MANUAL because a fetch failed.
 - Historical HSD repair is month-only; do not touch historical Upto while backfilling.
-- LUB is re-fetched for every available month in all three FYs.
+- LUB is re-fetched for available months, but FY2024-25 is explicitly unavailable.
 - Completed-FY Upto is written only from March; current-FY Upto only from selected month.
 - Tyres FY2025-26 onward use the original web implementation captured BEFORE v6 monkey-patching.
-- Existing v7/v8/v9 layout is treated as compatible, avoiding destructive rebuilds.
+- FY2024-25 tyre data is available only for Apr-2024; May-2024..Mar-2025 remain MANUAL.
+- FY2024-25 Spring Consumption is unavailable and remains MANUAL.
+- Existing v7/v8/v9/v10 layout is treated as compatible, avoiding destructive rebuilds.
 """
 import sys
 
@@ -21,6 +23,7 @@ import annual_kpi_runner_v8 as v8
 m = v8.m
 v7 = v8.v7
 LAYOUT_VERSION = "10"
+FY24 = "2024-25"
 
 
 def _is_good(value):
@@ -31,8 +34,8 @@ def _is_good(value):
 
 
 def fetch_tyre_v10(s, depot, y, month, need_upto):
-    if m.selected_fy(y, month) == "2024-25":
-        # Keep the exact official-booklet path for FY2024-25.
+    if m.selected_fy(y, month) == FY24:
+        # Official booklet path is retained only for Apr-2024 use below.
         return v7.v6.fetch_tyre_v6(s, depot, y, month, need_upto)
     # This is the captured original v3 web implementation, not the monkey-patched symbol.
     return ORIGINAL_WEB_FETCH_TYRE(s, depot, y, month, need_upto)
@@ -118,10 +121,57 @@ def safe_hsd_month_backfill(st, s, display, vehicle, region, sy, sm):
                     print(f"HSD SAFE BACKFILL {display} {y:04d}-{month:02d} {k}: {val}")
 
 
+def lock_fy24_unavailable_sources(st, s, display):
+    """Apply the confirmed FY2024-25 source-availability exceptions.
+
+    LUB: no valid FY2024-25 source data; zero pages are NOT real values.
+    Spring: no FY2024-25 website data.
+    Tyres: only Apr-2024 exact depot data is usable; May-2024..Mar-2025 unavailable.
+    """
+    if FY24 not in st["fys"]:
+        return
+
+    # LUB FY2024-25 is unavailable. Explicitly remove previously written bogus zero history.
+    m.ensure(st, "TOTAL LUB KMPL")
+    for mon in m.MONTHS:
+        st["rows"]["TOTAL LUB KMPL"][FY24]["months"][mon] = m.MANUAL
+    st["rows"]["TOTAL LUB KMPL"][FY24]["upto"] = m.MANUAL
+    print(f"FY24 SOURCE RULE {display}: TOTAL LUB KMPL Apr-2024..Mar-2025 unavailable -> MANUAL")
+
+    # Spring Consumption FY2024-25 is unavailable on the website.
+    m.ensure(st, "SPRING CONS")
+    for mon in m.MONTHS:
+        st["rows"]["SPRING CONS"][FY24]["months"][mon] = m.MANUAL
+    st["rows"]["SPRING CONS"][FY24]["upto"] = m.MANUAL
+    print(f"FY24 SOURCE RULE {display}: SPRING CONS Apr-2024..Mar-2025 unavailable -> MANUAL")
+
+    # Tyres: fetch/retain Apr-2024 only. Later FY24 months are confirmed unavailable.
+    try:
+        apr = fetch_tyre_v10(s, display, 2024, 4, False)
+    except Exception as exc:
+        print(f"FY24 TYRE APR-2024 fetch failed; preserving any existing valid April value: {exc}")
+        apr = {}
+    for k in m.TYRE:
+        m.ensure(st, k)
+        existing_apr = st["rows"][k][FY24]["months"].get("Apr")
+        april_value = (apr.get(k) or {}).get("month")
+        if april_value is not None:
+            st["rows"][k][FY24]["months"]["Apr"] = april_value
+        elif not _is_good(existing_apr):
+            st["rows"][k][FY24]["months"]["Apr"] = m.MANUAL
+        for mon in m.MONTHS[1:]:
+            st["rows"][k][FY24]["months"][mon] = m.MANUAL
+        st["rows"][k][FY24]["upto"] = m.MANUAL
+    print(f"FY24 SOURCE RULE {display}: TYRES Apr-2024 retained/fetched; May-2024..Mar-2025 unavailable -> MANUAL")
+
+
 def safe_lub_all_months(st, s, display, vehicle, region, sy, sm):
-    """Fetch direct-source Total Lub KMPL for all available months in all FYs."""
+    """Fetch direct-source Total Lub KMPL for every month where source data exists."""
     current_fy = m.selected_fy(sy, sm)
     for fy in st["fys"]:
+        if fy == FY24:
+            # Confirmed unavailable; never interpret the returned all-zero page as real data.
+            continue
         months = m.fy_months(fy, sy, sm)
         for y, month in months:
             mon_name = m.month_name(month)
@@ -147,7 +197,7 @@ def safe_tyre_web_backfill(st, s, display, sy, sm):
     """Repair FY2025-26 onward tyre history using exact All Tyre Sizes Total web rows."""
     current_fy = m.selected_fy(sy, sm)
     for fy in st["fys"]:
-        if fy == "2024-25":
+        if fy == FY24:
             continue
         months = m.fy_months(fy, sy, sm)
         for y, month in months:
@@ -176,6 +226,7 @@ def populate_targets_v10(st, s, display, vehicle, region, sy, sm):
     safe_hsd_month_backfill(st, s, display, vehicle, region, sy, sm)
     safe_lub_all_months(st, s, display, vehicle, region, sy, sm)
     safe_tyre_web_backfill(st, s, display, sy, sm)
+    lock_fy24_unavailable_sources(st, s, display)
     ORIGINAL_POPULATE_TARGETS(st, s, display, vehicle, region, sy, sm)
 
 
