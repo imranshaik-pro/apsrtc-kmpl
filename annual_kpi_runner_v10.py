@@ -10,8 +10,11 @@ Rules enforced here:
 - FY2024-25 tyre data is available only for Apr-2024; May-2024..Mar-2025 remain MANUAL.
 - FY2024-25 Spring Consumption is unavailable and remains MANUAL.
 - Existing v7/v8/v9/v10 layout is treated as compatible, avoiding destructive rebuilds.
+- Transient Google Sheets formatting/read timeouts are retried safely.
 """
+import socket
 import sys
+import time
 
 # Capture the real original web tyre function BEFORE importing v8/v7/v6, because v6
 # monkey-patches annual_kpi_runner_v3.fetch_tyre in-place during import.
@@ -231,6 +234,44 @@ def populate_targets_v10(st, s, display, vehicle, region, sy, sm):
 
 
 v7.populate_targets = populate_targets_v10
+
+
+# v7's sheet formatting is safe to repeat: it unmerges/clears, writes the matrix,
+# then reapplies formatting. Retry the whole operation when Google returns a transient
+# timeout/connection/429/5xx error so a temporary Sheets API issue does not fail the run.
+ORIGINAL_FORMAT_SHEET_V7 = v7.format_sheet_v7
+
+
+def _retryable_google_error(exc):
+    if isinstance(exc, (TimeoutError, socket.timeout, ConnectionError)):
+        return True
+    status = getattr(getattr(exc, "resp", None), "status", None)
+    if status in {429, 500, 502, 503, 504}:
+        return True
+    text = str(exc).lower()
+    return any(token in text for token in (
+        "timed out", "timeout", "connection reset", "connection aborted",
+        "temporarily unavailable", "remote disconnected",
+    ))
+
+
+def format_sheet_v10(spreadsheet_id, mat, fys):
+    attempts = 4
+    for attempt in range(1, attempts + 1):
+        try:
+            return ORIGINAL_FORMAT_SHEET_V7(spreadsheet_id, mat, fys)
+        except Exception as exc:
+            if attempt >= attempts or not _retryable_google_error(exc):
+                raise
+            delay = 2 ** attempt
+            print(
+                f"GOOGLE SHEETS RETRY {attempt}/{attempts - 1}: "
+                f"transient formatting/read failure: {exc}; retrying in {delay}s"
+            )
+            time.sleep(delay)
+
+
+v7.format_sheet_v7 = format_sheet_v10
 
 
 if __name__ == "__main__":
