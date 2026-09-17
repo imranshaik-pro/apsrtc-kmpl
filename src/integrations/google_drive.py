@@ -5,17 +5,19 @@ through environment variables / GitHub Actions secrets. No credentials belong
 in this repository.
 """
 
+import io
 import os
 from pathlib import Path
 from typing import Optional
 
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
+from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 
 
 DRIVE_SCOPE = "https://www.googleapis.com/auth/drive"
 GOOGLE_SHEET_MIME = "application/vnd.google-apps.spreadsheet"
+XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 
 def _credentials() -> Credentials:
@@ -47,76 +49,81 @@ def drive_service():
 def find_file(folder_id: str, filename: str) -> Optional[dict]:
     """Return an existing non-trashed file with the same name in the folder."""
     safe_name = filename.replace("'", "\\'")
-    query = (
-        f"name = '{safe_name}' and '{folder_id}' in parents and trashed = false"
-    )
-    response = (
-        drive_service()
-        .files()
-        .list(
-            q=query,
-            spaces="drive",
-            fields="files(id,name,mimeType,webViewLink)",
-            pageSize=10,
-        )
-        .execute()
-    )
+    query = f"name = '{safe_name}' and '{folder_id}' in parents and trashed = false"
+    response = drive_service().files().list(
+        q=query, spaces="drive", fields="files(id,name,mimeType,webViewLink)", pageSize=10
+    ).execute()
     files = response.get("files", [])
     return files[0] if files else None
 
 
+def download_latest_prior_monthly_sheet(folder_id: str, depot_name: str, selected_yyyy_mm: str, destination: str | Path) -> Optional[dict]:
+    """Export the latest earlier depot monthly Google Sheet as XLSX.
+
+    Monthly sheet names are DEPOT_YYYY-MM. Only an earlier month for the same
+    depot is eligible, so a future/current workbook can never seed history.
+    """
+    prefix = f"{depot_name}_"
+    safe_prefix = prefix.replace("'", "\\'")
+    query = (
+        f"name contains '{safe_prefix}' and '{folder_id}' in parents and "
+        f"mimeType = '{GOOGLE_SHEET_MIME}' and trashed = false"
+    )
+    files = drive_service().files().list(
+        q=query, spaces="drive", fields="files(id,name,mimeType,modifiedTime,webViewLink)", pageSize=100
+    ).execute().get("files", [])
+
+    eligible = []
+    for item in files:
+        name = item.get("name", "")
+        if not name.startswith(prefix):
+            continue
+        suffix = name[len(prefix):]
+        if len(suffix) == 7 and suffix[4] == "-" and suffix < selected_yyyy_mm:
+            eligible.append(item)
+    if not eligible:
+        return None
+
+    prior = max(eligible, key=lambda x: x["name"])
+    request = drive_service().files().export_media(fileId=prior["id"], mimeType=XLSX_MIME)
+    buffer = io.BytesIO()
+    downloader = MediaIoBaseDownload(buffer, request)
+    done = False
+    while not done:
+        _, done = downloader.next_chunk()
+    path = Path(destination)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(buffer.getvalue())
+    return prior
+
+
 def upload_file(file_path: str | Path, folder_id: str) -> dict:
-    """Upload a text report once; return existing file when the name already exists."""
     path = Path(file_path)
     if not path.exists():
         raise FileNotFoundError(path)
-
     existing = find_file(folder_id=folder_id, filename=path.name)
     if existing:
         existing["already_existed"] = True
         return existing
-
     metadata = {"name": path.name, "parents": [folder_id]}
     media = MediaFileUpload(str(path), mimetype="text/plain", resumable=False)
-    created = (
-        drive_service()
-        .files()
-        .create(body=metadata, media_body=media, fields="id,name,mimeType,webViewLink")
-        .execute()
-    )
+    created = drive_service().files().create(body=metadata, media_body=media, fields="id,name,mimeType,webViewLink").execute()
     created["already_existed"] = False
     return created
 
 
-def upload_xlsx_as_google_sheet(
-    file_path: str | Path, folder_id: str, sheet_name: str | None = None
-) -> dict:
+def upload_xlsx_as_google_sheet(file_path: str | Path, folder_id: str, sheet_name: str | None = None) -> dict:
     """Upload an XLSX and convert it to a native Google Sheet, idempotently by name."""
     path = Path(file_path)
     if not path.exists():
         raise FileNotFoundError(path)
-
     target_name = sheet_name or path.stem
     existing = find_file(folder_id=folder_id, filename=target_name)
     if existing:
         existing["already_existed"] = True
         return existing
-
-    metadata = {
-        "name": target_name,
-        "parents": [folder_id],
-        "mimeType": GOOGLE_SHEET_MIME,
-    }
-    media = MediaFileUpload(
-        str(path),
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        resumable=False,
-    )
-    created = (
-        drive_service()
-        .files()
-        .create(body=metadata, media_body=media, fields="id,name,mimeType,webViewLink")
-        .execute()
-    )
+    metadata = {"name": target_name, "parents": [folder_id], "mimeType": GOOGLE_SHEET_MIME}
+    media = MediaFileUpload(str(path), mimetype=XLSX_MIME, resumable=False)
+    created = drive_service().files().create(body=metadata, media_body=media, fields="id,name,mimeType,webViewLink").execute()
     created["already_existed"] = False
     return created
