@@ -24,16 +24,17 @@ MAPPING_FILE = PROJECT_DIR / "depot_mapping.json"
 DEFAULT_GDRIVE_FOLDER = "1O6rKH39INogYxsNI9IepEO9UJq1MMnPj"
 IST = ZoneInfo("Asia/Kolkata")
 ZONE_BY_REGION = {"YSRKADAPA": "ZONE-4"}
-THIN_BORDER = Border(left=Side(style="thin"), right=Side(style="thin"), top=Side(style="thin"), bottom=Side(style="thin"))
+THIN = Side(style="thin", color="B7C9E2")
+THIN_BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
 
 
 def get_style(value):
     if value is None or pd.isna(value): return None, None
-    if value <= 5.00: return PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid"), Font(color="FFFFFF", bold=True)
-    if value <= 5.10: return PatternFill(start_color="FFA500", end_color="FFA500", fill_type="solid"), Font(color="FFFFFF", bold=True)
-    if value <= 5.20: return PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid"), Font(color="000000")
-    if value <= 5.30: return PatternFill(start_color="90EE90", end_color="90EE90", fill_type="solid"), Font(color="000000")
-    return PatternFill(start_color="008000", end_color="008000", fill_type="solid"), Font(color="FFFFFF", bold=True)
+    if value <= 5.00: return PatternFill(start_color="F4CCCC", end_color="F4CCCC", fill_type="solid"), Font(color="9C0006", bold=True)
+    if value <= 5.10: return PatternFill(start_color="FCE5CD", end_color="FCE5CD", fill_type="solid"), Font(color="7F6000", bold=True)
+    if value <= 5.20: return PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid"), Font(color="7F6000")
+    if value <= 5.30: return PatternFill(start_color="D9EAD3", end_color="D9EAD3", fill_type="solid"), Font(color="274E13")
+    return PatternFill(start_color="B6D7A8", end_color="B6D7A8", fill_type="solid"), Font(color="274E13", bold=True)
 
 
 def load_depot_mapping():
@@ -76,8 +77,21 @@ def fetch_daily_data(session, date_obj, vehicle_depot):
 def apply_formatting(workbook):
     ws = workbook["Monthly KMPL"]
     ws.freeze_panes = "E2"
-    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=5, max_col=ws.max_column):
-        for cell in row:
+    ws.auto_filter.ref = ws.dimensions
+    ws.sheet_view.showGridLines = False
+    ws.row_dimensions[1].height = 30
+    last_col = ws.max_column
+
+    for r in range(2, ws.max_row + 1):
+        if r % 2 == 0:
+            for c in range(1, 5):
+                ws.cell(r, c).fill = PatternFill("solid", fgColor="F7F9FC")
+        for c in range(1, last_col + 1):
+            cell = ws.cell(r, c)
+            cell.border = THIN_BORDER
+            cell.alignment = Alignment(horizontal="center" if c != 3 and c != 4 else "left", vertical="center")
+        for c in range(5, last_col + 1):
+            cell = ws.cell(r, c)
             if cell.value in (None, ""): continue
             try: numeric_value = float(str(cell.value).replace(",", "").strip())
             except (TypeError, ValueError): continue
@@ -85,13 +99,24 @@ def apply_formatting(workbook):
             fill, font = get_style(numeric_value)
             if fill: cell.fill = fill
             if font: cell.font = font
-            cell.border = THIN_BORDER
+
     for cell in ws[1]:
-        cell.font = Font(bold=True, color="FFFFFF"); cell.fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
-        cell.alignment = Alignment(horizontal="center", vertical="center"); cell.border = THIN_BORDER
-    for col in ws.columns:
-        max_length = max((len(str(cell.value)) for cell in col if cell.value is not None), default=0)
-        ws.column_dimensions[get_column_letter(col[0].column)].width = min(max_length + 2, 30)
+        cell.font = Font(bold=True, color="FFFFFF", size=10)
+        cell.fill = PatternFill("solid", fgColor="1F4E78")
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = THIN_BORDER
+
+    # Make the month-end KPI visually distinct from daily columns.
+    for r in range(1, ws.max_row + 1):
+        cell = ws.cell(r, last_col)
+        if r == 1:
+            cell.fill = PatternFill("solid", fgColor="17365D")
+            cell.font = Font(bold=True, color="FFFFFF")
+        cell.border = Border(left=Side(style="medium", color="5B9BD5"), right=THIN, top=THIN, bottom=THIN)
+
+    widths = {1: 7, 2: 14, 3: 20, 4: 18}
+    for c in range(1, last_col + 1):
+        ws.column_dimensions[get_column_letter(c)].width = widths.get(c, 8 if c < last_col else 20)
 
 
 def main():
@@ -120,8 +145,11 @@ def main():
             if data.get("up_to_day_kmpl") is not None: vehicle_data[vehicle_no]["up_to_day_latest"] = data.get("up_to_day_kmpl")
     if not vehicle_data: print("NO_DATA: No vehicle data found."); return 1
 
+    # Operational view: lowest month-to-date KMPL first, then vehicle number.
+    # Missing month-end KMPL values are kept at the bottom and never treated as zero.
+    ordered = sorted(vehicle_data.items(), key=lambda item: (item[1]["up_to_day_latest"] is None, item[1]["up_to_day_latest"] if item[1]["up_to_day_latest"] is not None else float("inf"), item[0]))
     rows = []
-    for idx, (vehicle_no, data) in enumerate(sorted(vehicle_data.items()), 1):
+    for idx, (vehicle_no, data) in enumerate(ordered, 1):
         row = {"SL No": idx, "Vehicle No": vehicle_no, "Op Type": data["op_type"], "Engine Type": data["engine"]}
         for day_num in range(1, days_in_month + 1): row[str(day_num)] = data["days"].get(day_num) if data["days"].get(day_num) is not None else ""
         row["Up-To-Day (Month End)"] = data["up_to_day_latest"] if data["up_to_day_latest"] is not None else ""; rows.append(row)
@@ -129,9 +157,6 @@ def main():
     reports_dir = PROJECT_DIR / "reports"; reports_dir.mkdir(exist_ok=True)
     xlsx_path = reports_dir / f"{display_name}_{args.month}.xlsx"
     folder_id = os.getenv("MONTHLY_DRIVE_FOLDER_ID", DEFAULT_GDRIVE_FOLDER)
-
-    # Export latest earlier workbook before building this month. Its Vehicle Performance
-    # sheet is our cache: valid old history is preserved and not fetched again.
     prior_path = reports_dir / f"_prior_{display_name}.xlsx"; existing_history = {}
     try:
         prior = download_latest_prior_monthly_sheet(folder_id, display_name, args.month, prior_path)
@@ -141,15 +166,11 @@ def main():
                 existing_history = read_existing_history(prior_wb["Vehicle Performance"])
                 print(f"INCREMENTAL_HISTORY_FROM: {prior.get('name')}")
     except Exception as exc:
-        # A missing/unusable prior workbook must not corrupt the report; source-backed
-        # initialization below is the safe fallback.
         print(f"HISTORY_CACHE_FALLBACK: {exc}")
         existing_history = {}
 
     pd.DataFrame(rows).to_excel(xlsx_path, sheet_name="Monthly KMPL", index=False, engine="openpyxl")
     workbook = load_workbook(xlsx_path); apply_formatting(workbook)
-
-    # Vehicle Performance history is introduced for FY26-27 monthly reports onward.
     if selected_month >= (2026, 4):
         zone = ZONE_BY_REGION.get(region_code, "")
         print(f"Building Vehicle Performance history: region={region_code}, zone={zone or '[blank]'}")
