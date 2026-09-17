@@ -1,0 +1,35 @@
+name: APSRTC Monthly Source Validation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-monthly-sources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Validate PRODDUTUR August 2026 Monthly sources
+        env:
+          APSRTC_USERNAME: ${{ secrets.APSRTC_USERNAME }}
+          APSRTC_PASSWORD: ${{ secrets.APSRTC_PASSWORD }}
+        run: |
+          python validate_monthly_vehicle_history.py \
+            --depot PRODDUTUR \
+            --region YSRKADAPA \
+            --zone ZONE-4 \
+            --month 202608
