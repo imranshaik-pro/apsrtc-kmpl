@@ -17,7 +17,9 @@ from openpyxl.utils import get_column_letter
 from src.auth.client import login
 from src.integrations.google_drive import upload_xlsx_as_google_sheet, download_latest_prior_monthly_sheet
 from src.parser.vehicle_parser import parse_vehicle_rows
-from src.reporting.vehicle_history import read_existing_history, build_history, write_history_sheet
+from src.reporting.vehicle_history import (
+    read_existing_history, build_history, write_history_sheet, fetch_schedule,
+)
 
 PROJECT_DIR = Path(__file__).resolve().parent
 MAPPING_FILE = PROJECT_DIR / "depot_mapping.json"
@@ -74,6 +76,38 @@ def fetch_daily_data(session, date_obj, vehicle_depot):
     return consolidate_day_records(records) if records else {}
 
 
+def _event_day(raw_date):
+    """Return actual completion day from APSRTC schedule date, or None."""
+    parsed = pd.to_datetime(str(raw_date).strip(), dayfirst=True, errors="coerce")
+    return None if pd.isna(parsed) else int(parsed.day)
+
+
+def fetch_monthly_schedule_markers(session, year, month, zone, region_code, depot):
+    """Map vehicle -> actual day -> schedule icon for this report month.
+
+    Ambiguous duplicate/conflicting schedule source rows are deliberately not marked
+    here; Vehicle Performance keeps the detailed exception for review.
+    """
+    if (year, month) < (2026, 4):
+        return {}
+    yyyymm = f"{year}{month:02d}"
+    month_label = datetime(year, month, 1).strftime("%B_%Y")
+    s3 = fetch_schedule(session, 3, yyyymm, month_label, zone, region_code, depot)
+    s4 = fetch_schedule(session, 4, yyyymm, month_label, zone, region_code, depot)
+    markers = {}
+    for vehicle in set(s3) | set(s4):
+        e3, e4 = s3.get(vehicle, []), s4.get(vehicle, [])
+        if len(e3) > 1 or len(e4) > 1 or (e3 and e4):
+            continue
+        event = ("🔧", e3[0]) if e3 else (("⚙", e4[0]) if e4 else None)
+        if not event:
+            continue
+        day = _event_day(event[1])
+        if day is not None and 1 <= day <= monthrange(year, month)[1]:
+            markers.setdefault(vehicle, {})[day] = event[0]
+    return markers
+
+
 def apply_formatting(workbook):
     ws = workbook["Monthly KMPL"]
     ws.freeze_panes = "E2"
@@ -93,6 +127,13 @@ def apply_formatting(workbook):
         for c in range(5, last_col + 1):
             cell = ws.cell(r, c)
             if cell.value in (None, ""): continue
+            # Maintenance cells are strings such as "4.52 🔧" and retain their KMPL.
+            if isinstance(cell.value, str) and ("🔧" in cell.value or "⚙" in cell.value):
+                if "🔧" in cell.value:
+                    cell.fill = PatternFill("solid", fgColor="FFF2CC"); cell.font = Font(bold=True, color="7F6000")
+                else:
+                    cell.fill = PatternFill("solid", fgColor="D9EAF7"); cell.font = Font(bold=True, color="1F4E78")
+                continue
             try: numeric_value = float(str(cell.value).replace(",", "").strip())
             except (TypeError, ValueError): continue
             cell.value = round(numeric_value, 2); cell.number_format = "0.00"
@@ -106,7 +147,6 @@ def apply_formatting(workbook):
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
         cell.border = THIN_BORDER
 
-    # Make the month-end KPI visually distinct from daily columns.
     for r in range(1, ws.max_row + 1):
         cell = ws.cell(r, last_col)
         if r == 1:
@@ -116,7 +156,7 @@ def apply_formatting(workbook):
 
     widths = {1: 7, 2: 14, 3: 20, 4: 18}
     for c in range(1, last_col + 1):
-        ws.column_dimensions[get_column_letter(c)].width = widths.get(c, 8 if c < last_col else 20)
+        ws.column_dimensions[get_column_letter(c)].width = widths.get(c, 9 if c < last_col else 20)
 
 
 def main():
@@ -145,8 +185,23 @@ def main():
             if data.get("up_to_day_kmpl") is not None: vehicle_data[vehicle_no]["up_to_day_latest"] = data.get("up_to_day_kmpl")
     if not vehicle_data: print("NO_DATA: No vehicle data found."); return 1
 
-    # Operational view: lowest month-to-date KMPL first, then vehicle number.
-    # Missing month-end KMPL values are kept at the bottom and never treated as zero.
+    # Schedule III = Major Service; Schedule IV = Complete Major Service.
+    # Put only the icon in the applicable daily cell, while retaining that day's KMPL.
+    zone = ZONE_BY_REGION.get(region_code, "")
+    schedule_markers = fetch_monthly_schedule_markers(session, year, month, zone, region_code, display_name)
+    marked_cells = 0
+    for vehicle_no, by_day in schedule_markers.items():
+        if vehicle_no not in vehicle_data:
+            continue
+        for day_num, icon in by_day.items():
+            kmpl = vehicle_data[vehicle_no]["days"].get(day_num)
+            if kmpl is None:
+                vehicle_data[vehicle_no]["days"][day_num] = icon
+            else:
+                vehicle_data[vehicle_no]["days"][day_num] = f"{kmpl:.2f} {icon}"
+            marked_cells += 1
+    print(f"MONTHLY_SCHEDULE_MARKERS: {marked_cells} daily cells annotated")
+
     ordered = sorted(vehicle_data.items(), key=lambda item: (item[1]["up_to_day_latest"] is None, item[1]["up_to_day_latest"] if item[1]["up_to_day_latest"] is not None else float("inf"), item[0]))
     rows = []
     for idx, (vehicle_no, data) in enumerate(ordered, 1):
@@ -172,7 +227,6 @@ def main():
     pd.DataFrame(rows).to_excel(xlsx_path, sheet_name="Monthly KMPL", index=False, engine="openpyxl")
     workbook = load_workbook(xlsx_path); apply_formatting(workbook)
     if selected_month >= (2026, 4):
-        zone = ZONE_BY_REGION.get(region_code, "")
         print(f"Building Vehicle Performance history: region={region_code}, zone={zone or '[blank]'}")
         roster, history, remarks = build_history(session, year, month, zone, region_code, display_name, existing_history)
         write_history_sheet(workbook, roster, history, remarks)
