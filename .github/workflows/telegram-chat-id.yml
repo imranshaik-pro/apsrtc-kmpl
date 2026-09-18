@@ -1,0 +1,49 @@
+name: Telegram Chat ID Setup
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  get-chat-id:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read Telegram chat ID
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+          if not token:
+              raise SystemExit("ERROR: TELEGRAM_BOT_TOKEN secret is missing.")
+
+          url = f"https://api.telegram.org/bot{token}/getUpdates"
+          with urllib.request.urlopen(url, timeout=20) as response:
+              payload = json.load(response)
+
+          if not payload.get("ok"):
+              raise SystemExit("ERROR: Telegram getUpdates failed.")
+
+          results = payload.get("result", [])
+          private = []
+          for update in results:
+              msg = update.get("message") or update.get("edited_message") or {}
+              chat = msg.get("chat") or {}
+              if chat.get("type") == "private" and chat.get("id") is not None:
+                  private.append((update.get("update_id", 0), chat["id"]))
+
+          if not private:
+              raise SystemExit(
+                  "NO_CHAT_FOUND: Send /start or any message to the bot, then run this workflow again."
+              )
+
+          _, chat_id = max(private)
+          print("TELEGRAM_CHAT_ID=" + str(chat_id))
+          print("SAFE: Bot token is not printed.")
+          PY
