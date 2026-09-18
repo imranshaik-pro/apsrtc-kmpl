@@ -69,17 +69,25 @@ jobs:
           already_link=$(sed -n 's/^ALREADY_DELIVERED: //p' /tmp/daily.log | tail -1)
           report_file=$(find reports -maxdepth 1 -type f -name '*.txt' -print -quit 2>/dev/null || true)
           [ -z "$drive_link" ] && drive_link="$already_link"
+          if [ -n "$already_link" ]; then
+            already_delivered="true"
+          else
+            already_delivered="false"
+          fi
 
           echo "depot=$depot" >> "$GITHUB_OUTPUT"
           echo "report_date=$report_date" >> "$GITHUB_OUTPUT"
           echo "drive_link=$drive_link" >> "$GITHUB_OUTPUT"
           echo "report_file=$report_file" >> "$GITHUB_OUTPUT"
+          echo "already_delivered=$already_delivered" >> "$GITHUB_OUTPUT"
           echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
 
           exit "$rc"
 
       - name: Send Daily report text to Telegram
-        if: success()
+        # Scheduled retries must not resend the same Daily report every hour.
+        # Manual/Form dispatches may deliberately redeliver an existing report.
+        if: success() && (github.event_name != 'schedule' || steps.daily_report.outputs.already_delivered != 'true')
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
