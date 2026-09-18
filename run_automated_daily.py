@@ -15,7 +15,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from src.integrations.google_drive import find_file, upload_file
+from src.integrations.google_drive import download_file, find_file, upload_file
 
 
 ROOT = Path(__file__).resolve().parent
@@ -107,6 +107,9 @@ def main() -> int:
     if not args.generate_only:
         existing = find_file(folder_id=folder_id, filename=filename)
         if existing:
+            existing_path = ROOT / "reports" / filename
+            download_file(existing["id"], existing_path)
+            print(f"EXISTING_REPORT_FILE: {existing_path}")
             print(f"ALREADY_DELIVERED: {existing.get('webViewLink', existing['id'])}")
             return 0
 
