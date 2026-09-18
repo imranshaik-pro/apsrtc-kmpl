@@ -39,6 +39,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Generate and upload daily report
+        id: daily_report
         env:
           APSRTC_USERNAME: ${{ secrets.APSRTC_USERNAME }}
           APSRTC_PASSWORD: ${{ secrets.APSRTC_PASSWORD }}
@@ -48,15 +49,94 @@ jobs:
           DAILY_DRIVE_FOLDER_ID: 1tU9aw7Cdw-Q-7mr9BMhayORKMy61_DOz
         shell: bash
         run: |
+          set +e
           if [ "${{ github.event_name }}" = "schedule" ]; then
-            python run_automated_daily.py --depot PRODDUTUR --scheduled
+            python run_automated_daily.py --depot PRODDUTUR --scheduled 2>&1 | tee /tmp/daily.log
+            rc=${PIPESTATUS[0]}
+            depot="PRODDUTUR"
           else
             ARGS=(--depot "${{ inputs.depot }}")
             if [ -n "${{ inputs.report_date }}" ]; then
               ARGS+=(--date "${{ inputs.report_date }}")
             fi
-            python run_automated_daily.py "${ARGS[@]}"
+            python run_automated_daily.py "${ARGS[@]}" 2>&1 | tee /tmp/daily.log
+            rc=${PIPESTATUS[0]}
+            depot="${{ inputs.depot }}"
           fi
+
+          report_date=$(sed -n 's/^Report date: //p' /tmp/daily.log | tail -1)
+          drive_link=$(sed -n 's/^DRIVE_LINK: //p' /tmp/daily.log | tail -1)
+          already_link=$(sed -n 's/^ALREADY_DELIVERED: //p' /tmp/daily.log | tail -1)
+          [ -z "$drive_link" ] && drive_link="$already_link"
+
+          echo "depot=$depot" >> "$GITHUB_OUTPUT"
+          echo "report_date=$report_date" >> "$GITHUB_OUTPUT"
+          echo "drive_link=$drive_link" >> "$GITHUB_OUTPUT"
+          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
+
+          exit "$rc"
+
+      - name: Send Telegram success notification
+        if: success()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DEPOT: ${{ steps.daily_report.outputs.depot }}
+          REPORT_DATE: ${{ steps.daily_report.outputs.report_date }}
+          DRIVE_LINK: ${{ steps.daily_report.outputs.drive_link }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.parse, urllib.request
+          token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+          chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+          if not token or not chat_id:
+              raise SystemExit("Telegram secrets are missing.")
+          text = (
+              "✅ APSRTC Daily Report\n\n"
+              f"Depot: {os.environ.get('DEPOT','')}\n"
+              f"Date: {os.environ.get('REPORT_DATE','')}\n"
+              "Status: Generated & uploaded successfully"
+          )
+          link = os.environ.get("DRIVE_LINK", "").strip()
+          if link:
+              text += f"\n\nReport: {link}"
+          data = urllib.parse.urlencode({"chat_id": chat_id, "text": text, "disable_web_page_preview": "true"}).encode()
+          req = urllib.request.Request(f"https://api.telegram.org/bot{token}/sendMessage", data=data, method="POST")
+          with urllib.request.urlopen(req, timeout=20) as response:
+              payload = json.load(response)
+          if not payload.get("ok"):
+              raise SystemExit("Telegram success notification failed.")
+          print("TELEGRAM_DAILY_SUCCESS_SENT")
+          PY
+
+      - name: Send Telegram failure notification
+        if: failure() && steps.daily_report.outcome == 'failure'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DEPOT: ${{ steps.daily_report.outputs.depot }}
+          REPORT_DATE: ${{ steps.daily_report.outputs.report_date }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.parse, urllib.request
+          token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+          chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+          if not token or not chat_id:
+              raise SystemExit("Telegram secrets are missing.")
+          text = (
+              "❌ APSRTC Daily Report Failed\n\n"
+              f"Depot: {os.environ.get('DEPOT') or 'PRODDUTUR'}\n"
+              f"Date: {os.environ.get('REPORT_DATE') or 'Not resolved'}\n"
+              "Status: Report generation/upload failed. Check GitHub Actions."
+          )
+          data = urllib.parse.urlencode({"chat_id": chat_id, "text": text}).encode()
+          req = urllib.request.Request(f"https://api.telegram.org/bot{token}/sendMessage", data=data, method="POST")
+          with urllib.request.urlopen(req, timeout=20) as response:
+              payload = json.load(response)
+          if not payload.get("ok"):
+              raise SystemExit("Telegram failure notification failed.")
+          print("TELEGRAM_DAILY_FAILURE_SENT")
+          PY
 
       - name: Upload generated report as workflow artifact
         if: always()
