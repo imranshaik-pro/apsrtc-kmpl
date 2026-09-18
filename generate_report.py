@@ -9,6 +9,8 @@ import json
 import subprocess
 import re
 import argparse
+
+from src.integrations.telegram import send_daily_report
 from datetime import datetime, timedelta
 
 PROJECT_DIR = "/home/imran/apsrtc-kmpl"
@@ -90,7 +92,9 @@ def main():
     try:
         drive_link = upload_to_drive(file_path)
         print(f"Upload successful: {drive_link}")
-    except Exception as e:
+        print(f"VIEW_URL: {drive_link}")
+
+        # This is the path used by the Google Form sheet poller. Deliver the\n        # exact generated Daily text only after Drive upload succeeds.\n        if os.getenv("TELEGRAM_BOT_TOKEN") and os.getenv("TELEGRAM_CHAT_ID"):\n            try:\n                parts = send_daily_report(file_path, display_name, report_date, drive_link)\n                print(f"TELEGRAM_DAILY_REPORT_SENT: {parts} message(s)")\n            except Exception as telegram_error:\n                # Keep a successful report/upload successful even if Telegram\n                # is temporarily unavailable; the poller records the Drive link.\n                print(f"TELEGRAM_DELIVERY_WARNING: {telegram_error}", file=sys.stderr)\n    except Exception as e:
         print(f"Upload failed: {e}")
         sys.exit(1)
 
