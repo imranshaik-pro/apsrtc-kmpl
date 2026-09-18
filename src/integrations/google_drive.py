@@ -57,6 +57,20 @@ def find_file(folder_id: str, filename: str) -> Optional[dict]:
     return files[0] if files else None
 
 
+def download_file(file_id: str, destination: str | Path) -> Path:
+    """Download a regular Drive file to destination."""
+    request = drive_service().files().get_media(fileId=file_id)
+    buffer = io.BytesIO()
+    downloader = MediaIoBaseDownload(buffer, request)
+    done = False
+    while not done:
+        _, done = downloader.next_chunk()
+    path = Path(destination)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(buffer.getvalue())
+    return path
+
+
 def download_latest_prior_monthly_sheet(folder_id: str, depot_name: str, selected_yyyy_mm: str, destination: str | Path) -> Optional[dict]:
     """Export the latest earlier depot monthly Google Sheet as XLSX.
 
