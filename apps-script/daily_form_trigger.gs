@@ -1,6 +1,7 @@
 /* APSRTC Daily Report - Google Form / Response Sheet trigger
  * Bind this script to the DAILY response spreadsheet.
  * Script Property required: GITHUB_TOKEN
+ * The form only dispatches GitHub Actions; Telegram secrets stay in GitHub.
  */
 
 const REPO = 'imranshaik-pro/apsrtc-kmpl';
@@ -30,7 +31,7 @@ function onFormSubmit(e) {
       depot: depot,
       report_date: reportDate
     });
-    setStatus_(sheet, row, 'Submitted to GitHub');
+    setStatus_(sheet, row, 'Submitted to GitHub Actions');
   } catch (err) {
     setStatus_(sheet, row, 'ERROR: ' + err.message);
     throw err;
