@@ -6,6 +6,8 @@ import subprocess
 import re
 from datetime import datetime
 import requests
+
+from src.integrations.telegram import send_daily_report
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
@@ -128,6 +130,20 @@ def process_sheet(service, sheet_id, is_monthly=False):
                 drive_link = match2.group(0)
             else:
                 drive_link = "Link not found (check Drive folder)"
+
+        # Daily Google Form path: deliver the exact generated report text to
+        # Telegram after the existing Drive upload succeeds. Telegram failure
+        # does not destroy the already-generated report or Drive link.
+        if req['type'] == 'daily' and os.getenv("TELEGRAM_BOT_TOKEN") and os.getenv("TELEGRAM_CHAT_ID"):
+            report_path = os.path.join(PROJECT_DIR, "reports", f"{req['depot'].upper()}_{req['date']}.txt")
+            if os.path.isfile(report_path):
+                try:
+                    parts = send_daily_report(report_path, req['depot'].upper(), req['date'], drive_link)
+                    print(f"  Telegram sent: {parts} message(s)")
+                except Exception as telegram_error:
+                    print(f"  Telegram warning: {telegram_error}")
+            else:
+                print(f"  Telegram warning: generated report file not found: {report_path}")
 
         update_sheet_cell(service, sheet_id, req["row"], "D", "✅ Processed")
         update_sheet_cell(service, sheet_id, req["row"], "E", drive_link)
