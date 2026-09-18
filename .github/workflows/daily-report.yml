@@ -67,16 +67,18 @@ jobs:
           report_date=$(sed -n 's/^Report date: //p' /tmp/daily.log | tail -1)
           drive_link=$(sed -n 's/^DRIVE_LINK: //p' /tmp/daily.log | tail -1)
           already_link=$(sed -n 's/^ALREADY_DELIVERED: //p' /tmp/daily.log | tail -1)
+          report_file=$(find reports -maxdepth 1 -type f -name '*.txt' -print -quit 2>/dev/null || true)
           [ -z "$drive_link" ] && drive_link="$already_link"
 
           echo "depot=$depot" >> "$GITHUB_OUTPUT"
           echo "report_date=$report_date" >> "$GITHUB_OUTPUT"
           echo "drive_link=$drive_link" >> "$GITHUB_OUTPUT"
+          echo "report_file=$report_file" >> "$GITHUB_OUTPUT"
           echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
 
           exit "$rc"
 
-      - name: Send Telegram success notification
+      - name: Send Daily report text to Telegram
         if: success()
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -84,31 +86,42 @@ jobs:
           DEPOT: ${{ steps.daily_report.outputs.depot }}
           REPORT_DATE: ${{ steps.daily_report.outputs.report_date }}
           DRIVE_LINK: ${{ steps.daily_report.outputs.drive_link }}
+          REPORT_FILE: ${{ steps.daily_report.outputs.report_file }}
         run: |
           python - <<'PY'
           import json, os, urllib.parse, urllib.request
-          token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
-          chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+          from pathlib import Path
+          token = os.environ.get('TELEGRAM_BOT_TOKEN', '').strip()
+          chat_id = os.environ.get('TELEGRAM_CHAT_ID', '').strip()
+          report_file = os.environ.get('REPORT_FILE', '').strip()
           if not token or not chat_id:
-              raise SystemExit("Telegram secrets are missing.")
-          text = (
-              "✅ APSRTC Daily Report\n\n"
-              f"Depot: {os.environ.get('DEPOT','')}\n"
-              f"Date: {os.environ.get('REPORT_DATE','')}\n"
-              "Status: Generated & uploaded successfully"
-          )
-          link = os.environ.get("DRIVE_LINK", "").strip()
+              raise SystemExit('Telegram secrets are missing.')
+          body = ''
+          if report_file and Path(report_file).is_file():
+              body = Path(report_file).read_text(encoding='utf-8', errors='replace').strip()
+          header = '🚌 APSRTC DAILY REPORT\nDepot: ' + os.environ.get('DEPOT','') + '\nDate: ' + os.environ.get('REPORT_DATE','') + '\n\n'
+          footer = '\n\n✅ Uploaded to Google Drive'
+          link = os.environ.get('DRIVE_LINK', '').strip()
           if link:
-              text += f"\n\nReport: {link}"
-          data = urllib.parse.urlencode({"chat_id": chat_id, "text": text, "disable_web_page_preview": "true"}).encode()
-          req = urllib.request.Request(f"https://api.telegram.org/bot{token}/sendMessage", data=data, method="POST")
-          with urllib.request.urlopen(req, timeout=20) as response:
-              payload = json.load(response)
-          if not payload.get("ok"):
-              raise SystemExit("Telegram success notification failed.")
-          print("TELEGRAM_DAILY_SUCCESS_SENT")
+              footer += '\n📄 Report: ' + link
+          full = header + (body or 'Report generated successfully.') + footer
+          chunks = []
+          while full:
+              if len(full) <= 3800:
+                  chunks.append(full); break
+              cut = full.rfind('\n', 0, 3800)
+              if cut < 1900: cut = 3800
+              chunks.append(full[:cut].rstrip())
+              full = full[cut:].lstrip('\n')
+          for i, chunk in enumerate(chunks, 1):
+              prefix = ('Part %d/%d\n\n' % (i, len(chunks))) if len(chunks) > 1 else ''
+              data = urllib.parse.urlencode({'chat_id': chat_id, 'text': prefix + chunk, 'disable_web_page_preview': 'true'}).encode()
+              req = urllib.request.Request('https://api.telegram.org/bot' + token + '/sendMessage', data=data, method='POST')
+              with urllib.request.urlopen(req, timeout=20) as response:
+                  payload = json.load(response)
+              if not payload.get('ok'): raise SystemExit('Telegram Daily report delivery failed.')
+          print('TELEGRAM_DAILY_REPORT_SENT: %d message(s)' % len(chunks))
           PY
-
       - name: Send Telegram failure notification
         if: failure() && steps.daily_report.outcome == 'failure'
         env:
