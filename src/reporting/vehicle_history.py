@@ -154,6 +154,55 @@ def build_history(session,selected_year,selected_month,zone,regn,depot,existing=
                     values[v]["2026-27"][mon]=f"{base_text} {icon} {day}".strip()
     return roster,values,remarks
 
+def write_vehicle_360_sheet(wb, roster, values, events=None):
+    """Create a management-friendly per-vehicle 360 summary.
+
+    Manual event data is optional until the live Event Register is connected.
+    APSRTC-derived KMPL identity remains available immediately.
+    """
+    from .vehicle_events import aggregate_change_dates
+
+    if "Vehicle 360" in wb.sheetnames:
+        del wb["Vehicle 360"]
+    ws = wb.create_sheet("Vehicle 360")
+    ws.sheet_view.showGridLines = False
+    ws.append(["APSRTC – VEHICLE 360° HISTORY"])
+    ws.append(["KMPL performance + maintenance + aggregate / breakdown / tyre event history"])
+    ws.append([])
+    headers = ["S.NO","Veh No","OP Type","Eng Type","Latest KMPL","Major Aggregate Changes","Breakdowns","Tyre Changes"]
+    ws.append(headers)
+    ws.merge_cells("A1:H1"); ws.merge_cells("A2:H2")
+    ws["A1"].font=Font(bold=True,color="FFFFFF",size=16); ws["A1"].fill=PatternFill("solid",fgColor="17365D"); ws["A1"].alignment=Alignment(horizontal="center",vertical="center")
+    ws["A2"].font=Font(bold=True,color="1F4E78",size=10); ws["A2"].alignment=Alignment(horizontal="center",vertical="center")
+    for c in ws[4]:
+        c.font=Font(bold=True,color="FFFFFF"); c.fill=PatternFill("solid",fgColor="1F4E78"); c.alignment=Alignment(horizontal="center",vertical="center",wrap_text=True); c.border=BORDER
+    by_vehicle={}
+    for e in events or []:
+        by_vehicle.setdefault(e.vehicle_no,[]).append(e)
+    ordered=sorted(roster,key=lambda v:(str(roster[v].get("op","")).upper(),str(roster[v].get("engine","")).upper(),v))
+    for idx,v in enumerate(ordered,1):
+        ve=by_vehicle.get(v,[])
+        changes=aggregate_change_dates(ve)
+        aggregate_text="\n".join(f"{component}: {' / '.join(dates)}" for component,dates in changes.items())
+        breakdown_text="\n".join(f"{e.event_date}: {e.breakdown_details or e.component or e.remarks}".rstrip(": ") for e in ve if e.event_type=="BREAKDOWN")
+        tyre_text="\n".join(f"{e.event_date}: {' | '.join(x for x in (e.tyre_position,e.tyre_no,e.remarks) if x)}".rstrip(": ") for e in ve if e.event_type=="TYRE CHANGE")
+        latest=""
+        for fy in reversed(FYS):
+            for mon in reversed(MONTHS):
+                val=values.get(v,{}).get(fy,{}).get(mon,"")
+                if val not in (None,""):
+                    latest=str(val).split(" ")[0]; break
+            if latest: break
+        ws.append([idx,v,roster[v].get("op",""),roster[v].get("engine",""),latest,aggregate_text,breakdown_text,tyre_text])
+        r=ws.max_row
+        for c in range(1,9):
+            ws.cell(r,c).border=BORDER; ws.cell(r,c).alignment=Alignment(horizontal="center" if c in (1,2,5) else "left",vertical="top",wrap_text=True)
+        ws.row_dimensions[r].height=36
+    for i,w in enumerate([7,15,18,18,13,38,38,38],1): ws.column_dimensions[get_column_letter(i)].width=w
+    ws.freeze_panes="E5"; ws.auto_filter.ref=f"A4:H{ws.max_row}"
+    return ws
+
+
 def write_history_sheet(wb,roster,values,remarks):
     if "Vehicle Performance" in wb.sheetnames:del wb["Vehicle Performance"]
     ws=wb.create_sheet("Vehicle Performance"); headers=["S.NO","Veh No","OP Type","Eng Type","FY Year",*MONTHS]
