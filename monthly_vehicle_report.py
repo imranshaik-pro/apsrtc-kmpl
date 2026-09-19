@@ -171,6 +171,14 @@ def apply_formatting(workbook):
             cell.font = Font(bold=True, color="FFFFFF")
         cell.border = Border(left=Side(style="medium", color="5B9BD5"), right=THIN, top=THIN, bottom=THIN)
 
+    # Make the month-end decision column immediately visible while retaining
+    # the established KMPL slab colours in the daily cells.
+    for r in range(6, ws.max_row + 1):
+        ws.row_dimensions[r].height = 21
+        end_cell = ws.cell(r, last_col)
+        end_cell.font = Font(bold=True, color=end_cell.font.color if end_cell.font.color and end_cell.font.color.type=="rgb" else "17365D")
+    ws.auto_filter.ref = f"A5:{get_column_letter(last_col)}{ws.max_row}"
+
     widths = {1: 7, 2: 14, 3: 20, 4: 18}
     for c in range(1, last_col + 1):
         ws.column_dimensions[get_column_letter(c)].width = widths.get(c, 9 if c < last_col else 20)
