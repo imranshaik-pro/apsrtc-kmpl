@@ -110,13 +110,30 @@ def fetch_monthly_schedule_markers(session, year, month, zone, region_code, depo
 
 def apply_formatting(workbook):
     ws = workbook["Monthly KMPL"]
-    ws.freeze_panes = "E2"
-    ws.auto_filter.ref = ws.dimensions
-    ws.sheet_view.showGridLines = False
-    ws.row_dimensions[1].height = 30
+    # Professional report identity: title band + reporting context above the data.
+    ws.insert_rows(1, 4)
     last_col = ws.max_column
+    last_letter = get_column_letter(last_col)
+    ws.merge_cells(f"A1:{last_letter}1")
+    ws["A1"] = "APSRTC – PRODDUTUR DEPOT"
+    ws["A1"].font = Font(bold=True, color="FFFFFF", size=16)
+    ws["A1"].fill = PatternFill("solid", fgColor="17365D")
+    ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 28
+    ws.merge_cells(f"A2:{last_letter}2")
+    ws["A2"] = "MONTHLY VEHICLE KMPL PERFORMANCE"
+    ws["A2"].font = Font(bold=True, color="1F4E78", size=12)
+    ws["A2"].alignment = Alignment(horizontal="center", vertical="center")
+    ws.merge_cells(f"A3:{last_letter}3")
+    ws["A3"] = "Daily HSD KMPL | Up-To-Day performance | Schedule-III 🔧 | Schedule-IV ⚙"
+    ws["A3"].font = Font(italic=True, color="595959", size=9)
+    ws["A3"].alignment = Alignment(horizontal="center", vertical="center")
+    ws.freeze_panes = "E6"
+    ws.auto_filter.ref = f"A5:{last_letter}{ws.max_row}"
+    ws.sheet_view.showGridLines = False
+    ws.row_dimensions[5].height = 30
 
-    for r in range(2, ws.max_row + 1):
+    for r in range(6, ws.max_row + 1):
         if r % 2 == 0:
             for c in range(1, 5):
                 ws.cell(r, c).fill = PatternFill("solid", fgColor="F7F9FC")
@@ -141,7 +158,7 @@ def apply_formatting(workbook):
             if fill: cell.fill = fill
             if font: cell.font = font
 
-    for cell in ws[1]:
+    for cell in ws[5]:
         cell.font = Font(bold=True, color="FFFFFF", size=10)
         cell.fill = PatternFill("solid", fgColor="1F4E78")
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
@@ -149,7 +166,7 @@ def apply_formatting(workbook):
 
     for r in range(1, ws.max_row + 1):
         cell = ws.cell(r, last_col)
-        if r == 1:
+        if r == 5:
             cell.fill = PatternFill("solid", fgColor="17365D")
             cell.font = Font(bold=True, color="FFFFFF")
         cell.border = Border(left=Side(style="medium", color="5B9BD5"), right=THIN, top=THIN, bottom=THIN)
