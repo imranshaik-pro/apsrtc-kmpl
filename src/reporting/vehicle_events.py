@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 import re
-from typing import Iterable
+from typing import Iterable\nimport csv\nfrom pathlib import Path
 
 EVENT_TYPES = ("UNIT CHANGE", "BREAKDOWN", "TYRE CHANGE")
 
@@ -96,3 +96,38 @@ def aggregate_change_dates(events: Iterable[VehicleEvent]) -> dict[str, list[str
         if event.event_date not in dates:
             dates.append(event.event_date)
     return out
+
+
+def event_from_mapping(data: dict[str, str], sequence: int = 1, source: str = "") -> VehicleEvent:
+    """Normalize a Form/Telegram/API payload into the canonical event model."""
+    depot = str(data.get("Depot") or data.get("depot") or "").strip().upper()
+    event_date = str(data.get("Event Date") or data.get("event_date") or "").strip()
+    event_type = norm_event_type(data.get("Event Type") or data.get("event_type") or "")
+    vehicle = norm_vehicle(data.get("Vehicle No") or data.get("vehicle_no") or "")
+    created = str(data.get("Created At") or data.get("created_at") or datetime.now().isoformat(timespec="seconds"))
+    event = VehicleEvent(
+        event_id=str(data.get("Event ID") or data.get("event_id") or make_event_id(depot,event_date,sequence)),
+        created_at=created,
+        event_date=event_date,
+        depot=depot,
+        vehicle_no=vehicle,
+        event_type=event_type,
+        component=str(data.get("Component / Aggregate") or data.get("component") or "").strip(),
+        tyre_position=str(data.get("Tyre Position") or data.get("tyre_position") or "").strip(),
+        tyre_no=str(data.get("Tyre No") or data.get("tyre_no") or "").strip(),
+        breakdown_details=str(data.get("Breakdown Details") or data.get("breakdown_details") or "").strip(),
+        remarks=str(data.get("Remarks") or data.get("remarks") or "").strip(),
+        entry_source=str(data.get("Entry Source") or data.get("entry_source") or source).strip(),
+    )
+    event.validate()
+    return event
+
+
+def append_event_csv(path: str | Path, event: VehicleEvent) -> None:
+    """Append safely to a portable register used by tests/import-export workflows."""
+    target=Path(path); target.parent.mkdir(parents=True,exist_ok=True)
+    new=not target.exists() or target.stat().st_size==0
+    with target.open("a",newline="",encoding="utf-8") as fh:
+        writer=csv.writer(fh)
+        if new: writer.writerow(EVENT_HEADERS)
+        writer.writerow(event.as_row())
