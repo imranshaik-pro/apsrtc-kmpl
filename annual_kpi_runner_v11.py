@@ -6,10 +6,10 @@ import annual_kpi_runner_v10 as v10
 
 m = v10.m
 v7 = v10.v7
-LAYOUT_VERSION = "11"
+LAYOUT_VERSION = "10"
 
 # Keep existing v7/v8/v9/v10 sheet layouts compatible.
-v7.LAYOUT_VERSION = LAYOUT_VERSION
+# v11 is a formatting-only patch; retain the established v10 layout contract.\nv7.LAYOUT_VERSION = "10"
 
 ORIGINAL_FORMAT_SHEET = v7.format_sheet_v7
 
