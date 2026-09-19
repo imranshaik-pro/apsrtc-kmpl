@@ -18,7 +18,7 @@ from src.auth.client import login
 from src.integrations.google_drive import upload_xlsx_as_google_sheet, download_latest_prior_monthly_sheet
 from src.parser.vehicle_parser import parse_vehicle_rows
 from src.reporting.vehicle_history import (
-    read_existing_history, build_history, write_history_sheet, fetch_schedule,
+    read_existing_history, build_history, write_history_sheet, write_vehicle_360_sheet, fetch_schedule,
 )
 
 PROJECT_DIR = Path(__file__).resolve().parent
