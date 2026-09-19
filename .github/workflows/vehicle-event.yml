@@ -1,0 +1,83 @@
+name: Vehicle Event Trigger
+
+on:
+  workflow_dispatch:
+    inputs:
+      event_date:
+        description: Event date (YYYY-MM-DD)
+        required: true
+      depot:
+        description: Depot
+        required: true
+        default: PRODDUTUR
+      vehicle_no:
+        description: Vehicle number
+        required: true
+      event_type:
+        description: UNIT CHANGE, BREAKDOWN or TYRE CHANGE
+        required: true
+        type: choice
+        options:
+          - UNIT CHANGE
+          - BREAKDOWN
+          - TYRE CHANGE
+      component:
+        description: Component / Aggregate (required for UNIT CHANGE)
+        required: false
+      tyre_position:
+        description: Tyre position
+        required: false
+      tyre_no:
+        description: Tyre number
+        required: false
+      breakdown_details:
+        description: Breakdown details
+        required: false
+      remarks:
+        description: Remarks
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate-event:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate and normalize vehicle event
+        env:
+          EVENT_DATE: ${{ inputs.event_date }}
+          DEPOT: ${{ inputs.depot }}
+          VEHICLE_NO: ${{ inputs.vehicle_no }}
+          EVENT_TYPE: ${{ inputs.event_type }}
+          COMPONENT: ${{ inputs.component }}
+          TYRE_POSITION: ${{ inputs.tyre_position }}
+          TYRE_NO: ${{ inputs.tyre_no }}
+          BREAKDOWN_DETAILS: ${{ inputs.breakdown_details }}
+          REMARKS: ${{ inputs.remarks }}
+        run: |
+          python - <<'PY'
+          import json, os, subprocess
+          payload = {
+              "Event Date": os.environ["EVENT_DATE"],
+              "Depot": os.environ["DEPOT"],
+              "Vehicle No": os.environ["VEHICLE_NO"],
+              "Event Type": os.environ["EVENT_TYPE"],
+              "Component / Aggregate": os.environ.get("COMPONENT",""),
+              "Tyre Position": os.environ.get("TYRE_POSITION",""),
+              "Tyre No": os.environ.get("TYRE_NO",""),
+              "Breakdown Details": os.environ.get("BREAKDOWN_DETAILS",""),
+              "Remarks": os.environ.get("REMARKS",""),
+          }
+          subprocess.run(["python","record_vehicle_event.py","--payload",json.dumps(payload),"--source","GITHUB_MANUAL"],check=True)
+          PY
+      - name: Preserve normalized event artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vehicle-event-${{ inputs.vehicle_no }}-${{ inputs.event_date }}
+          path: reports/vehicle_event_register.csv
+          retention-days: 7
