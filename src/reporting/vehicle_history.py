@@ -156,14 +156,23 @@ def build_history(session,selected_year,selected_month,zone,regn,depot,existing=
 
 def write_history_sheet(wb,roster,values,remarks):
     if "Vehicle Performance" in wb.sheetnames:del wb["Vehicle Performance"]
-    ws=wb.create_sheet("Vehicle Performance"); headers=["S.NO","Veh No","OP Type","Eng Type","FY Year",*MONTHS]; ws.append(headers)
-    ws.sheet_view.showGridLines=False; ws.freeze_panes="F2"; ws.auto_filter.ref=f"A1:Q1"; ws.row_dimensions[1].height=30
-    for c in ws[1]:
+    ws=wb.create_sheet("Vehicle Performance"); headers=["S.NO","Veh No","OP Type","Eng Type","FY Year",*MONTHS]
+    ws.append(["APSRTC – VEHICLE PERFORMANCE HISTORY"])
+    ws.append(["3 Financial Year HSD KMPL History | Current vehicle population based on selected-month MTD-598"])
+    ws.append(["🔧 Schedule-III completed   |   ⚙ Schedule-IV completed   |   Number = completion day"])
+    ws.append([])
+    ws.append(headers)
+    ws.merge_cells("A1:Q1"); ws.merge_cells("A2:Q2"); ws.merge_cells("A3:Q3")
+    ws["A1"].font=Font(bold=True,color="FFFFFF",size=16); ws["A1"].fill=PatternFill("solid",fgColor="17365D"); ws["A1"].alignment=Alignment(horizontal="center",vertical="center")
+    ws["A2"].font=Font(bold=True,color="1F4E78",size=11); ws["A2"].alignment=Alignment(horizontal="center",vertical="center")
+    ws["A3"].font=Font(italic=True,color="595959",size=9); ws["A3"].alignment=Alignment(horizontal="center",vertical="center")
+    ws.sheet_view.showGridLines=False; ws.freeze_panes="F6"; ws.auto_filter.ref=f"A5:Q5"; ws.row_dimensions[1].height=28; ws.row_dimensions[5].height=30
+    for c in ws[5]:
         c.font=Font(bold=True,color="FFFFFF",size=10); c.fill=PatternFill("solid",fgColor="1F4E78"); c.alignment=Alignment(horizontal="center",vertical="center",wrap_text=True); c.border=BORDER
 
     # Business grouping: OP Type -> Engine Type -> Vehicle No.
     ordered=sorted(roster,key=lambda v:(str(roster[v].get("op","")).upper(),str(roster[v].get("engine","")).upper(),v))
-    row=2; previous_group=None
+    row=6; previous_group=None
     fy_fills={"2024-25":"F7F9FC","2025-26":"EDF3F8","2026-27":"E2F0D9"}
     for idx,v in enumerate(ordered,1):
         group=(str(roster[v].get("op","")).strip(),str(roster[v].get("engine","")).strip())
