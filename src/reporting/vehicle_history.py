@@ -177,6 +177,11 @@ def write_history_sheet(wb,roster,values,remarks):
     for idx,v in enumerate(ordered,1):
         group=(str(roster[v].get("op","")).strip(),str(roster[v].get("engine","")).strip())
         start=row
+        # Visually identify each OP Type -> Engine Type group without adding
+        # synthetic business data to the report.
+        if previous_group is not None and group != previous_group:
+            for col in range(1,18):
+                ws.cell(row,col).border=Border(top=Side(style="medium",color="4472C4"))
         for fy in FYS:
             vals=[values.get(v,{}).get(fy,{}).get(m,"") for m in MONTHS]; ws.append([idx,v,group[0],group[1],fy,*vals])
             for c in ws[row]:
@@ -200,6 +205,23 @@ def write_history_sheet(wb,roster,values,remarks):
         for col in range(1,18):
             cell=ws.cell(end,col);cell.border=Border(left=cell.border.left,right=cell.border.right,top=cell.border.top,bottom=bottom)
         previous_group=group
+
+    # Keep the identifiers visually anchored while the month history scrolls.
+    ws.column_dimensions["B"].width=15
+    ws.column_dimensions["C"].width=18
+    ws.column_dimensions["D"].width=18
+    ws.column_dimensions["E"].width=11
+    for r in range(6,row):
+        ws.row_dimensions[r].height=22
+        # Current FY is the decision row: emphasize it without changing values.
+        if ws.cell(r,5).value=="2026-27":
+            for c in range(1,18):
+                ws.cell(r,c).font=Font(
+                    name=ws.cell(r,c).font.name or "Calibri",
+                    size=ws.cell(r,c).font.sz or 11,
+                    bold=True,
+                    color=ws.cell(r,c).font.color if ws.cell(r,c).font.color and ws.cell(r,c).font.color.type=="rgb" else "274E13"
+                )
 
     widths=[7,14,20,18,10]+[12]*12
     for i,width in enumerate(widths,1):ws.column_dimensions[get_column_letter(i)].width=width
