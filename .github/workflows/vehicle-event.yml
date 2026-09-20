@@ -3,6 +3,12 @@ name: Vehicle Event Trigger
 on:
   workflow_dispatch:
     inputs:
+      event_id:
+        description: Event ID from the Google Form register
+        required: false
+      created_at:
+        description: Created timestamp
+        required: false
       event_date:
         description: Event date (YYYY-MM-DD)
         required: true
@@ -14,21 +20,29 @@ on:
         description: Vehicle number
         required: true
       event_type:
-        description: UNIT CHANGE, BREAKDOWN or TYRE CHANGE
+        description: Vehicle event type
         required: true
         type: choice
         options:
           - UNIT CHANGE
           - BREAKDOWN
           - TYRE CHANGE
-      component:
-        description: Component / Aggregate (required for UNIT CHANGE)
+          - SCHEDULE III
+          - SCHEDULE IV
+      components:
+        description: Pipe-separated changed components
         required: false
-      tyre_position:
-        description: Tyre position
+      spring_positions:
+        description: Pipe-separated spring positions
         required: false
-      tyre_no:
-        description: Tyre number
+      tyre_history:
+        description: Position-to-tyre-number history
+        required: false
+      breakdown_location:
+        description: Breakdown location
+        required: false
+      kms_cancelled:
+        description: KMs cancelled
         required: false
       breakdown_details:
         description: Breakdown details
@@ -36,6 +50,10 @@ on:
       remarks:
         description: Remarks
         required: false
+      entry_source:
+        description: Entry source
+        required: false
+        default: GOOGLE_FORM
 
 permissions:
   contents: read
@@ -48,32 +66,46 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Validate and normalize vehicle event
+      - name: Validate normalized vehicle event
         env:
+          EVENT_ID: ${{ inputs.event_id }}
+          CREATED_AT: ${{ inputs.created_at }}
           EVENT_DATE: ${{ inputs.event_date }}
           DEPOT: ${{ inputs.depot }}
           VEHICLE_NO: ${{ inputs.vehicle_no }}
           EVENT_TYPE: ${{ inputs.event_type }}
-          COMPONENT: ${{ inputs.component }}
-          TYRE_POSITION: ${{ inputs.tyre_position }}
-          TYRE_NO: ${{ inputs.tyre_no }}
+          COMPONENTS: ${{ inputs.components }}
+          SPRING_POSITIONS: ${{ inputs.spring_positions }}
+          TYRE_HISTORY: ${{ inputs.tyre_history }}
+          BREAKDOWN_LOCATION: ${{ inputs.breakdown_location }}
+          KMS_CANCELLED: ${{ inputs.kms_cancelled }}
           BREAKDOWN_DETAILS: ${{ inputs.breakdown_details }}
           REMARKS: ${{ inputs.remarks }}
+          ENTRY_SOURCE: ${{ inputs.entry_source }}
         run: |
           python - <<'PY'
           import json, os, subprocess
           payload = {
+              "Event ID": os.environ.get("EVENT_ID", ""),
+              "Created At": os.environ.get("CREATED_AT", ""),
               "Event Date": os.environ["EVENT_DATE"],
               "Depot": os.environ["DEPOT"],
               "Vehicle No": os.environ["VEHICLE_NO"],
               "Event Type": os.environ["EVENT_TYPE"],
-              "Component / Aggregate": os.environ.get("COMPONENT",""),
-              "Tyre Position": os.environ.get("TYRE_POSITION",""),
-              "Tyre No": os.environ.get("TYRE_NO",""),
-              "Breakdown Details": os.environ.get("BREAKDOWN_DETAILS",""),
-              "Remarks": os.environ.get("REMARKS",""),
+              "Components": os.environ.get("COMPONENTS", ""),
+              "Spring Positions": os.environ.get("SPRING_POSITIONS", ""),
+              "Tyre History": os.environ.get("TYRE_HISTORY", ""),
+              "Breakdown Location": os.environ.get("BREAKDOWN_LOCATION", ""),
+              "KM Cancelled": os.environ.get("KMS_CANCELLED", ""),
+              "Breakdown Details": os.environ.get("BREAKDOWN_DETAILS", ""),
+              "Remarks": os.environ.get("REMARKS", ""),
+              "Entry Source": os.environ.get("ENTRY_SOURCE", "GOOGLE_FORM"),
           }
-          subprocess.run(["python","record_vehicle_event.py","--payload",json.dumps(payload),"--source","GITHUB_MANUAL"],check=True)
+          subprocess.run(
+              ["python", "record_vehicle_event.py", "--payload", json.dumps(payload),
+               "--source", os.environ.get("ENTRY_SOURCE", "GOOGLE_FORM")],
+              check=True,
+          )
           PY
       - name: Preserve normalized event artifact
         uses: actions/upload-artifact@v4
