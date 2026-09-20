@@ -22,7 +22,9 @@ EVENT_HEADERS = (
 )
 
 def norm_vehicle(value: str) -> str:
-    return re.sub(r"\s+", "", str(value or "")).upper()
+    """Canonical APSRTC vehicle number: uppercase, no spaces, no leading AP."""
+    vehicle = re.sub(r"\\s+", "", str(value or "")).upper()
+    return vehicle[2:] if vehicle.startswith("AP") else vehicle
 
 def norm_event_type(value: str) -> str:
     event = re.sub(r"\s+", " ", str(value or "").strip()).upper()
