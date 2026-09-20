@@ -17,7 +17,10 @@ THIN = Side(style="thin", color="B7C9E2")
 BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
 
 
-def norm_vehicle(value): return re.sub(r"\s+", "", str(value or "")).upper()
+def norm_vehicle(value):
+    """Canonical APSRTC vehicle number: uppercase, no spaces, no leading AP."""
+    vehicle = re.sub(r"\\s+", "", str(value or "")).upper()
+    return vehicle[2:] if vehicle.startswith("AP") else vehicle
 
 def _clean_columns(df):
     if isinstance(df.columns, pd.MultiIndex):
