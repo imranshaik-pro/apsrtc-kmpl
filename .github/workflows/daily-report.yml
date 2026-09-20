@@ -12,10 +12,24 @@ on:
         required: false
         default: ''
   schedule:
-    # GitHub scheduled workflows can be delayed at heavily used clock boundaries.
-    # Run at :17 UTC-minute instead of :30 while preserving the same hourly retry window.
-    # IST nominal times: 04:47, 05:47, 06:47, 07:47, 08:47, 09:47, 10:47, 11:47.
-    - cron: '17 23,0-6 * * *'
+    # Use explicit Asia/Kolkata schedules rather than one compact UTC cron.
+    # GitHub documents that scheduled events can be delayed or even dropped under load.
+    # Stagger retry minutes to reduce dependence on a single recurring scheduler slot.
+    # Target window: first attempt just after 05:00 IST, then roughly hourly through 11:00 IST.
+    - cron: '7 5 * * *'
+      timezone: 'Asia/Kolkata'
+    - cron: '11 6 * * *'
+      timezone: 'Asia/Kolkata'
+    - cron: '17 7 * * *'
+      timezone: 'Asia/Kolkata'
+    - cron: '23 8 * * *'
+      timezone: 'Asia/Kolkata'
+    - cron: '29 9 * * *'
+      timezone: 'Asia/Kolkata'
+    - cron: '35 10 * * *'
+      timezone: 'Asia/Kolkata'
+    - cron: '41 11 * * *'
+      timezone: 'Asia/Kolkata'
 
 permissions:
   contents: read
