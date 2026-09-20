@@ -8,8 +8,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 import csv
+import json
+import os
 from pathlib import Path
 import re
+from urllib.parse import urlencode
+from urllib.request import urlopen
 from typing import Iterable
 
 EVENT_TYPES = ("UNIT CHANGE", "BREAKDOWN", "TYRE CHANGE", "SCHEDULE III", "SCHEDULE IV")
@@ -164,6 +168,24 @@ def append_event_csv(path: str | Path, event: VehicleEvent) -> None:
         if new:
             writer.writerow(EVENT_HEADERS)
         writer.writerow(event.as_row())
+
+def fetch_vehicle_events_api() -> list[VehicleEvent]:
+    """Read the permanent Google Sheet event register through its secured Apps Script API."""
+    base_url = os.getenv("VEHICLE_EVENTS_API_URL", "").strip()
+    api_key = os.getenv("VEHICLE_EVENTS_API_KEY", "").strip()
+    if not base_url or not api_key:
+        raise RuntimeError("VEHICLE_EVENTS_API_URL / VEHICLE_EVENTS_API_KEY are not configured")
+
+    url = base_url + ("&" if "?" in base_url else "?") + urlencode({"key": api_key})
+    with urlopen(url, timeout=30) as response:
+        payload = json.loads(response.read().decode("utf-8"))
+    if not payload.get("ok"):
+        raise RuntimeError("Vehicle Events API failed: " + str(payload.get("error", "unknown error")))
+
+    events = []
+    for i, row in enumerate(payload.get("events", []), 1):
+        events.append(event_from_mapping(row, sequence=i, source="GOOGLE_FORM"))
+    return events
 
 def read_event_csv(path: str | Path) -> list[VehicleEvent]:
     target = Path(path)
