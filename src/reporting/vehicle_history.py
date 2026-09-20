@@ -184,8 +184,20 @@ def write_vehicle_360_sheet(wb, roster, values, events=None):
         ve=by_vehicle.get(v,[])
         changes=aggregate_change_dates(ve)
         aggregate_text="\n".join(f"{component}: {' / '.join(dates)}" for component,dates in changes.items())
-        breakdown_text="\n".join(f"{e.event_date}: {e.breakdown_details or e.component or e.remarks}".rstrip(": ") for e in ve if e.event_type=="BREAKDOWN")
-        tyre_text="\n".join(f"{e.event_date}: {' | '.join(x for x in (e.tyre_position,e.tyre_no,e.remarks) if x)}".rstrip(": ") for e in ve if e.event_type=="TYRE CHANGE")
+        breakdown_text="\n".join(
+            f"{e.event_date}: " +
+            " | ".join(x for x in (
+                e.breakdown_location,
+                (f"{e.kms_cancelled} KM cancelled" if e.kms_cancelled else ""),
+                e.breakdown_details,
+                e.remarks,
+            ) if x)
+            for e in ve if e.event_type=="BREAKDOWN"
+        )
+        tyre_text="\n".join(
+            f"{e.event_date}: " + " | ".join(x for x in (e.tyre_history, e.remarks) if x)
+            for e in ve if e.event_type=="TYRE CHANGE"
+        )
         latest=""
         for fy in reversed(FYS):
             for mon in reversed(MONTHS):
