@@ -210,7 +210,7 @@ function splitCheckbox_(value) {
 }
 
 function normalizeVehicle_(value) {
-  const vehicle = String(value || '').trim().toUpperCase().replace(/\\s+/g, '');
+  const vehicle = String(value || '').trim().toUpperCase().replace(/\s+/g, '');
   return vehicle.startsWith('AP') ? vehicle.substring(2) : vehicle;
 }
 
