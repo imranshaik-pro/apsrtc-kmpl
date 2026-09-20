@@ -20,6 +20,7 @@ from src.parser.vehicle_parser import parse_vehicle_rows
 from src.reporting.vehicle_history import (
     read_existing_history, build_history, write_history_sheet, write_vehicle_360_sheet, fetch_schedule,
 )
+from src.reporting.vehicle_events import fetch_vehicle_events_api
 
 PROJECT_DIR = Path(__file__).resolve().parent
 MAPPING_FILE = PROJECT_DIR / "depot_mapping.json"
@@ -256,6 +257,14 @@ def main():
         roster, history, remarks = build_history(session, year, month, zone, region_code, display_name, existing_history)
         write_history_sheet(workbook, roster, history, remarks)
         print(f"VEHICLE_HISTORY: {len(roster)} current vehicles; {len(remarks)} maintenance exceptions")
+        try:
+            vehicle_events = fetch_vehicle_events_api()
+            write_vehicle_360_sheet(workbook, roster, history, vehicle_events)
+            print(f"VEHICLE_360: {len(vehicle_events)} permanent Vehicle Event records loaded")
+        except Exception as exc:
+            # Monthly KMPL must remain deliverable if the auxiliary event API is temporarily unavailable.
+            write_vehicle_360_sheet(workbook, roster, history, [])
+            print(f"VEHICLE_360_EVENT_FALLBACK: {exc}")
 
     workbook.save(xlsx_path)
     target_sheet_name = f"{display_name}_{args.month}"
