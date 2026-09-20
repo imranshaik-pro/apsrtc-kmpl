@@ -282,3 +282,104 @@ function setupVehicleEventTrigger() {
 
   console.log('Vehicle Event Form trigger installed successfully.');
 }
+
+
+/**
+ * Read-only Vehicle Events API for Vehicle 360.
+ *
+ * Deploy this Apps Script as a Web App. Requests must provide the API key in
+ * the query string: ?key=<VEHICLE_EVENTS_API_KEY>
+ *
+ * The API returns only normalized audit fields from the permanent Vehicle
+ * Events sheet. The Google Sheet remains the source of truth.
+ */
+function doGet(e) {
+  try {
+    const expectedKey = PropertiesService.getScriptProperties().getProperty('VEHICLE_EVENTS_API_KEY');
+    const suppliedKey = e && e.parameter ? String(e.parameter.key || '') : '';
+
+    if (!expectedKey) {
+      return jsonResponse_({ok: false, error: 'VEHICLE_EVENTS_API_KEY is not configured.'});
+    }
+    if (!suppliedKey || suppliedKey !== expectedKey) {
+      return jsonResponse_({ok: false, error: 'Unauthorized'});
+    }
+
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = spreadsheet.getSheetByName(CONFIG.SHEET_NAME);
+    if (!sheet) {
+      return jsonResponse_({ok: false, error: 'Vehicle Events sheet not found.'});
+    }
+
+    const values = sheet.getDataRange().getDisplayValues();
+    if (values.length < 2) {
+      return jsonResponse_({ok: true, depot: CONFIG.DEPOT, events: []});
+    }
+
+    const headers = values[0].map(v => String(v || '').trim());
+    const index = {};
+    headers.forEach((header, i) => {
+      if (header && index[header] === undefined) index[header] = i;
+    });
+
+    const get = (row, header) =>
+      index[header] === undefined ? '' : String(row[index[header]] || '').trim();
+
+    const events = values.slice(1).map(row => {
+      const vehicleNo = normalizeVehicle_(
+        get(row, 'Normalized Vehicle No') || get(row, 'Vehicle No')
+      );
+      const eventType = normalizeEventType_(
+        get(row, 'Normalized Event Type') || get(row, 'Event Type')
+      );
+      return {
+        event_id: get(row, 'Event ID'),
+        created_at: get(row, 'Created At'),
+        event_date: get(row, 'Normalized Event Date') || get(row, 'Event Date'),
+        depot: get(row, 'Depot') || CONFIG.DEPOT,
+        vehicle_no: vehicleNo,
+        event_type: eventType,
+        components: get(row, 'Components'),
+        spring_positions: get(row, 'Spring Positions'),
+        tyre_history: get(row, 'Tyre History'),
+        breakdown_location: get(row, 'Breakdown Location'),
+        kms_cancelled: get(row, 'KM Cancelled'),
+        breakdown_details: get(row, 'Breakdown Details'),
+        remarks: get(row, 'Event Remarks'),
+        entry_source: get(row, 'Entry Source') || 'GOOGLE_FORM'
+      };
+    }).filter(event =>
+      event.event_id &&
+      event.event_date &&
+      event.vehicle_no &&
+      event.event_type
+    );
+
+    return jsonResponse_({
+      ok: true,
+      depot: CONFIG.DEPOT,
+      count: events.length,
+      events: events
+    });
+  } catch (error) {
+    return jsonResponse_({ok: false, error: String(error && error.message ? error.message : error)});
+  }
+}
+
+function jsonResponse_(payload) {
+  return ContentService
+    .createTextOutput(JSON.stringify(payload))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * Run once if VEHICLE_EVENTS_API_KEY does not yet exist.
+ * It creates a random UUID in Script Properties without hard-coding it.
+ */
+function setupVehicleEventsApiKey() {
+  const props = PropertiesService.getScriptProperties();
+  if (!props.getProperty('VEHICLE_EVENTS_API_KEY')) {
+    props.setProperty('VEHICLE_EVENTS_API_KEY', Utilities.getUuid());
+  }
+  console.log('VEHICLE_EVENTS_API_KEY is configured in Script Properties.');
+}
