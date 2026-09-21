@@ -116,6 +116,20 @@ function hubStatus_(sheet,row,status){
   const h=sheet.getRange(1,1,1,sheet.getLastColumn()).getDisplayValues()[0];let c=h.indexOf('Automation Status')+1;
   if(!c){c=sheet.getLastColumn()+1;sheet.getRange(1,c).setValue('Automation Status').setFontWeight('bold').setBackground('#0B3D78').setFontColor('#FFFFFF');}
   sheet.getRange(row,c).setValue(status);
+  hubEnsureColumn_(sheet,'Drive Report Link');
+}
+function hubEnsureColumn_(sheet,header){
+  const h=sheet.getRange(1,1,1,sheet.getLastColumn()).getDisplayValues()[0];let c=h.indexOf(header)+1;
+  if(!c){c=sheet.getLastColumn()+1;sheet.getRange(1,c).setValue(header).setFontWeight('bold').setBackground('#0B3D78').setFontColor('#FFFFFF');}
+  return c;
+}
+/* Callback/API helper for report workflows to write the final Drive URL into the
+ * same Automation Requests row. Can be wired after the existing workflow returns
+ * its real webViewLink; never constructs or guesses a Drive URL. */
+function hubSetDriveLink_(sheet,row,url){
+  if(!url)return;
+  const c=hubEnsureColumn_(sheet,'Drive Report Link');
+  sheet.getRange(row,c).setFormula('=HYPERLINK("'+String(url).replace(/"/g,'""')+'","Open Report")');
 }
 
 /* Professional response-sheet presentation. Keeps raw response columns intact. */
