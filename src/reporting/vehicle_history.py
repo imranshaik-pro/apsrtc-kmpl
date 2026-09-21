@@ -19,7 +19,7 @@ BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
 
 def norm_vehicle(value):
     """Canonical APSRTC vehicle number: uppercase, no spaces, no leading AP."""
-    vehicle = re.sub(r"\\s+", "", str(value or "")).upper()
+    vehicle = re.sub(r"\s+", "", str(value or "")).upper()
     return vehicle[2:] if vehicle.startswith("AP") else vehicle
 
 def _clean_columns(df):
@@ -224,11 +224,11 @@ def write_vehicle_360_sheet(wb, roster, values, events=None):
     return ws
 
 
-def write_history_sheet(wb,roster,values,remarks):
+def write_history_sheet(wb,roster,values,remarks,population_note=None):
     if "Vehicle Performance" in wb.sheetnames:del wb["Vehicle Performance"]
     ws=wb.create_sheet("Vehicle Performance"); headers=["S.NO","Veh No","OP Type","Eng Type","FY Year",*MONTHS]
     ws.append(["APSRTC – VEHICLE PERFORMANCE HISTORY"])
-    ws.append(["3 Financial Year HSD KMPL History | Current vehicle population based on selected-month MTD-598"])
+    ws.append([population_note or "3 Financial Year HSD KMPL History | Current vehicle population based on selected-month MTD-598"])
     ws.append(["🔧 Schedule-III completed   |   ⚙ Schedule-IV completed   |   Number = completion day"])
     ws.append([])
     ws.append(headers)
