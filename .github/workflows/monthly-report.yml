@@ -45,7 +45,13 @@ jobs:
         run: |
           python monthly_vehicle_report.py \
             --depot "${{ inputs.depot }}" \
-            --month "${{ inputs.month }}"
+            --month "${{ inputs.month }}" | tee monthly-report.log
+          REPORT_URL="$(grep -Eo 'https://drive.google.com/[^[:space:]]+' monthly-report.log | tail -1)"
+          if [ -z "$REPORT_URL" ]; then
+            echo "Monthly Google Sheet link was not emitted by the report generator."
+            exit 1
+          fi
+          echo "REPORT_URL=$REPORT_URL" >> "$GITHUB_ENV"
 
       - name: Send Monthly report status to Telegram
         if: success()
@@ -54,6 +60,7 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           DEPOT: ${{ inputs.depot }}
           REPORT_MONTH: ${{ inputs.month }}
+          REPORT_URL: ${{ env.REPORT_URL }}
         run: |
           python - <<'PY'
           import json, os, urllib.parse, urllib.request
@@ -65,7 +72,8 @@ jobs:
               "✅ APSRTC MONTHLY REPORT COMPLETED\n\n"
               f"Depot: {os.environ.get('DEPOT','')}\n"
               f"Month: {os.environ.get('REPORT_MONTH','')}\n"
-              "Status: Monthly Google Sheet generated/uploaded successfully to Google Drive."
+              "Status: Monthly Google Sheet generated/uploaded successfully to Google Drive.\n\n"
+              f"Open Report: {os.environ.get('REPORT_URL','')}"
           )
           data = urllib.parse.urlencode({"chat_id": chat_id, "text": text}).encode()
           req = urllib.request.Request(
