@@ -281,6 +281,85 @@ function setAuditValue_(sheet, row, header, value) {
   sheet.getRange(row, column).setValue(value);
 }
 
+/**
+ * One-time bootstrap: copy the existing Depot choices from the linked Google
+ * Form into the "Depot Master" sheet. This preserves the list already entered
+ * by the operator and avoids retyping it.
+ */
+function importDepotMasterFromForm() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const master = ss.getSheetByName('Depot Master');
+  if (!master) throw new Error('Depot Master sheet not found.');
+
+  const formUrl = ss.getFormUrl();
+  if (!formUrl) throw new Error('This spreadsheet is not linked to a Google Form.');
+  const form = FormApp.openByUrl(formUrl);
+  const item = findDepotItem_(form);
+  const depots = getDepotChoices_(item);
+  if (!depots.length) throw new Error('The Depot question has no choices.');
+
+  master.getRange(1, 1).setValue('Depot').setFontWeight('bold');
+  if (master.getMaxRows() > 1) {
+    master.getRange(2, 1, master.getMaxRows() - 1, 1).clearContent();
+  }
+  master.getRange(2, 1, depots.length, 1).setValues(depots.map(d => [d]));
+  console.log('DEPOT_MASTER_IMPORTED: ' + depots.length + ' depots');
+}
+
+/**
+ * Push Depot Master values back into this spreadsheet's linked Vehicle Event
+ * Form. Run this after adding/renaming/removing a depot in Depot Master.
+ */
+function syncDepotMasterToVehicleEventForm() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const master = ss.getSheetByName('Depot Master');
+  if (!master) throw new Error('Depot Master sheet not found.');
+  const lastRow = master.getLastRow();
+  if (lastRow < 2) throw new Error('Depot Master is empty.');
+
+  const depots = master.getRange(2, 1, lastRow - 1, 1).getDisplayValues()
+    .flat().map(v => String(v || '').trim().toUpperCase()).filter(Boolean);
+  const unique = [...new Set(depots)];
+  if (!unique.length) throw new Error('Depot Master is empty.');
+
+  const formUrl = ss.getFormUrl();
+  if (!formUrl) throw new Error('This spreadsheet is not linked to a Google Form.');
+  const form = FormApp.openByUrl(formUrl);
+  const item = findDepotItem_(form);
+  setDepotChoices_(item, unique);
+  console.log('DEPOT_FORM_SYNCED: ' + unique.length + ' depots');
+}
+
+function findDepotItem_(form) {
+  const item = form.getItems().find(i => String(i.getTitle() || '').trim().toUpperCase() === 'DEPOT');
+  if (!item) throw new Error('Required Form question "Depot" was not found.');
+  return item;
+}
+
+function getDepotChoices_(item) {
+  const type = item.getType();
+  if (type === FormApp.ItemType.LIST) {
+    return item.asListItem().getChoices().map(c => c.getValue()).map(v => String(v).trim()).filter(Boolean);
+  }
+  if (type === FormApp.ItemType.MULTIPLE_CHOICE) {
+    return item.asMultipleChoiceItem().getChoices().map(c => c.getValue()).map(v => String(v).trim()).filter(Boolean);
+  }
+  throw new Error('Depot must be a Dropdown or Multiple choice question.');
+}
+
+function setDepotChoices_(item, depots) {
+  const type = item.getType();
+  if (type === FormApp.ItemType.LIST) {
+    item.asListItem().setChoiceValues(depots).setRequired(true);
+    return;
+  }
+  if (type === FormApp.ItemType.MULTIPLE_CHOICE) {
+    item.asMultipleChoiceItem().setChoiceValues(depots).setRequired(true);
+    return;
+  }
+  throw new Error('Depot must be a Dropdown or Multiple choice question.');
+}
+
 function setupVehicleEventTrigger() {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   ScriptApp.getProjectTriggers().forEach(trigger => {
