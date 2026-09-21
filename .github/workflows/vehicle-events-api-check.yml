@@ -1,0 +1,34 @@
+name: Vehicle Events API Check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check Vehicle Events API
+        env:
+          VEHICLE_EVENTS_API_URL: ${{ secrets.VEHICLE_EVENTS_API_URL }}
+          VEHICLE_EVENTS_API_KEY: ${{ secrets.VEHICLE_EVENTS_API_KEY }}
+        run: |
+          python - <<'PY'
+          from collections import Counter
+          from src.reporting.vehicle_events import fetch_vehicle_events_api
+
+          events = fetch_vehicle_events_api()
+          print(f"VEHICLE_EVENTS_API_OK: {len(events)} records")
+          print("EVENT_TYPES:", dict(sorted(Counter(e.event_type for e in events).items())))
+          print("VEHICLES:", len({e.vehicle_no for e in events}))
+          PY
