@@ -114,11 +114,14 @@ def read_existing_history(ws):
 
 def build_history(session,selected_year,selected_month,zone,regn,depot,existing=None,provisional_roster=None):
     selected_yyyymm=f"{selected_year}{selected_month:02d}"
-    roster=fetch_mtd(session,selected_yyyymm,regn,depot)
-    # Open-month reports may not yet have an official MTD-598 population.
-    # In that case the caller supplies the operational roster observed in daily data/events.
-    if not roster and provisional_roster:
+    # The caller supplies provisional_roster only for the current/open month.
+    # APSRTC MTD-598 is a finalized-month source and is deliberately NOT queried
+    # for an open month. Closed months continue to use selected-month MTD-598
+    # as the authoritative vehicle population.
+    if provisional_roster is not None:
         roster={v:dict(info) for v,info in provisional_roster.items()}
+    else:
+        roster=fetch_mtd(session,selected_yyyymm,regn,depot)
     existing=existing or {}
     values={v:{fy:dict(existing.get(v,{}).get(fy,{})) for fy in FYS} for v in roster}; new_vehicles={v for v in roster if v not in existing}; need_full_init=not existing
     targets_2425=set(roster) if need_full_init else new_vehicles
