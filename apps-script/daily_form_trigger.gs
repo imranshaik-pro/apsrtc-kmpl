@@ -15,8 +15,8 @@ function onFormSubmit(e) {
   const named = e.namedValues || {};
 
   try {
-    const depot = pickValue_(named, ['depot']);
-    const rawDate = pickValue_(named, ['date']);
+    const depot = pickValue_(named, ['Depot']);
+    const rawDate = pickValue_(named, ['Date', 'Report Date']);
     if (!depot) throw new Error('Depot was not found in the form response.');
     if (!rawDate) throw new Error('Date was not found in the form response.');
 
@@ -68,13 +68,28 @@ function dispatch_(workflow, inputs) {
   }
 }
 
-function pickValue_(named, keywords) {
-  const keys = Object.keys(named);
-  for (const keyword of keywords) {
-    const match = keys.find(k => k.toLowerCase().includes(keyword));
+function pickValue_(named, candidateHeaders) {
+  // Match form headers deliberately: exact normalized header first, then
+  // normalized whole-header fallback. Avoid broad substring matching such as
+  // "date" matching "Created Date" or "month" matching another field.
+  const normalizeHeader = value => String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const entries = Object.keys(named).map(key => ({
+    key: key,
+    normalized: normalizeHeader(key)
+  }));
+
+  for (const candidate of candidateHeaders) {
+    const target = normalizeHeader(candidate);
+    const match = entries.find(entry => entry.normalized === target);
     if (match) {
-      const value = named[match];
-      return Array.isArray(value) ? String(value[0]).trim() : String(value).trim();
+      const value = named[match.key];
+      return Array.isArray(value) ? String(value[0] || '').trim() : String(value || '').trim();
     }
   }
   return '';
