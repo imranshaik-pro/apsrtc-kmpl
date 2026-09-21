@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Annual KPI v11: v10 logic plus visible borders for the Upto column."""
-import sys\n\nfrom openpyxl import load_workbook\nfrom openpyxl.styles import Alignment, Font, PatternFill, Side, Border
+import sys
+
+from openpyxl import load_workbook
+from openpyxl.styles import Alignment, Font, PatternFill, Side, Border
 
 import annual_kpi_runner_v10 as v10
 
@@ -9,9 +12,11 @@ v7 = v10.v7
 LAYOUT_VERSION = "10"
 
 # Keep existing v7/v8/v9/v10 sheet layouts compatible.
-# v11 is a formatting-only patch; retain the established v10 layout contract.\nv7.LAYOUT_VERSION = "10"
+# v11 is a formatting-only patch; retain the established v10 layout contract.
+v7.LAYOUT_VERSION = "10"
 
-ORIGINAL_FORMAT_SHEET = v7.format_sheet_v7\nORIGINAL_MAKE_XLSX = v7.make_xlsx_v7
+ORIGINAL_FORMAT_SHEET = v7.format_sheet_v7
+ORIGINAL_MAKE_XLSX = v7.make_xlsx_v7
 
 
 
@@ -58,7 +63,8 @@ def make_xlsx_v11(display, mat, fys):
 
 
 v7.make_xlsx_v7 = make_xlsx_v11
-\ndef _apply_upto_borders(spreadsheet_id, mat):
+
+def _apply_upto_borders(spreadsheet_id, mat):
     sid = m.sheet_id(spreadsheet_id, m.SHEET_TITLE)
     if sid is None:
         return
