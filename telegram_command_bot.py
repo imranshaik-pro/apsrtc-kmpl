@@ -97,37 +97,39 @@ def handle(token: str, chat_id: str, text: str):
         return
 
     if command == "/daily":
-        if len(parts) > 2:
-            send(token, chat_id, "Usage: /daily or /daily YYYY-MM-DD")
+        if len(parts) not in (2, 3):
+            send(token, chat_id, "Usage: /daily DEPOT or /daily DEPOT YYYY-MM-DD")
             return
+        depot = parts[1].strip().upper()
         report_date = ""
-        if len(parts) == 2:
+        if len(parts) == 3:
             try:
-                report_date = parse_date(parts[1])
+                report_date = parse_date(parts[2])
             except ValueError:
                 send(token, chat_id, "Invalid date. Use YYYY-MM-DD.")
                 return
             if date.fromisoformat(report_date) > date.today():
                 send(token, chat_id, "Future Daily report dates are not allowed.")
                 return
-        dispatch("daily-report.yml", {"depot": "PRODDUTUR", "report_date": report_date})
-        send(token, chat_id, "⏳ Daily report requested" + (f" for {report_date}" if report_date else "") + ".\nThe existing Daily workflow will deliver the report here when complete.")
+        dispatch("daily-report.yml", {"depot": depot, "report_date": report_date})
+        send(token, chat_id, f"⏳ Daily report requested for {depot}" + (f" on {report_date}" if report_date else "") + ".\\nThe existing Daily workflow will deliver the report here when complete.")
         return
 
     if command == "/monthly":
-        if len(parts) != 2:
-            send(token, chat_id, "Usage: /monthly YYYY-MM")
+        if len(parts) != 3:
+            send(token, chat_id, "Usage: /monthly DEPOT YYYY-MM")
             return
+        depot = parts[1].strip().upper()
         try:
-            month = parse_month(parts[1])
+            month = parse_month(parts[2])
         except ValueError:
             send(token, chat_id, "Invalid month. Use YYYY-MM.")
             return
         if month > date.today().strftime("%Y-%m"):
             send(token, chat_id, "Future Monthly report months are not allowed.")
             return
-        dispatch("monthly-report.yml", {"depot": "PRODDUTUR", "month": month})
-        send(token, chat_id, f"⏳ Monthly report requested for {month}.")
+        dispatch("monthly-report.yml", {"depot": depot, "month": month})
+        send(token, chat_id, f"⏳ Monthly report requested for {depot} — {month}.")
         return
 
     if command == "/vehicle":
