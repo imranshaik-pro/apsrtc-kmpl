@@ -26,4 +26,6 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           GH_DISPATCH_TOKEN: ${{ github.token }}
+          VEHICLE_EVENTS_API_URL: ${{ secrets.VEHICLE_EVENTS_API_URL }}
+          VEHICLE_EVENTS_API_KEY: ${{ secrets.VEHICLE_EVENTS_API_KEY }}
         run: python telegram_command_bot.py
