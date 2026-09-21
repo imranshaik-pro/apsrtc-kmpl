@@ -7,6 +7,7 @@
 const REPO = 'imranshaik-pro/apsrtc-kmpl';
 const WORKFLOW = 'annual-kpi.yml';
 const BRANCH = 'master';
+const TZ = 'Asia/Kolkata';
 
 function onFormSubmit(e) {
   const sheet = e.range.getSheet();
@@ -21,6 +22,12 @@ function onFormSubmit(e) {
     if (!rawMonth) throw new Error('Month was not found in the form response.');
 
     const selectedMonth = normalizeMonth_(rawMonth);
+    const currentMonth = Utilities.formatDate(new Date(), TZ, 'yyyy-MM');
+    if (selectedMonth > currentMonth) {
+      setStatus_(sheet, row, "Can't retrieve future-month data.");
+      return;
+    }
+
     const fy = financialYearForMonth_(selectedMonth);
 
     dispatch_(WORKFLOW, {
