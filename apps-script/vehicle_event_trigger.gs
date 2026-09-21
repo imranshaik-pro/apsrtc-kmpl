@@ -36,6 +36,7 @@ function onVehicleEventSubmit(e) {
     const kmsCancelled = getFirstValue_(data, ['KMs Canceled']);
     const breakdownDetails = getFirstValue_(data, ['Break Down Details']);
     const remarks = getFirstValue_(data, ['Remarks']);
+    const selectedDepot = String(getFirstNonBlankValue_(data, ['Depot']) || CONFIG.DEPOT).trim().toUpperCase();
 
     if (!eventDateRaw) throw new Error('Event Date is missing.');
     if (!vehicleNo) throw new Error('Vehicle No is missing.');
@@ -89,7 +90,7 @@ function onVehicleEventSubmit(e) {
     const eventId = makeEventId_(eventDate, vehicleNo, row);
 
     setAuditValue_(sheet, row, 'Event ID', eventId);
-    setAuditValue_(sheet, row, 'Depot', CONFIG.DEPOT);
+    setAuditValue_(sheet, row, 'Depot', selectedDepot);
     setAuditValue_(sheet, row, 'Created At', createdAt);
     setAuditValue_(sheet, row, 'Entry Source', 'GOOGLE_FORM');
     setAuditValue_(sheet, row, 'Normalized Event Date', eventDateISO);
@@ -108,7 +109,7 @@ function onVehicleEventSubmit(e) {
       event_id: eventId,
       created_at: createdAt,
       event_date: eventDateISO,
-      depot: CONFIG.DEPOT,
+      depot: selectedDepot,
       vehicle_no: vehicleNo,
       event_type: eventType,
       components: components.join(' | '),
@@ -383,6 +384,63 @@ function doGet(e) {
     });
   } catch (error) {
     return jsonResponse_({ok: false, error: String(error && error.message ? error.message : error)});
+  }
+}
+
+/**
+ * Authorized write API used by the Telegram guided Vehicle Event flow.
+ * The permanent Google Sheet remains the source of truth.
+ */
+function doPost(e) {
+  try {
+    const expectedKey = PropertiesService.getScriptProperties().getProperty('VEHICLE_EVENTS_API_KEY');
+    const suppliedKey = e && e.parameter ? String(e.parameter.key || '').trim() : '';
+    if (!expectedKey || suppliedKey !== expectedKey) return jsonResponse_({ok:false,error:'Unauthorized'});
+
+    const payload = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    const depot = String(payload.depot || '').trim().toUpperCase();
+    const vehicleNo = normalizeVehicle_(payload.vehicle_no);
+    const eventType = normalizeEventType_(payload.event_type);
+    const eventDate = parseEventDate_(payload.event_date);
+    const allowedDepots = ['PRODDUTUR','KADAPA','BADVEL'];
+    const allowedTypes = ['UNIT CHANGE','BREAKDOWN','TYRE CHANGE','SCHEDULE III','SCHEDULE IV'];
+    if (!allowedDepots.includes(depot)) throw new Error('Unsupported Depot: ' + depot);
+    if (!vehicleNo) throw new Error('Vehicle No is missing.');
+    if (!eventDate) throw new Error('Event Date is invalid.');
+    if (!allowedTypes.includes(eventType)) throw new Error('Unsupported Event Type: ' + eventType);
+
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = spreadsheet.getSheetByName('Vehicle Events');
+    if (!sheet) throw new Error('Vehicle Events sheet not found.');
+    const row = sheet.getLastRow() + 1;
+    const createdAt = Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'yyyy-MM-dd HH:mm:ss');
+    const eventDateISO = Utilities.formatDate(eventDate, CONFIG.TIMEZONE, 'yyyy-MM-dd');
+    const depotCodes = {PRODDUTUR:'PDT',KADAPA:'KDP',BADVEL:'BDV'};
+    const eventId = [depotCodes[depot], Utilities.formatDate(eventDate, CONFIG.TIMEZONE, 'yyyyMMdd'),
+      vehicleNo, 'R' + String(row).padStart(4,'0'), Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'HHmmss')].join('-');
+
+    const fields = {
+      'Event ID': eventId, 'Depot': depot, 'Created At': createdAt, 'Entry Source': 'TELEGRAM',
+      'Normalized Event Date': eventDateISO, 'Normalized Vehicle No': vehicleNo,
+      'Normalized Event Type': eventType, 'Components': String(payload.components || ''),
+      'Spring Positions': String(payload.spring_positions || ''), 'Tyre History': String(payload.tyre_history || ''),
+      'Breakdown Location': String(payload.breakdown_location || ''), 'KM Cancelled': String(payload.kms_cancelled || ''),
+      'Breakdown Details': String(payload.breakdown_details || ''), 'Event Remarks': String(payload.remarks || ''),
+      'Automation Status': 'EVENT RECORDED'
+    };
+    Object.keys(fields).forEach(header => setAuditValue_(sheet,row,header,fields[header]));
+
+    dispatchToGitHub_({
+      event_id:eventId, created_at:createdAt, event_date:eventDateISO, depot:depot,
+      vehicle_no:vehicleNo, event_type:eventType, components:fields['Components'],
+      spring_positions:fields['Spring Positions'], tyre_history:fields['Tyre History'],
+      breakdown_location:fields['Breakdown Location'], kms_cancelled:fields['KM Cancelled'],
+      breakdown_details:fields['Breakdown Details'], remarks:fields['Event Remarks'], entry_source:'TELEGRAM'
+    });
+    setAuditValue_(sheet,row,'GitHub Dispatch Status','DISPATCHED');
+    return jsonResponse_({ok:true,event_id:eventId,row:row});
+  } catch (error) {
+    return jsonResponse_({ok:false,error:String(error && error.message ? error.message : error)});
   }
 }
 
