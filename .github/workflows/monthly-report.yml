@@ -47,6 +47,68 @@ jobs:
             --depot "${{ inputs.depot }}" \
             --month "${{ inputs.month }}"
 
+      - name: Send Monthly report status to Telegram
+        if: success()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DEPOT: ${{ inputs.depot }}
+          REPORT_MONTH: ${{ inputs.month }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.parse, urllib.request
+          token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+          chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+          if not token or not chat_id:
+              raise SystemExit("Telegram secrets are missing.")
+          text = (
+              "✅ APSRTC MONTHLY REPORT COMPLETED\n\n"
+              f"Depot: {os.environ.get('DEPOT','')}\n"
+              f"Month: {os.environ.get('REPORT_MONTH','')}\n"
+              "Status: Monthly Google Sheet generated/uploaded successfully to Google Drive."
+          )
+          data = urllib.parse.urlencode({"chat_id": chat_id, "text": text}).encode()
+          req = urllib.request.Request(
+              f"https://api.telegram.org/bot{token}/sendMessage", data=data, method="POST"
+          )
+          with urllib.request.urlopen(req, timeout=20) as response:
+              payload = json.load(response)
+          if not payload.get("ok"):
+              raise SystemExit("Telegram Monthly status delivery failed.")
+          print("TELEGRAM_MONTHLY_STATUS_SENT")
+          PY
+
+      - name: Send Monthly failure status to Telegram
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DEPOT: ${{ inputs.depot }}
+          REPORT_MONTH: ${{ inputs.month }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.parse, urllib.request
+          token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+          chat_id = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+          if not token or not chat_id:
+              raise SystemExit("Telegram secrets are missing.")
+          text = (
+              "❌ APSRTC MONTHLY REPORT FAILED\n\n"
+              f"Depot: {os.environ.get('DEPOT','')}\n"
+              f"Month: {os.environ.get('REPORT_MONTH','')}\n"
+              "Status: Monthly report generation/upload failed. Check GitHub Actions."
+          )
+          data = urllib.parse.urlencode({"chat_id": chat_id, "text": text}).encode()
+          req = urllib.request.Request(
+              f"https://api.telegram.org/bot{token}/sendMessage", data=data, method="POST"
+          )
+          with urllib.request.urlopen(req, timeout=20) as response:
+              payload = json.load(response)
+          if not payload.get("ok"):
+              raise SystemExit("Telegram Monthly failure delivery failed.")
+          print("TELEGRAM_MONTHLY_FAILURE_SENT")
+          PY
+
       - name: Upload XLSX backup as workflow artifact
         if: always()
         uses: actions/upload-artifact@v4
