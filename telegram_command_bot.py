@@ -6,8 +6,9 @@ from datetime import date, datetime
 API="https://api.telegram.org/bot{token}/{method}"
 REPO=os.getenv("GITHUB_REPOSITORY","imranshaik-pro/apsrtc-kmpl")
 REF=os.getenv("GITHUB_REF_NAME","master")
-# Keep this list aligned with the operational depot choices used by the Forms.
-DEPOTS=("PRODDUTUR","KADAPA","BADVEL")
+# Depot choices are supplied centrally through the DEPOT_MASTER GitHub variable.
+# This avoids maintaining separate hard-coded lists in Telegram.
+DEPOTS=tuple(d.strip().upper() for d in os.getenv("DEPOT_MASTER","").split("|") if d.strip())
 
 def _request(url, *, data=None, headers=None):
     req=urllib.request.Request(url,data=data,headers=headers or {})
@@ -37,7 +38,12 @@ def dispatch(workflow,inputs):
         if r.status!=204: raise RuntimeError(f"GitHub dispatch returned HTTP {r.status}")
 
 def depot_keyboard(action):
-    return [[{"text":d,"callback_data":f"{action}|{d}"}] for d in DEPOTS]
+    if not DEPOTS:
+        return [[{"text":"Depot master not configured","callback_data":"menu|status"}]]
+    rows=[]
+    for i in range(0,len(DEPOTS),2):
+        rows.append([{"text":d,"callback_data":f"{action}|{d}"} for d in DEPOTS[i:i+2]])
+    return rows
 
 def month_keyboard(depot):
     today=date.today()
