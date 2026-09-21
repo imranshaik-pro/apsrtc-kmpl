@@ -286,7 +286,17 @@ def main():
             session, year, month, zone, region_code, display_name,
             existing_history, provisional_roster=provisional_roster
         )
-        write_history_sheet(workbook, roster, history, remarks)
+        if selected_month == current_month:
+            population_note = (
+                "3 Financial Year HSD KMPL History | OPEN MONTH: provisional operational "
+                "population when official selected-month MTD-598 is unavailable"
+            )
+        else:
+            population_note = (
+                "3 Financial Year HSD KMPL History | Current vehicle population based on "
+                "selected-month MTD-598"
+            )
+        write_history_sheet(workbook, roster, history, remarks, population_note=population_note)
         print(f"VEHICLE_HISTORY: {len(roster)} current vehicles; {len(remarks)} maintenance exceptions")
         # Never leak events submitted after the report's data cutoff into a historical/open-month snapshot.
         cutoff = f"{year:04d}-{month:02d}-{last_day:02d}"
