@@ -402,9 +402,8 @@ function doPost(e) {
     const vehicleNo = normalizeVehicle_(payload.vehicle_no);
     const eventType = normalizeEventType_(payload.event_type);
     const eventDate = parseEventDate_(payload.event_date);
-    const allowedDepots = ['PRODDUTUR','KADAPA','BADVEL'];
     const allowedTypes = ['UNIT CHANGE','BREAKDOWN','TYRE CHANGE','SCHEDULE III','SCHEDULE IV'];
-    if (!allowedDepots.includes(depot)) throw new Error('Unsupported Depot: ' + depot);
+    if (!depot) throw new Error('Depot is missing.');
     if (!vehicleNo) throw new Error('Vehicle No is missing.');
     if (!eventDate) throw new Error('Event Date is invalid.');
     if (!allowedTypes.includes(eventType)) throw new Error('Unsupported Event Type: ' + eventType);
@@ -415,8 +414,8 @@ function doPost(e) {
     const row = sheet.getLastRow() + 1;
     const createdAt = Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'yyyy-MM-dd HH:mm:ss');
     const eventDateISO = Utilities.formatDate(eventDate, CONFIG.TIMEZONE, 'yyyy-MM-dd');
-    const depotCodes = {PRODDUTUR:'PDT',KADAPA:'KDP',BADVEL:'BDV'};
-    const eventId = [depotCodes[depot], Utilities.formatDate(eventDate, CONFIG.TIMEZONE, 'yyyyMMdd'),
+    const depotCode = depot.replace(/[^A-Z0-9]/g, '').substring(0, 3) || 'DEP';
+    const eventId = [depotCode, Utilities.formatDate(eventDate, CONFIG.TIMEZONE, 'yyyyMMdd'),
       vehicleNo, 'R' + String(row).padStart(4,'0'), Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'HHmmss')].join('-');
 
     const fields = {
