@@ -303,7 +303,46 @@ function importDepotMasterFromForm() {
     master.getRange(2, 1, master.getMaxRows() - 1, 1).clearContent();
   }
   master.getRange(2, 1, depots.length, 1).setValues(depots.map(d => [d]));
+  formatDepotMaster_();
   console.log('DEPOT_MASTER_IMPORTED: ' + depots.length + ' depots');
+}
+
+/**
+ * Professional, functional formatting for the Depot Master.
+ * Keeps the actual master data in column A so sync logic stays simple.
+ */
+function formatDepotMaster_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Depot Master');
+  if (!sheet) throw new Error('Depot Master sheet not found.');
+
+  const lastRow = Math.max(sheet.getLastRow(), 1);
+  sheet.setHiddenGridlines(true);
+  sheet.setFrozenRows(1);
+  sheet.setColumnWidth(1, 260);
+  sheet.setRowHeight(1, 34);
+
+  const header = sheet.getRange('A1');
+  header.setValue('DEPOT MASTER')
+    .setFontWeight('bold')
+    .setFontSize(14)
+    .setFontColor('#FFFFFF')
+    .setBackground('#0B3D78')
+    .setHorizontalAlignment('center')
+    .setVerticalAlignment('middle');
+
+  if (lastRow > 1) {
+    const body = sheet.getRange(2, 1, lastRow - 1, 1);
+    body.setFontSize(11)
+      .setVerticalAlignment('middle')
+      .setHorizontalAlignment('left');
+    sheet.setRowHeights(2, lastRow - 1, 25);
+    body.applyRowBanding(SpreadsheetApp.BandingTheme.LIGHT_GREY, false, false);
+  }
+
+  sheet.getRange(1, 1, lastRow, 1)
+    .setBorder(true, true, true, true, true, true, '#B7C9E2', SpreadsheetApp.BorderStyle.SOLID);
+  sheet.getRange('A1').setNote('Central APSRTC depot master used by Vehicle Event automation.');
 }
 
 /**
