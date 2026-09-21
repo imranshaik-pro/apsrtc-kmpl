@@ -188,7 +188,7 @@ def build_history(session,selected_year,selected_month,zone,regn,depot,existing=
                     values[v]["2026-27"][mon]=f"{base_text} {icon} {day}".strip()
     return roster,values,remarks
 
-def write_vehicle_360_sheet(wb, roster, values, events=None, latest_kmpl=None, coverage_note=None):
+def write_vehicle_360_sheet(wb, roster, values, events=None, latest_kmpl=None, coverage_note=None, depot_name=None, report_period=None):
     """Create a management-friendly per-vehicle 360 summary.
 
     Manual event data is optional until the live Event Register is connected.
@@ -200,14 +200,19 @@ def write_vehicle_360_sheet(wb, roster, values, events=None, latest_kmpl=None, c
         del wb["Vehicle 360"]
     ws = wb.create_sheet("Vehicle 360")
     ws.sheet_view.showGridLines = False
-    ws.append(["APSRTC – VEHICLE 360° HISTORY"])
-    ws.append([coverage_note or "KMPL performance + maintenance + aggregate / breakdown / tyre event history"])
-    ws.append([])
+    ws.append([f"APSRTC – {(depot_name or 'DEPOT').upper()} DEPOT"])
+    ws.append(["VEHICLE 360° HISTORY"])
+    context = coverage_note or "KMPL performance + maintenance + aggregate / breakdown / tyre event history"
+    if report_period:
+        context = f"Report Period: {report_period} | {context}"
+    ws.append([context])
     headers = ["S.NO","Veh No","OP Type","Eng Type","Latest KMPL","Major Aggregate Changes","Breakdowns","Tyre Changes"]
     ws.append(headers)
-    ws.merge_cells("A1:H1"); ws.merge_cells("A2:H2")
+    ws.merge_cells("A1:H1"); ws.merge_cells("A2:H2"); ws.merge_cells("A3:H3")
     ws["A1"].font=Font(bold=True,color="FFFFFF",size=16); ws["A1"].fill=PatternFill("solid",fgColor="17365D"); ws["A1"].alignment=Alignment(horizontal="center",vertical="center")
-    ws["A2"].font=Font(bold=True,color="1F4E78",size=10); ws["A2"].alignment=Alignment(horizontal="center",vertical="center")
+    ws["A2"].font=Font(bold=True,color="1F4E78",size=12); ws["A2"].alignment=Alignment(horizontal="center",vertical="center")
+    ws["A3"].font=Font(italic=True,color="595959",size=9); ws["A3"].alignment=Alignment(horizontal="center",vertical="center",wrap_text=True)
+    ws.row_dimensions[1].height=28; ws.row_dimensions[3].height=30
     for c in ws[4]:
         c.font=Font(bold=True,color="FFFFFF"); c.fill=PatternFill("solid",fgColor="1F4E78"); c.alignment=Alignment(horizontal="center",vertical="center",wrap_text=True); c.border=BORDER
     by_vehicle={}
@@ -267,21 +272,31 @@ def write_vehicle_360_sheet(wb, roster, values, events=None, latest_kmpl=None, c
         ws.row_dimensions[r].height=max(36, min(150, 18*wrapped_lines))
     for i,w in enumerate([7,15,18,18,13,42,46,46],1): ws.column_dimensions[get_column_letter(i)].width=w
     ws.freeze_panes="E5"; ws.auto_filter.ref=f"A4:H{ws.max_row}"
+    ws.print_title_rows="1:4"; ws.page_setup.orientation="landscape"; ws.page_setup.fitToWidth=1; ws.page_setup.fitToHeight=0
+    ws.sheet_properties.pageSetUpPr.fitToPage=True
+    ws.oddFooter.center.text=f"APSRTC | {(depot_name or 'DEPOT').upper()} DEPOT | Vehicle 360°"
+    ws.print_title_rows="1:5"; ws.page_setup.orientation="landscape"; ws.page_setup.fitToWidth=1; ws.page_setup.fitToHeight=0
+    ws.sheet_properties.pageSetUpPr.fitToPage=True
+    ws.oddFooter.center.text=f"APSRTC | {(depot_name or 'DEPOT').upper()} DEPOT | Vehicle Performance"
     return ws
 
 
-def write_history_sheet(wb,roster,values,remarks,population_note=None):
+def write_history_sheet(wb,roster,values,remarks,population_note=None,depot_name=None,report_period=None):
     if "Vehicle Performance" in wb.sheetnames:del wb["Vehicle Performance"]
     ws=wb.create_sheet("Vehicle Performance"); headers=["S.NO","Veh No","OP Type","Eng Type","FY Year",*MONTHS]
-    ws.append(["APSRTC – VEHICLE PERFORMANCE HISTORY"])
-    ws.append([population_note or "3 Financial Year HSD KMPL History | Current vehicle population based on selected-month MTD-598"])
-    ws.append(["🔧 Schedule-III completed   |   ⚙ Schedule-IV completed   |   Number = completion day"])
+    ws.append([f"APSRTC – {(depot_name or 'DEPOT').upper()} DEPOT"])
+    ws.append(["VEHICLE PERFORMANCE HISTORY"])
+    context = population_note or "3 Financial Year HSD KMPL History | Current vehicle population based on selected-month MTD-598"
+    if report_period:
+        context = f"Report Period: {report_period} | {context}"
+    ws.append([context + " | 🔧 Schedule-III | ⚙ Schedule-IV | Number = completion day"])
     ws.append([])
     ws.append(headers)
     ws.merge_cells("A1:Q1"); ws.merge_cells("A2:Q2"); ws.merge_cells("A3:Q3")
     ws["A1"].font=Font(bold=True,color="FFFFFF",size=16); ws["A1"].fill=PatternFill("solid",fgColor="17365D"); ws["A1"].alignment=Alignment(horizontal="center",vertical="center")
-    ws["A2"].font=Font(bold=True,color="1F4E78",size=11); ws["A2"].alignment=Alignment(horizontal="center",vertical="center")
-    ws["A3"].font=Font(italic=True,color="595959",size=9); ws["A3"].alignment=Alignment(horizontal="center",vertical="center")
+    ws["A2"].font=Font(bold=True,color="1F4E78",size=12); ws["A2"].alignment=Alignment(horizontal="center",vertical="center")
+    ws["A3"].font=Font(italic=True,color="595959",size=9); ws["A3"].alignment=Alignment(horizontal="center",vertical="center",wrap_text=True)
+    ws.row_dimensions[3].height=30
     ws.sheet_view.showGridLines=False; ws.freeze_panes="F6"; ws.auto_filter.ref=f"A5:Q5"; ws.row_dimensions[1].height=28; ws.row_dimensions[5].height=30
     for c in ws[5]:
         c.font=Font(bold=True,color="FFFFFF",size=10); c.fill=PatternFill("solid",fgColor="1F4E78"); c.alignment=Alignment(horizontal="center",vertical="center",wrap_text=True); c.border=BORDER
