@@ -22,29 +22,25 @@ function buildApsrtcAutomationHub() {
   form.setProgressBar(true);
   form.setShuffleQuestions(false);
 
-  const action = form.addMultipleChoiceItem().setTitle('Action / Report Type').setRequired(true);
+  // User flow: identify depot first, then choose the service required.\n  form.addListItem().setTitle('Depot').setChoiceValues(depots).setRequired(true);\n  const action = form.addMultipleChoiceItem().setTitle('Required Service / Report').setRequired(true);
 
   const daily = form.addPageBreakItem().setTitle('DAILY HSD KMPL REPORT')
     .setHelpText('Generate the Daily HSD KMPL report for the selected depot and date.');
-  form.addListItem().setTitle('Daily - Depot').setChoiceValues(depots).setRequired(true);
   form.addDateItem().setTitle('Report Date').setIncludesYear(true).setRequired(true);
   const dailyEnd=form.addPageBreakItem().setTitle('Daily Request Complete');
 
   const monthly = form.addPageBreakItem().setTitle('MONTHLY PERFORMANCE REPORT')
     .setHelpText('Generate or refresh the monthly performance report. Open-month and closed-month business rules remain unchanged.');
-  form.addListItem().setTitle('Monthly - Depot').setChoiceValues(depots).setRequired(true);
   form.addDateItem().setTitle('Report Month').setIncludesYear(true).setRequired(true);
   const monthlyEnd=form.addPageBreakItem().setTitle('Monthly Request Complete');
 
   const annual = form.addPageBreakItem().setTitle('ANNUAL KPI REPORT')
     .setHelpText('Generate the Annual KPI report through the selected month. Financial year is determined automatically.');
-  form.addListItem().setTitle('Annual - Depot').setChoiceValues(depots).setRequired(true);
   form.addDateItem().setTitle('Selected Month').setIncludesYear(true).setRequired(true);
   const annualEnd=form.addPageBreakItem().setTitle('Annual KPI Request Complete');
 
   const event = form.addPageBreakItem().setTitle('VEHICLE EVENT ENTRY')
     .setHelpText('Record a permanent vehicle event. The event is written to the Vehicle Event Register.');
-  form.addListItem().setTitle('Vehicle Event - Depot').setChoiceValues(depots).setRequired(true);
   form.addDateItem().setTitle('Event Date').setIncludesYear(true).setRequired(true);
   form.addTextItem().setTitle('Vehicle No').setRequired(true);
   form.addMultipleChoiceItem().setTitle('Event Type').setChoiceValues(
@@ -55,7 +51,7 @@ function buildApsrtcAutomationHub() {
     'Vane Pump','Radiator','Clutch Plate','Clutch Springer','Spring Change (mention with Position)','Other'
   ]);
   form.addCheckboxItem().setTitle('Spring Assembly Change Position').setChoiceValues(['FOS','FNS','ROS','RNS']);
-  form.addCheckboxItem().setTitle('Tyres Change Position').setChoiceValues(['FOS','FNS','ROSO','ROSI','RNSO','RNSI','SPARE']);
+  form.addCheckboxItem().setTitle('Tyres Change Position').setChoiceValues(['FOS','FNS','ROSI','ROSO','RNSO','RNSI','Spare']);
   ['FOS','FNS','ROSO','ROSI','RNSO','RNSI','Spare'].forEach(p=>form.addTextItem().setTitle(p+' Tyre No'));
   form.addTextItem().setTitle('Break Down Location');
   form.addTextItem().setTitle('KMs Canceled');
@@ -65,7 +61,6 @@ function buildApsrtcAutomationHub() {
 
   const vehicle = form.addPageBreakItem().setTitle('VEHICLE 360° HISTORY')
     .setHelpText('Vehicle 360° lookup interface. Backend activation follows after Hub report validation.');
-  form.addListItem().setTitle('Vehicle 360 - Depot').setChoiceValues(depots).setRequired(true);
   form.addTextItem().setTitle('Vehicle 360 - Vehicle No').setRequired(true);
   const vehicleEnd=form.addPageBreakItem().setTitle('Vehicle 360 Request Complete');
 
