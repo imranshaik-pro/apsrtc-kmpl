@@ -140,7 +140,10 @@ function upgradeExistingApsrtcAutomationHub() {
     // Insert a new common Depot dropdown at the beginning is not supported by
     // FormApp, so create it now and move it to item index 0.
     commonDepot=form.addListItem().setTitle('Depot').setChoiceValues(depots).setRequired(true);
-    form.moveItem(form.getItemIndex(commonDepot),0);
+    {
+      const current=form.getItems().findIndex(x=>x.getId()===commonDepot.getId());
+      if(current>=0) form.moveItem(current,0);
+    }
   } else {
     if(commonDepot.getType()===FormApp.ItemType.LIST) commonDepot.asListItem().setChoiceValues(depots).setRequired(true);
     else if(commonDepot.getType()===FormApp.ItemType.MULTIPLE_CHOICE) commonDepot.asMultipleChoiceItem().setChoiceValues(depots).setRequired(true);
@@ -152,7 +155,10 @@ function upgradeExistingApsrtcAutomationHub() {
   });
   if(!action) throw new Error('Existing service-selection question was not found.');
   action.setTitle('Required Service / Report');
-  form.moveItem(form.getItemIndex(action),1);
+  {
+    const current=form.getItems().findIndex(x=>x.getId()===action.getId());
+    if(current>=0) form.moveItem(current,1);
+  }
 
   // Existing section-specific Depot questions are retained only to avoid
   // destructive branching edits; make them optional and mark as legacy.
