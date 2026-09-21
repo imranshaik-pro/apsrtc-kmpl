@@ -105,6 +105,10 @@ function hubMonth_(raw){
   if(m){const a=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'],i=a.indexOf(m[1].slice(0,3).toLowerCase());if(i>=0)return m[2]+'-'+String(i+1).padStart(2,'0');}
   m=s.match(/^([01]?\d)[\s\-\/]+(20\d{2})$/);
   if(m&&+m[1]>=1&&+m[1]<=12)return m[2]+'-'+String(+m[1]).padStart(2,'0');
+  // Google Forms Date question used for Report Month is stored by this sheet
+  // as M/D/YYYY. The day is intentionally ignored; only year-month is routed.
+  m=s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](20\d{2})$/);
+  if(m&&+m[1]>=1&&+m[1]<=12)return m[3]+'-'+String(+m[1]).padStart(2,'0');
   throw new Error('Invalid month: '+s);
 }
 function hubFY_(m){const p=m.split('-'),y=+p[0],mo=+p[1],s=mo>=4?y:y-1;return s+'-'+String(s+1).slice(-2);}
