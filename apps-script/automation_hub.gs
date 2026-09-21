@@ -87,8 +87,14 @@ function hubPick_(named,headers){
 function hubDate_(raw){
   const s=String(raw).trim();let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   if(m)return m[1]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[3]).padStart(2,'0');
+  // Google Forms display values are locale-dependent. For this APSRTC project
+  // the response sheet uses M/D/YYYY (e.g. 9/20/2026 = 20-Sep-2026).
   m=s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
-  if(m)return m[3]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[1]).padStart(2,'0');
+  if(m){
+    const month=+m[1],day=+m[2];
+    if(month<1||month>12||day<1||day>31) throw new Error('Invalid date: '+s);
+    return m[3]+'-'+String(month).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+  }
   const d=new Date(s);if(isNaN(d.getTime()))throw new Error('Invalid date: '+s);
   return Utilities.formatDate(d,HUB.TZ,'yyyy-MM-dd');
 }
