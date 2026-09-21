@@ -247,9 +247,25 @@ def write_vehicle_360_sheet(wb, roster, values, events=None, latest_kmpl=None, c
         ws.append([idx,v,roster[v].get("op",""),roster[v].get("engine",""),latest,aggregate_text,breakdown_text,tyre_text])
         r=ws.max_row
         for c in range(1,9):
-            ws.cell(r,c).border=BORDER; ws.cell(r,c).alignment=Alignment(horizontal="center" if c in (1,2,5) else "left",vertical="top",wrap_text=True)
-        ws.row_dimensions[r].height=36
-    for i,w in enumerate([7,15,18,18,13,38,38,38],1): ws.column_dimensions[get_column_letter(i)].width=w
+            ws.cell(r,c).border=BORDER
+            ws.cell(r,c).alignment=Alignment(
+                horizontal="center" if c in (1,2,5) else "left",
+                vertical="top",
+                wrap_text=True,
+            )
+        # Event-heavy rows need enough height to display every wrapped line.
+        # Keep ordinary vehicles compact, but expand aggregate/breakdown/tyre rows
+        # according to their actual multiline content.
+        event_lines=max(
+            1,
+            aggregate_text.count("\n")+1 if aggregate_text else 1,
+            breakdown_text.count("\n")+1 if breakdown_text else 1,
+            tyre_text.count("\n")+1 if tyre_text else 1,
+        )
+        longest_event=max(len(aggregate_text),len(breakdown_text),len(tyre_text),0)
+        wrapped_lines=max(event_lines, (longest_event // 42)+1)
+        ws.row_dimensions[r].height=max(36, min(150, 18*wrapped_lines))
+    for i,w in enumerate([7,15,18,18,13,42,46,46],1): ws.column_dimensions[get_column_letter(i)].width=w
     ws.freeze_panes="E5"; ws.auto_filter.ref=f"A4:H{ws.max_row}"
     return ws
 
