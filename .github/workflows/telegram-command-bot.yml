@@ -28,4 +28,5 @@ jobs:
           GH_DISPATCH_TOKEN: ${{ github.token }}
           VEHICLE_EVENTS_API_URL: ${{ secrets.VEHICLE_EVENTS_API_URL }}
           VEHICLE_EVENTS_API_KEY: ${{ secrets.VEHICLE_EVENTS_API_KEY }}
+          DEPOT_MASTER: ${{ vars.DEPOT_MASTER }}
         run: python telegram_command_bot.py
