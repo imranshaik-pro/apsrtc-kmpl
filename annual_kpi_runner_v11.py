@@ -3,7 +3,9 @@
 import sys
 
 from openpyxl import load_workbook
+from openpyxl.chart import LineChart, Reference
 from openpyxl.styles import Alignment, Font, PatternFill, Side, Border
+from openpyxl.utils import get_column_letter
 
 import annual_kpi_runner_v10 as v10
 
@@ -21,43 +23,117 @@ ORIGINAL_MAKE_XLSX = v7.make_xlsx_v7
 
 
 
+
+
+DASHBOARD_TITLE = "KPI Dashboard"
+DETAIL_TITLE = "Annual KPI"
+
+
+def _good_number(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def _style_detailed_xlsx(ws, display, fys):
+    """Apply approved visual language while preserving the existing 18-column data model."""
+    last_col = 18
+    ws.sheet_view.showGridLines = False
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=last_col)
+    ws["A1"] = f"APSRTC – {display} DEPOT"
+    ws["A1"].font = Font(bold=True, color="FFFFFF", size=16)
+    ws["A1"].fill = PatternFill("solid", fgColor="123B69")
+    ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 30
+    ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=last_col)
+    ws["A2"] = "ANNUAL KPI – DETAILED DATA"
+    ws["A2"].font = Font(bold=True, color="17365D", size=13)
+    ws["A2"].alignment = Alignment(horizontal="center")
+    ws.merge_cells(start_row=3, start_column=1, end_row=3, end_column=last_col)
+    ws["A3"] = f"Three Financial Years: {' | '.join(fys)}  •  Monthly values preserved in APSRTC source format"
+    ws["A3"].font = Font(italic=True, color="595959", size=9)
+    ws["A3"].alignment = Alignment(horizontal="center")
+    fy_fills = ["D9EAF7", "E2F0D9", "FFF2CC"]
+    for r in range(6, ws.max_row + 1):
+        fy = str(ws.cell(r, 3).value or "")
+        if fy in fys:
+            fill = PatternFill("solid", fgColor=fy_fills[fys.index(fy)])
+            for col in range(3, last_col + 1):
+                ws.cell(r, col).fill = fill
+    ws.freeze_panes = "E6"
+    ws.print_title_rows = "1:5"
+    ws.page_setup.orientation = "landscape"
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 0
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
+    ws.oddFooter.center.text = f"APSRTC | {display} DEPOT | Annual KPI Detailed Data"
+
+
+def _build_dashboard_xlsx(wb, display, fys, mat):
+    """Create a separate executive dashboard; never invent KPI values."""
+    if DASHBOARD_TITLE in wb.sheetnames:
+        del wb[DASHBOARD_TITLE]
+    ws = wb.create_sheet(DASHBOARD_TITLE, 0)
+    ws.sheet_view.showGridLines = False
+    for col, width in {"A":5,"B":28,"C":12,"D":12,"E":12,"F":12,"G":12,"H":12,"I":12,"J":12,"K":12,"L":12,"M":12,"N":12,"O":12}.items():
+        ws.column_dimensions[col].width = width
+    ws.merge_cells("A1:O2"); ws["A1"] = "APSRTC  |  ANNUAL KPI DASHBOARD"
+    ws["A1"].font=Font(bold=True,color="FFFFFF",size=20); ws["A1"].fill=PatternFill("solid",fgColor="123B69"); ws["A1"].alignment=Alignment(horizontal="center",vertical="center")
+    ws.merge_cells("A3:O3"); ws["A3"]=f"{display} DEPOT  •  3 FINANCIAL YEAR PERFORMANCE"
+    ws["A3"].font=Font(bold=True,color="17365D",size=13); ws["A3"].alignment=Alignment(horizontal="center")
+    ws.merge_cells("A4:O4"); ws["A4"]=f"Financial Years Covered: {' | '.join(fys)}"
+    ws["A4"].font=Font(bold=True,color="008000",size=10); ws["A4"].alignment=Alignment(horizontal="center")
+    # Executive summary uses only existing Upto values from the report matrix.
+    headers=["KPI / Parameter"] + fys
+    for j,v in enumerate(headers,1):
+        cell=ws.cell(7,j); cell.value=v; cell.font=Font(bold=True,color="FFFFFF"); cell.fill=PatternFill("solid",fgColor="1F4E78"); cell.alignment=Alignment(horizontal="center")
+    rows={}
+    for row in mat[1:]:
+        if len(row) >= 18:
+            rows.setdefault(str(row[1]), {})[str(row[2])] = row[17]
+    preferred=["HSD KMPL INCL AC","HSD KMPL EXCL AC","TOTAL LUB KMPL","B.D RATE","AVG TYRE LIFE","NEW TYRE LIFE","RC TYRE LIFE","N.T.S RATE","Ist RC S Rate","TTL SCP Rate","RT Factor"]
+    rr=8
+    for name in preferred:
+        if name not in rows: continue
+        ws.cell(rr,1).value=name; ws.cell(rr,1).font=Font(bold=True,color="17365D")
+        for j,fy in enumerate(fys,2):
+            val=rows[name].get(fy,"")
+            ws.cell(rr,j).value=val
+            ws.cell(rr,j).number_format="0.00"
+            ws.cell(rr,j).alignment=Alignment(horizontal="center")
+            ws.cell(rr,j).fill=PatternFill("solid",fgColor=["D9EAF7","E2F0D9","FFF2CC"][j-2])
+        rr+=1
+    ws.merge_cells(start_row=6,start_column=6,end_row=6,end_column=15); ws.cell(6,6).value="3-FY TREND VIEW"
+    ws.cell(6,6).font=Font(bold=True,color="FFFFFF"); ws.cell(6,6).fill=PatternFill("solid",fgColor="009E60"); ws.cell(6,6).alignment=Alignment(horizontal="center")
+    # Chart only source-grounded Upto values; blanks/MANUAL remain gaps.
+    chart_rows=[]
+    for name in ("HSD KMPL INCL AC","HSD KMPL EXCL AC","B.D RATE"):
+        if name in rows and any(_good_number(rows[name].get(fy)) for fy in fys):
+            chart_rows.append(name)
+    if chart_rows:
+        start=8
+        for i,name in enumerate(chart_rows,start):
+            ws.cell(i,6).value=name
+            for j,fy in enumerate(fys,7): ws.cell(i,j).value=rows[name].get(fy,"")
+        for j,fy in enumerate(fys,7): ws.cell(7,j).value=fy
+        chart=LineChart(); chart.title="Selected KPI Upto Trend"; chart.style=10; chart.height=7; chart.width=16
+        data=Reference(ws,min_col=7,max_col=9,min_row=7,max_row=7+len(chart_rows))
+        cats=Reference(ws,min_col=6,min_row=8,max_row=7+len(chart_rows))
+        chart.add_data(data,titles_from_data=True); chart.set_categories(cats); ws.add_chart(chart,"F12")
+    note_row=max(rr+2,25)
+    ws.merge_cells(start_row=note_row,start_column=1,end_row=note_row,end_column=15)
+    ws.cell(note_row,1).value="Dashboard values are derived only from the Annual KPI source matrix. Missing/unavailable source values remain blank or MANUAL; no KPI value is fabricated."
+    ws.cell(note_row,1).font=Font(italic=True,color="595959",size=9); ws.cell(note_row,1).alignment=Alignment(wrap_text=True)
+    ws.freeze_panes="A7"; ws.print_title_rows="1:6"; ws.page_setup.orientation="landscape"; ws.page_setup.fitToWidth=1; ws.page_setup.fitToHeight=1; ws.sheet_properties.pageSetUpPr.fitToPage=True
+    return ws
+
+
 def make_xlsx_v11(display, mat, fys):
-    """Professional Annual workbook presentation without changing KPI values."""
+    """Approved two-sheet Annual workbook: executive dashboard + detailed APSRTC data."""
     path = ORIGINAL_MAKE_XLSX(display, mat, fys)
     wb = load_workbook(path)
     ws = wb[m.SHEET_TITLE]
     ws.insert_rows(1, 4)
-    last_col = 18
-    ws.merge_cells(start_row=1,start_column=1,end_row=1,end_column=last_col)
-    ws["A1"] = f"APSRTC – {display} DEPOT"
-    ws["A1"].font = Font(bold=True,color="FFFFFF",size=16)
-    ws["A1"].fill = PatternFill("solid",fgColor="17365D")
-    ws["A1"].alignment = Alignment(horizontal="center",vertical="center")
-    ws.row_dimensions[1].height = 28
-    ws.merge_cells(start_row=2,start_column=1,end_row=2,end_column=last_col)
-    ws["A2"] = "ANNUAL KPI PERFORMANCE DASHBOARD"
-    ws["A2"].font = Font(bold=True,color="1F4E78",size=12)
-    ws["A2"].alignment = Alignment(horizontal="center",vertical="center")
-    ws.merge_cells(start_row=3,start_column=1,end_row=3,end_column=last_col)
-    ws["A3"] = "Three Financial Year Performance | Target | Monthly Trend | Upto"
-    ws["A3"].font = Font(italic=True,color="595959",size=9)
-    ws["A3"].alignment = Alignment(horizontal="center",vertical="center")
-    ws.freeze_panes = "E6"
-    ws.sheet_view.showGridLines = False
-    ws.row_dimensions[5].height = 30
-    # Reassert a strong header after inserting the title band.
-    for c in range(1,last_col+1):
-        cell=ws.cell(5,c)
-        cell.font=Font(bold=True,color="FFFFFF")
-        cell.fill=PatternFill("solid",fgColor="1F4E78")
-        cell.alignment=Alignment(horizontal="center",vertical="center",wrap_text=True)
-    # Give every 3-FY KPI block a calm visual boundary.
-    divider=Side(style="medium",color="5B9BD5")
-    for start in range(6,ws.max_row+1,3):
-        end=min(start+2,ws.max_row)
-        for c in range(1,last_col+1):
-            cell=ws.cell(end,c)
-            cell.border=Border(left=cell.border.left,right=cell.border.right,top=cell.border.top,bottom=divider)
+    _style_detailed_xlsx(ws, display, fys)
+    _build_dashboard_xlsx(wb, display, fys, mat)
     wb.save(path)
     return path
 
