@@ -261,9 +261,9 @@ def main():
             print(f"VEHICLE_EVENTS_API_FALLBACK: {exc}")
 
         # Business lifecycle:
-        # - closed month: official selected-month MTD-598 roster is authoritative;
-        # - open month: if MTD-598 is not yet published, use the operational population
-        #   observed in daily KMPL through yesterday plus live Vehicle Events.
+        # - CLOSED month: query official selected-month MTD-598; it is authoritative.
+        # - OPEN/current month: do NOT query MTD-598 at all. Build the provisional
+        #   operational population from daily KMPL through yesterday + Vehicle Events.
         provisional_roster = None
         if selected_month == current_month:
             provisional_roster = {
@@ -280,7 +280,7 @@ def main():
                     provisional_roster.setdefault(event.vehicle_no, {
                         "kmpl": None, "op": "", "engine": "", "comm_date": ""
                     })
-            print(f"OPEN_MONTH_PROVISIONAL_ROSTER: {len(provisional_roster)} vehicles from daily data + live events")
+            print(f"OPEN_MONTH_MODE: MTD-598 skipped; provisional roster has {len(provisional_roster)} vehicles from daily data + Vehicle Events")
 
         roster, history, remarks = build_history(
             session, year, month, zone, region_code, display_name,
@@ -289,7 +289,7 @@ def main():
         if selected_month == current_month:
             population_note = (
                 "3 Financial Year HSD KMPL History | OPEN MONTH: provisional operational "
-                "population when official selected-month MTD-598 is unavailable"
+                "population from daily KMPL + Vehicle Events; MTD-598 not queried"
             )
         else:
             population_note = (
