@@ -304,7 +304,27 @@ def main():
             e for e in vehicle_events
             if e.depot == display_name.upper() and e.event_date <= cutoff
         ]
-        write_vehicle_360_sheet(workbook, roster, history, report_events)
+        if selected_month == current_month:
+            latest_360_kmpl = {
+                v: data.get("up_to_day_latest")
+                for v, data in vehicle_data.items()
+                if data.get("up_to_day_latest") is not None
+            }
+            coverage_note = (
+                f"OPEN MONTH | Operational KMPL through {cutoff}; "
+                f"Vehicle Events through {cutoff}; finalized monthly KMPL not claimed"
+            )
+        else:
+            latest_360_kmpl = None
+            coverage_note = (
+                f"CLOSED MONTH | Official selected-month MTD-598 population; "
+                f"Vehicle Events through {cutoff}"
+            )
+        write_vehicle_360_sheet(
+            workbook, roster, history, report_events,
+            latest_kmpl=latest_360_kmpl,
+            coverage_note=coverage_note,
+        )
         print(f"VEHICLE_360: {len(report_events)} Vehicle Event records through {cutoff}")
 
     workbook.save(xlsx_path)
