@@ -176,11 +176,15 @@ def format_sheet_v11(spreadsheet_id, mat, fys):
     # rows before formatting; v7 will then restore its intended freeze state.
     sid = m.sheet_id(spreadsheet_id, m.SHEET_TITLE)
     if sid is not None:
+        # Existing Annual sheets can contain merged KPI blocks in columns A:B.
+        # Google Sheets rejects changing a freeze boundary through only part of
+        # a merged range, so clear BOTH row and column freezes before v7
+        # unmerges/rebuilds the matrix. v7 restores the intended A:D freeze.
         m.sheets_service().spreadsheets().batchUpdate(
             spreadsheetId=spreadsheet_id,
             body={"requests":[{"updateSheetProperties":{
-                "properties":{"sheetId":sid,"gridProperties":{"frozenRowCount":0}},
-                "fields":"gridProperties.frozenRowCount"
+                "properties":{"sheetId":sid,"gridProperties":{"frozenRowCount":0,"frozenColumnCount":0}},
+                "fields":"gridProperties.frozenRowCount,gridProperties.frozenColumnCount"
             }}]}
         ).execute()
     # v10 already retries transient failures for the main sheet formatting.
