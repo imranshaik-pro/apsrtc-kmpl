@@ -188,7 +188,7 @@ def build_history(session,selected_year,selected_month,zone,regn,depot,existing=
                     values[v]["2026-27"][mon]=f"{base_text} {icon} {day}".strip()
     return roster,values,remarks
 
-def write_vehicle_360_sheet(wb, roster, values, events=None):
+def write_vehicle_360_sheet(wb, roster, values, events=None, latest_kmpl=None, coverage_note=None):
     """Create a management-friendly per-vehicle 360 summary.
 
     Manual event data is optional until the live Event Register is connected.
@@ -201,7 +201,7 @@ def write_vehicle_360_sheet(wb, roster, values, events=None):
     ws = wb.create_sheet("Vehicle 360")
     ws.sheet_view.showGridLines = False
     ws.append(["APSRTC – VEHICLE 360° HISTORY"])
-    ws.append(["KMPL performance + maintenance + aggregate / breakdown / tyre event history"])
+    ws.append([coverage_note or "KMPL performance + maintenance + aggregate / breakdown / tyre event history"])
     ws.append([])
     headers = ["S.NO","Veh No","OP Type","Eng Type","Latest KMPL","Major Aggregate Changes","Breakdowns","Tyre Changes"]
     ws.append(headers)
@@ -233,12 +233,17 @@ def write_vehicle_360_sheet(wb, roster, values, events=None):
             for e in ve if e.event_type=="TYRE CHANGE"
         )
         latest=""
-        for fy in reversed(FYS):
-            for mon in reversed(MONTHS):
-                val=values.get(v,{}).get(fy,{}).get(mon,"")
-                if val not in (None,""):
-                    latest=str(val).split(" ")[0]; break
-            if latest: break
+        # Open/current month may supply the latest operational up-to-day KMPL
+        # separately. It must not be written into finalized monthly history.
+        if latest_kmpl and latest_kmpl.get(v) not in (None,""):
+            latest=latest_kmpl.get(v)
+        else:
+            for fy in reversed(FYS):
+                for mon in reversed(MONTHS):
+                    val=values.get(v,{}).get(fy,{}).get(mon,"")
+                    if val not in (None,""):
+                        latest=str(val).split(" ")[0]; break
+                if latest: break
         ws.append([idx,v,roster[v].get("op",""),roster[v].get("engine",""),latest,aggregate_text,breakdown_text,tyre_text])
         r=ws.max_row
         for c in range(1,9):
