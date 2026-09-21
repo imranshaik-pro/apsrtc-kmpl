@@ -49,7 +49,73 @@ jobs:
           python annual_kpi_runner_v11.py \
             --depot "${{ inputs.depot }}" \
             --years "${{ inputs.financial_years }}" \
-            --selected-month "${{ inputs.selected_month }}"
+            --selected-month "${{ inputs.selected_month }}" | tee annual-kpi.log
+          REPORT_URL="$(grep -Eo 'https://drive.google.com/[^[:space:]]+' annual-kpi.log | tail -1)"
+          if [ -z "$REPORT_URL" ]; then
+            echo "Annual KPI Google Sheet link was not emitted by the report generator."
+            exit 1
+          fi
+          echo "REPORT_URL=$REPORT_URL" >> "$GITHUB_ENV"
+
+      - name: Send Annual KPI success to Telegram
+        if: success()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DEPOT: ${{ inputs.depot }}
+          SELECTED_MONTH: ${{ inputs.selected_month }}
+          REPORT_URL: ${{ env.REPORT_URL }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.parse, urllib.request
+          token=os.environ.get("TELEGRAM_BOT_TOKEN","").strip()
+          chat_id=os.environ.get("TELEGRAM_CHAT_ID","").strip()
+          if not token or not chat_id:
+              raise SystemExit("Telegram secrets are missing.")
+          text=(
+              "✅ APSRTC ANNUAL KPI REPORT COMPLETED\n\n"
+              f"Depot: {os.environ.get('DEPOT','')}\n"
+              f"Selected Month: {os.environ.get('SELECTED_MONTH','')}\n"
+              "Status: Annual KPI dashboard generated/refreshed successfully.\n\n"
+              f"Open Report: {os.environ.get('REPORT_URL','')}"
+          )
+          data=urllib.parse.urlencode({"chat_id":chat_id,"text":text}).encode()
+          req=urllib.request.Request(f"https://api.telegram.org/bot{token}/sendMessage",data=data,method="POST")
+          with urllib.request.urlopen(req,timeout=20) as response:
+              payload=json.load(response)
+          if not payload.get("ok"):
+              raise SystemExit("Telegram Annual KPI status delivery failed.")
+          print("TELEGRAM_ANNUAL_KPI_STATUS_SENT")
+          PY
+
+      - name: Send Annual KPI failure to Telegram
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DEPOT: ${{ inputs.depot }}
+          SELECTED_MONTH: ${{ inputs.selected_month }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.parse, urllib.request
+          token=os.environ.get("TELEGRAM_BOT_TOKEN","").strip()
+          chat_id=os.environ.get("TELEGRAM_CHAT_ID","").strip()
+          if not token or not chat_id:
+              raise SystemExit("Telegram secrets are missing.")
+          text=(
+              "❌ APSRTC ANNUAL KPI REPORT FAILED\n\n"
+              f"Depot: {os.environ.get('DEPOT','')}\n"
+              f"Selected Month: {os.environ.get('SELECTED_MONTH','')}\n"
+              "Status: Annual KPI generation/refresh failed. Check GitHub Actions."
+          )
+          data=urllib.parse.urlencode({"chat_id":chat_id,"text":text}).encode()
+          req=urllib.request.Request(f"https://api.telegram.org/bot{token}/sendMessage",data=data,method="POST")
+          with urllib.request.urlopen(req,timeout=20) as response:
+              payload=json.load(response)
+          if not payload.get("ok"):
+              raise SystemExit("Telegram Annual KPI failure delivery failed.")
+          print("TELEGRAM_ANNUAL_KPI_FAILURE_SENT")
+          PY
 
       - name: Upload XLSX backup
         if: always()
