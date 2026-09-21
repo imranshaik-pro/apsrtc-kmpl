@@ -133,8 +133,21 @@ function onVehicleEventSubmit(e) {
     }));
 
   } catch (error) {
-    setAuditValue_(sheet, row, 'Automation Status', 'ERROR: ' + error.message);
-    setAuditValue_(sheet, row, 'GitHub Dispatch Status', 'ERROR: ' + error.message);
+    const message = String(error && error.message ? error.message : error);
+    // Preserve the permanent-record state if the sheet write succeeded.
+    // A later GitHub dispatch failure must not falsely label the recorded event itself as invalid.
+    let recorded = false;
+    try {
+      const current = readSubmittedRow_(sheet, row);
+      recorded = getFirstNonBlankValue_(current, ['Automation Status']) === 'EVENT RECORDED';
+    } catch (ignore) {
+      recorded = false;
+    }
+
+    if (!recorded) {
+      setAuditValue_(sheet, row, 'Automation Status', 'ERROR: ' + message);
+    }
+    setAuditValue_(sheet, row, 'GitHub Dispatch Status', 'ERROR: ' + message);
     console.error(error);
     throw error;
   }
