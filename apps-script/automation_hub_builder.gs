@@ -128,9 +128,21 @@ function upgradeExistingApsrtcAutomationHub() {
   const depots=[...new Set(master.getRange(2,1,master.getLastRow()-1,1).getDisplayValues().flat()
     .map(v=>String(v||'').trim().toUpperCase()).filter(Boolean))];
 
-  // Delete by index from the end. FormApp.deleteItem(Item) can throw
-  // "Invalid data updating form" while page-navigation items still reference
-  // sections that are being deleted.
+  // First remove all navigation dependencies. Google Forms refuses to
+  // delete sections while branching choices/page breaks still reference them.
+  form.getItems().forEach(item => {
+    if (item.getType() === FormApp.ItemType.MULTIPLE_CHOICE) {
+      const mc = item.asMultipleChoiceItem();
+      const values = mc.getChoices().map(ch => ch.getValue()).filter(Boolean);
+      if (values.length) mc.setChoiceValues(values); // strips page-navigation targets
+    } else if (item.getType() === FormApp.ItemType.PAGE_BREAK) {
+      item.asPageBreakItem().setGoToPage(FormApp.PageNavigationType.CONTINUE);
+    }
+  });
+  SpreadsheetApp.flush();
+  Utilities.sleep(500);
+
+  // Now the old items are independent and can be removed safely.
   for (let i=form.getItems().length-1;i>=0;i--) {
     form.deleteItem(i);
   }
