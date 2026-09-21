@@ -128,7 +128,12 @@ function upgradeExistingApsrtcAutomationHub() {
   const depots=[...new Set(master.getRange(2,1,master.getLastRow()-1,1).getDisplayValues().flat()
     .map(v=>String(v||'').trim().toUpperCase()).filter(Boolean))];
 
-  form.getItems().slice().reverse().forEach(item=>form.deleteItem(item));
+  // Delete by index from the end. FormApp.deleteItem(Item) can throw
+  // "Invalid data updating form" while page-navigation items still reference
+  // sections that are being deleted.
+  for (let i=form.getItems().length-1;i>=0;i--) {
+    form.deleteItem(i);
+  }
   form.setTitle('APSRTC – OPERATIONS & KPI AUTOMATION HUB')
     .setDescription('ANDHRA PRADESH STATE ROAD TRANSPORT CORPORATION (APSRTC)\nUnified Depot Operations, Vehicle Events, KMPL Reporting & KPI Automation Portal\n\nSelect your depot first, then choose the required service. Only the relevant fields will be shown.')
     .setConfirmationMessage('Request received successfully. Processing status will be recorded in the APSRTC Automation Hub Register.')
