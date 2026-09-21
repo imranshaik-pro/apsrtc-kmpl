@@ -111,3 +111,82 @@ function formatHubRegister_(sheet) {
   for(let c=1;c<=maxCols;c++) sheet.setColumnWidth(c,c===1?155:185);
   sheet.getRange(1,1,Math.max(sheet.getMaxRows(),2),maxCols).setVerticalAlignment('middle');
 }
+
+
+/**
+ * Upgrade the already-created Hub in place. Run once after the initial builder.
+ * Rebuilds the form items without creating another Form or response workbook.
+ */
+function upgradeExistingApsrtcAutomationHub() {
+  const props=PropertiesService.getScriptProperties();
+  const formId=props.getProperty('AUTOMATION_HUB_FORM_ID');
+  if(!formId) throw new Error('AUTOMATION_HUB_FORM_ID is missing. Run the builder only if no Hub has ever been created.');
+  const form=FormApp.openById(formId);
+  const source=SpreadsheetApp.getActiveSpreadsheet();
+  const master=source.getSheetByName('Depot Master');
+  if(!master||master.getLastRow()<2) throw new Error('Depot Master is missing or empty.');
+  const depots=[...new Set(master.getRange(2,1,master.getLastRow()-1,1).getDisplayValues().flat()
+    .map(v=>String(v||'').trim().toUpperCase()).filter(Boolean))];
+
+  form.getItems().slice().reverse().forEach(item=>form.deleteItem(item));
+  form.setTitle('APSRTC – OPERATIONS & KPI AUTOMATION HUB')
+    .setDescription('ANDHRA PRADESH STATE ROAD TRANSPORT CORPORATION (APSRTC)\nUnified Depot Operations, Vehicle Events, KMPL Reporting & KPI Automation Portal\n\nSelect your depot first, then choose the required service. Only the relevant fields will be shown.')
+    .setConfirmationMessage('Request received successfully. Processing status will be recorded in the APSRTC Automation Hub Register.')
+    .setProgressBar(true).setShuffleQuestions(false);
+
+  form.addSectionHeaderItem().setTitle('DEPOT & SERVICE SELECTION')
+    .setHelpText('Choose the operating depot and the service required.');
+  form.addListItem().setTitle('Depot').setChoiceValues(depots).setRequired(true);
+  const action=form.addMultipleChoiceItem().setTitle('Required Service / Report').setRequired(true);
+
+  const daily=form.addPageBreakItem().setTitle('DAILY HSD KMPL REPORT')
+    .setHelpText('Daily HSD KMPL report for the selected depot and report date.');
+  form.addDateItem().setTitle('Report Date').setIncludesYear(true).setRequired(true);
+  const dailyEnd=form.addPageBreakItem().setTitle('REVIEW & SUBMIT — DAILY REPORT');
+
+  const monthly=form.addPageBreakItem().setTitle('MONTHLY PERFORMANCE REPORT')
+    .setHelpText('Monthly operational performance report. Existing open/closed-month business rules remain unchanged.');
+  form.addDateItem().setTitle('Report Month').setIncludesYear(true).setRequired(true);
+  const monthlyEnd=form.addPageBreakItem().setTitle('REVIEW & SUBMIT — MONTHLY REPORT');
+
+  const annual=form.addPageBreakItem().setTitle('ANNUAL KPI REPORT')
+    .setHelpText('Annual KPI report through the selected month. Financial year is derived automatically.');
+  form.addDateItem().setTitle('Selected Month').setIncludesYear(true).setRequired(true);
+  const annualEnd=form.addPageBreakItem().setTitle('REVIEW & SUBMIT — ANNUAL KPI');
+
+  const event=form.addPageBreakItem().setTitle('VEHICLE EVENT ENTRY')
+    .setHelpText('Record a permanent vehicle operational event.');
+  form.addDateItem().setTitle('Event Date').setIncludesYear(true).setRequired(true);
+  form.addTextItem().setTitle('Vehicle No').setHelpText('Enter vehicle number; AP prefix is optional.').setRequired(true);
+  form.addMultipleChoiceItem().setTitle('Event Type').setChoiceValues(['UNIT CHANGE','BREAKDOWN','TYRE CHANGE','SCHEDULE III','SCHEDULE IV']).setRequired(true);
+  form.addCheckboxItem().setTitle('Component/Aggregate').setChoiceValues([
+    'Engine','TO','Cylinder Head','FIP','Injectors','Air Compressor','AC Head','Flywheel','Gear Box','I Beam',
+    'Drive Head','FC Unit','Water Pump','Cooler Plate','PP Shaft Set','Vane Pump','Radiator','Clutch Plate',
+    'Clutch Springer','Spring Change (mention with Position)','Other'
+  ]);
+  form.addCheckboxItem().setTitle('Spring Assembly Change Position').setChoiceValues(['FOS','FNS','ROS','RNS']);
+  form.addCheckboxItem().setTitle('Tyres Change Position').setChoiceValues(['FOS','FNS','ROSI','ROSO','RNSO','RNSI','Spare']);
+  ['FOS','FNS','ROSI','ROSO','RNSO','RNSI','Spare'].forEach(p=>form.addTextItem().setTitle(p+' Tyre No'));
+  form.addTextItem().setTitle('Break Down Location');
+  form.addTextItem().setTitle('KMs Canceled');
+  form.addParagraphTextItem().setTitle('Break Down Details');
+  form.addParagraphTextItem().setTitle('Remarks');
+  const eventEnd=form.addPageBreakItem().setTitle('REVIEW & SUBMIT — VEHICLE EVENT');
+
+  const v360=form.addPageBreakItem().setTitle('VEHICLE 360° HISTORY')
+    .setHelpText('Request consolidated vehicle history for the selected depot.');
+  form.addTextItem().setTitle('Vehicle 360 - Vehicle No').setHelpText('Enter vehicle number; AP prefix is optional.').setRequired(true);
+  const v360End=form.addPageBreakItem().setTitle('REVIEW & SUBMIT — VEHICLE 360°');
+
+  action.setChoices([
+    action.createChoice('Daily HSD KMPL Report',daily),
+    action.createChoice('Monthly Performance Report',monthly),
+    action.createChoice('Annual KPI Report',annual),
+    action.createChoice('Vehicle Event Entry',event),
+    action.createChoice('Vehicle 360° History',v360)
+  ]);
+  [dailyEnd,monthlyEnd,annualEnd,eventEnd,v360End].forEach(x=>x.setGoToPage(FormApp.PageNavigationType.SUBMIT));
+
+  console.log('AUTOMATION_HUB_UPGRADED_IN_PLACE');
+  console.log('FORM_EDIT_URL: '+form.getEditUrl());
+}
