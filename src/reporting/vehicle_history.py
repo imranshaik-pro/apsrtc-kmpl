@@ -38,22 +38,44 @@ def _table(html, required):
         if all(x.lower() in joined for x in required): return df
     return None
 
+def _norm_header(value):
+    """Normalize APSRTC table headings without depending on punctuation/spacing."""
+    return re.sub(r"[^a-z0-9]+", " ", str(value or "").lower()).strip()
+
+def _row_value(row, columns, *aliases):
+    normalized={_norm_header(c):c for c in columns}
+    for alias in aliases:
+        target=_norm_header(alias)
+        if target in normalized:
+            return row[normalized[target]]
+    return ""
+
 def fetch_mtd(session, yyyymm, regn, depot):
     payload={"yymm":yyyymm,"regn":regn,"depot":depot,"stype":"","eng":"","kms":"","kmsl":"","kmpl":"","kmpll":"","fstatus":"0","veh":""}
     r=session.post(MTD_URL,data=payload,timeout=30); r.raise_for_status()
+    # Identify the MTD-598 table by stable business headings, but parse individual
+    # columns with punctuation/spacing-tolerant aliases below.
     df=_table(r.text,["Veh No","HSD KMPL","Comm Date"])
-    if df is None: raise RuntimeError(f"MTD-598 table not found for {depot} {yyyymm}")
+    if df is None:
+        raise RuntimeError(f"MTD-598 table not found for {depot} {yyyymm}")
     result={}
     for _,row in df.iterrows():
-        def get(label):
-            for c in df.columns:
-                if label.lower()==str(c).strip().lower(): return row[c]
-            return ""
-        v=norm_vehicle(get("Veh No"))
-        if not v or v=="NAN": continue
-        try: kmpl=float(get("HSD KMPL"))
-        except (TypeError,ValueError): kmpl=None
-        result[v]={"kmpl":kmpl,"op":str(get("Veh Type")).strip(),"engine":str(get("Eng Make")).strip(),"comm_date":str(get("Comm Date")).strip()}
+        v=norm_vehicle(_row_value(row,df.columns,"Veh No","Veh No.","Vehicle No","Vehicle No."))
+        if not v or v=="NAN":
+            continue
+        raw_kmpl=_row_value(row,df.columns,"HSD KMPL","HSD K.M.P.L","KMPL")
+        try:
+            kmpl=float(raw_kmpl)
+        except (TypeError,ValueError):
+            kmpl=None
+        result[v]={
+            "kmpl":kmpl,
+            "op":str(_row_value(row,df.columns,"Veh Type","Vehicle Type","Product Type")).strip(),
+            "engine":str(_row_value(row,df.columns,"Eng Make","Engine Make","Engine Type")).strip(),
+            "comm_date":str(_row_value(row,df.columns,"Comm Date","Commission Date","Commissioning Date")).strip(),
+        }
+    if not result:
+        raise RuntimeError(f"MTD-598 returned no parseable vehicle population for {depot} {yyyymm}")
     return result
 
 def fetch_trend(session, fy, zone, regn, depot):
