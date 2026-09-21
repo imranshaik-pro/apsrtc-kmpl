@@ -254,17 +254,48 @@ def main():
     workbook = load_workbook(xlsx_path); apply_formatting(workbook)
     if selected_month >= (2026, 4):
         print(f"Building Vehicle Performance history: region={region_code}, zone={zone or '[blank]'}")
-        roster, history, remarks = build_history(session, year, month, zone, region_code, display_name, existing_history)
-        write_history_sheet(workbook, roster, history, remarks)
-        print(f"VEHICLE_HISTORY: {len(roster)} current vehicles; {len(remarks)} maintenance exceptions")
+        vehicle_events = []
         try:
             vehicle_events = fetch_vehicle_events_api()
-            write_vehicle_360_sheet(workbook, roster, history, vehicle_events)
-            print(f"VEHICLE_360: {len(vehicle_events)} permanent Vehicle Event records loaded")
         except Exception as exc:
-            # Monthly KMPL must remain deliverable if the auxiliary event API is temporarily unavailable.
-            write_vehicle_360_sheet(workbook, roster, history, [])
-            print(f"VEHICLE_360_EVENT_FALLBACK: {exc}")
+            print(f"VEHICLE_EVENTS_API_FALLBACK: {exc}")
+
+        # Business lifecycle:
+        # - closed month: official selected-month MTD-598 roster is authoritative;
+        # - open month: if MTD-598 is not yet published, use the operational population
+        #   observed in daily KMPL through yesterday plus live Vehicle Events.
+        provisional_roster = None
+        if selected_month == current_month:
+            provisional_roster = {
+                v: {
+                    "kmpl": data.get("up_to_day_latest"),
+                    "op": data.get("op_type", ""),
+                    "engine": data.get("engine", ""),
+                    "comm_date": "",
+                }
+                for v, data in vehicle_data.items()
+            }
+            for event in vehicle_events:
+                if event.depot == display_name.upper():
+                    provisional_roster.setdefault(event.vehicle_no, {
+                        "kmpl": None, "op": "", "engine": "", "comm_date": ""
+                    })
+            print(f"OPEN_MONTH_PROVISIONAL_ROSTER: {len(provisional_roster)} vehicles from daily data + live events")
+
+        roster, history, remarks = build_history(
+            session, year, month, zone, region_code, display_name,
+            existing_history, provisional_roster=provisional_roster
+        )
+        write_history_sheet(workbook, roster, history, remarks)
+        print(f"VEHICLE_HISTORY: {len(roster)} current vehicles; {len(remarks)} maintenance exceptions")
+        # Never leak events submitted after the report's data cutoff into a historical/open-month snapshot.
+        cutoff = f"{year:04d}-{month:02d}-{last_day:02d}"
+        report_events = [
+            e for e in vehicle_events
+            if e.depot == display_name.upper() and e.event_date <= cutoff
+        ]
+        write_vehicle_360_sheet(workbook, roster, history, report_events)
+        print(f"VEHICLE_360: {len(report_events)} Vehicle Event records through {cutoff}")
 
     workbook.save(xlsx_path)
     target_sheet_name = f"{display_name}_{args.month}"
