@@ -293,15 +293,20 @@ def write_history_sheet(wb,roster,values,remarks,population_note=None):
     for idx,v in enumerate(ordered,1):
         group=(str(roster[v].get("op","")).strip(),str(roster[v].get("engine","")).strip())
         start=row
-        # Visually identify each OP Type -> Engine Type group without adding
-        # synthetic business data to the report.
-        if previous_group is not None and group != previous_group:
-            for col in range(1,18):
-                ws.cell(row,col).border=Border(top=Side(style="medium",color="4472C4"))
+        group_changed = previous_group is not None and group != previous_group
         for fy in FYS:
             vals=[values.get(v,{}).get(fy,{}).get(m,"") for m in MONTHS]; ws.append([idx,v,group[0],group[1],fy,*vals])
             for c in ws[row]:
                 c.border=BORDER; c.alignment=Alignment(horizontal="center",vertical="center",wrap_text=True)
+            # Apply the group separator only after the row exists. Writing to
+            # ws.cell(row, ...) before append() materializes an empty worksheet
+            # row, which previously created a false blank row between groups.
+            if group_changed and row == start:
+                for col in range(1,18):
+                    cell=ws.cell(row,col)
+                    cell.border=Border(left=cell.border.left,right=cell.border.right,
+                                       top=Side(style="medium",color="4472C4"),
+                                       bottom=cell.border.bottom)
             for c in range(5,18):ws.cell(row,c).fill=PatternFill("solid",fgColor=fy_fills[fy])
             ws.cell(row,5).font=Font(bold=(fy=="2026-27"),color="274E13" if fy=="2026-27" else "000000")
             for c in range(6,18):
