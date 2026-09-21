@@ -295,8 +295,13 @@ function setupVehicleEventTrigger() {
  */
 function doGet(e) {
   try {
+    // Keep the Web API self-contained. The deployed Web App must not depend
+    // on the trigger CONFIG object being visible in its execution context.
+    const SHEET_NAME = 'Vehicle Events';
+    const DEPOT_NAME = 'PRODDUTUR';
+
     const expectedKey = PropertiesService.getScriptProperties().getProperty('VEHICLE_EVENTS_API_KEY');
-    const suppliedKey = e && e.parameter ? String(e.parameter.key || '') : '';
+    const suppliedKey = e && e.parameter ? String(e.parameter.key || '').trim() : '';
 
     if (!expectedKey) {
       return jsonResponse_({ok: false, error: 'VEHICLE_EVENTS_API_KEY is not configured.'});
@@ -306,14 +311,17 @@ function doGet(e) {
     }
 
     const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = spreadsheet.getSheetByName(CONFIG.SHEET_NAME);
+    if (!spreadsheet) {
+      return jsonResponse_({ok: false, error: 'Unable to access active spreadsheet.'});
+    }
+    const sheet = spreadsheet.getSheetByName(SHEET_NAME);
     if (!sheet) {
       return jsonResponse_({ok: false, error: 'Vehicle Events sheet not found.'});
     }
 
     const values = sheet.getDataRange().getDisplayValues();
     if (values.length < 2) {
-      return jsonResponse_({ok: true, depot: CONFIG.DEPOT, events: []});
+      return jsonResponse_({ok: true, depot: DEPOT_NAME, count: 0, events: []});
     }
 
     const headers = values[0].map(v => String(v || '').trim());
@@ -321,7 +329,6 @@ function doGet(e) {
     headers.forEach((header, i) => {
       if (header && index[header] === undefined) index[header] = i;
     });
-
     const get = (row, header) =>
       index[header] === undefined ? '' : String(row[index[header]] || '').trim();
 
@@ -336,7 +343,7 @@ function doGet(e) {
         event_id: get(row, 'Event ID'),
         created_at: get(row, 'Created At'),
         event_date: get(row, 'Normalized Event Date') || get(row, 'Event Date'),
-        depot: get(row, 'Depot') || CONFIG.DEPOT,
+        depot: get(row, 'Depot') || DEPOT_NAME,
         vehicle_no: vehicleNo,
         event_type: eventType,
         components: get(row, 'Components'),
@@ -345,7 +352,7 @@ function doGet(e) {
         breakdown_location: get(row, 'Breakdown Location'),
         kms_cancelled: get(row, 'KM Cancelled'),
         breakdown_details: get(row, 'Breakdown Details'),
-        remarks: get(row, 'Event Remarks'),
+        remarks: get(row, 'Event Remarks') || get(row, 'Remarks'),
         entry_source: get(row, 'Entry Source') || 'GOOGLE_FORM'
       };
     }).filter(event =>
@@ -357,7 +364,7 @@ function doGet(e) {
 
     return jsonResponse_({
       ok: true,
-      depot: CONFIG.DEPOT,
+      depot: DEPOT_NAME,
       count: events.length,
       events: events
     });
