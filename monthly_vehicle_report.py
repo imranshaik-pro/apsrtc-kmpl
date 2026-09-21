@@ -296,7 +296,13 @@ def main():
                 "3 Financial Year HSD KMPL History | Current vehicle population based on "
                 "selected-month MTD-598"
             )
-        write_history_sheet(workbook, roster, history, remarks, population_note=population_note)
+        report_period = datetime(year, month, 1).strftime("%B %Y")
+        write_history_sheet(
+            workbook, roster, history, remarks,
+            population_note=population_note,
+            depot_name=display_name,
+            report_period=report_period,
+        )
         print(f"VEHICLE_HISTORY: {len(roster)} current vehicles; {len(remarks)} maintenance exceptions")
         # Never leak events submitted after the report's data cutoff into a historical/open-month snapshot.
         cutoff = f"{year:04d}-{month:02d}-{last_day:02d}"
@@ -324,6 +330,8 @@ def main():
             workbook, roster, history, report_events,
             latest_kmpl=latest_360_kmpl,
             coverage_note=coverage_note,
+            depot_name=display_name,
+            report_period=report_period,
         )
         print(f"VEHICLE_360: {len(report_events)} Vehicle Event records through {cutoff}")
 
