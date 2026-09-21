@@ -27,7 +27,7 @@ EVENT_HEADERS = (
 
 def norm_vehicle(value: str) -> str:
     """Canonical APSRTC vehicle number: uppercase, no spaces, no leading AP."""
-    vehicle = re.sub(r"\\s+", "", str(value or "")).upper()
+    vehicle = re.sub(r"\s+", "", str(value or "")).upper()
     return vehicle[2:] if vehicle.startswith("AP") else vehicle
 
 def norm_event_type(value: str) -> str:
@@ -65,7 +65,6 @@ class VehicleEvent:
     remarks: str = ""
     entry_source: str = ""
 
-    # Backward-compatible views used by older report code.
     @property
     def component(self) -> str:
         return self.components
@@ -129,8 +128,7 @@ def event_from_mapping(data: dict[str, str], sequence: int = 1, source: str = ""
     vehicle = norm_vehicle(_first(data, "Normalized Vehicle No", "Vehicle No", "vehicle_no"))
     created = _first(data, "Created At", "created_at") or datetime.now().isoformat(timespec="seconds")
 
-    # Accept both the proven Google Form audit columns and the older CLI fields.
-    components = _first(data, "Components", "Component / Aggregate", "component")
+    components = _first(data, "Components", "components", "Component / Aggregate", "component")
     spring_positions = _first(data, "Spring Positions", "spring_positions")
     tyre_history = _first(data, "Tyre History", "tyre_history")
     if not tyre_history:
