@@ -87,7 +87,7 @@ function onVehicleEventSubmit(e) {
 
     const eventDateISO = Utilities.formatDate(eventDate, CONFIG.TIMEZONE, 'yyyy-MM-dd');
     const createdAt = Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'yyyy-MM-dd HH:mm:ss');
-    const eventId = makeEventId_(eventDate, vehicleNo, row);
+    const eventId = makeEventId_(eventDate, vehicleNo, row, selectedDepot);
 
     setAuditValue_(sheet, row, 'Event ID', eventId);
     setAuditValue_(sheet, row, 'Depot', selectedDepot);
@@ -262,11 +262,13 @@ function parseEventDate_(value) {
   return isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function makeEventId_(eventDate, vehicleNo, row) {
+function makeEventId_(eventDate, vehicleNo, row, depot) {
   const datePart = Utilities.formatDate(eventDate, CONFIG.TIMEZONE, 'yyyyMMdd');
   const timePart = Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'HHmmss');
   const rowPart = 'R' + String(row).padStart(4, '0');
-  return [CONFIG.DEPOT_CODE, datePart, vehicleNo, rowPart, timePart].join('-');
+  const depotCode = String(depot || CONFIG.DEPOT).trim().toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '') || 'DEPOT';
+  return [depotCode, datePart, vehicleNo, rowPart, timePart].join('-');
 }
 
 function setAuditValue_(sheet, row, header, value) {
@@ -430,7 +432,7 @@ function doGet(e) {
     // Keep the Web API self-contained. The deployed Web App must not depend
     // on the trigger CONFIG object being visible in its execution context.
     const SHEET_NAME = 'Vehicle Events';
-    const DEPOT_NAME = 'PRODDUTUR';
+    const DEPOT_NAME = 'ALL DEPOTS';
 
     const expectedKey = PropertiesService.getScriptProperties().getProperty('VEHICLE_EVENTS_API_KEY');
     const suppliedKey = e && e.parameter ? String(e.parameter.key || '').trim() : '';
@@ -532,7 +534,7 @@ function doPost(e) {
     const row = sheet.getLastRow() + 1;
     const createdAt = Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'yyyy-MM-dd HH:mm:ss');
     const eventDateISO = Utilities.formatDate(eventDate, CONFIG.TIMEZONE, 'yyyy-MM-dd');
-    const depotCode = depot.replace(/[^A-Z0-9]/g, '').substring(0, 3) || 'DEP';
+    const depotCode = depot.replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '') || 'DEPOT';
     const eventId = [depotCode, Utilities.formatDate(eventDate, CONFIG.TIMEZONE, 'yyyyMMdd'),
       vehicleNo, 'R' + String(row).padStart(4,'0'), Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'HHmmss')].join('-');
 
