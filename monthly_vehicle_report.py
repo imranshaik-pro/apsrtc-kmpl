@@ -109,14 +109,14 @@ def fetch_monthly_schedule_markers(session, year, month, zone, region_code, depo
     return markers
 
 
-def apply_formatting(workbook):
+def apply_formatting(workbook, display_name):
     ws = workbook["Monthly KMPL"]
     # Professional report identity: title band + reporting context above the data.
     ws.insert_rows(1, 4)
     last_col = ws.max_column
     last_letter = get_column_letter(last_col)
     ws.merge_cells(f"A1:{last_letter}1")
-    ws["A1"] = "APSRTC – PRODDUTUR DEPOT"
+    ws["A1"] = f"APSRTC – {display_name} DEPOT"
     ws["A1"].font = Font(bold=True, color="FFFFFF", size=16)
     ws["A1"].fill = PatternFill("solid", fgColor="17365D")
     ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
@@ -251,7 +251,7 @@ def main():
         existing_history = {}
 
     pd.DataFrame(rows).to_excel(xlsx_path, sheet_name="Monthly KMPL", index=False, engine="openpyxl")
-    workbook = load_workbook(xlsx_path); apply_formatting(workbook)
+    workbook = load_workbook(xlsx_path); apply_formatting(workbook, display_name)
     if selected_month >= (2026, 4):
         print(f"Building Vehicle Performance history: region={region_code}, zone={zone or '[blank]'}")
         vehicle_events = []
