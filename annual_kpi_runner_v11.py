@@ -95,6 +95,18 @@ def _apply_upto_borders(spreadsheet_id, mat):
 
 
 def format_sheet_v11(spreadsheet_id, mat, fys):
+    # Google Sheets rejects a merge that crosses a frozen-row boundary. The v7
+    # formatter merges each 3-FY KPI block starting at row 2, so clear frozen
+    # rows before formatting; v7 will then restore its intended freeze state.
+    sid = m.sheet_id(spreadsheet_id, m.SHEET_TITLE)
+    if sid is not None:
+        m.sheets_service().spreadsheets().batchUpdate(
+            spreadsheetId=spreadsheet_id,
+            body={"requests":[{"updateSheetProperties":{
+                "properties":{"sheetId":sid,"gridProperties":{"frozenRowCount":0}},
+                "fields":"gridProperties.frozenRowCount"
+            }}]}
+        ).execute()
     # v10 already retries transient failures for the main sheet formatting.
     ORIGINAL_FORMAT_SHEET(spreadsheet_id, mat, fys)
     # Apply a visible grid specifically to column R (Upto), including header and rows.
