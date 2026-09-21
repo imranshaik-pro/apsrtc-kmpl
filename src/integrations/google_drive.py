@@ -127,17 +127,36 @@ def upload_file(file_path: str | Path, folder_id: str) -> dict:
 
 
 def upload_xlsx_as_google_sheet(file_path: str | Path, folder_id: str, sheet_name: str | None = None) -> dict:
-    """Upload an XLSX and convert it to a native Google Sheet, idempotently by name."""
+    """Upload/refresh a native Google Sheet by stable depot-month name.
+
+    Monthly reports are lifecycle documents: an open-month provisional workbook
+    must be refreshable during the month and later superseded by the closed-month
+    official workbook.  Reusing the existing Drive file ID keeps bookmarks/links
+    stable while replacing its spreadsheet content from the newly generated XLSX.
+    """
     path = Path(file_path)
     if not path.exists():
         raise FileNotFoundError(path)
     target_name = sheet_name or path.stem
     existing = find_file(folder_id=folder_id, filename=target_name)
-    if existing:
-        existing["already_existed"] = True
-        return existing
-    metadata = {"name": target_name, "parents": [folder_id], "mimeType": GOOGLE_SHEET_MIME}
     media = MediaFileUpload(str(path), mimetype=XLSX_MIME, resumable=False)
-    created = drive_service().files().create(body=metadata, media_body=media, fields="id,name,mimeType,webViewLink").execute()
+
+    if existing:
+        updated = drive_service().files().update(
+            fileId=existing["id"],
+            media_body=media,
+            fields="id,name,mimeType,webViewLink",
+        ).execute()
+        updated["already_existed"] = True
+        updated["content_updated"] = True
+        return updated
+
+    metadata = {"name": target_name, "parents": [folder_id], "mimeType": GOOGLE_SHEET_MIME}
+    created = drive_service().files().create(
+        body=metadata,
+        media_body=media,
+        fields="id,name,mimeType,webViewLink",
+    ).execute()
     created["already_existed"] = False
+    created["content_updated"] = True
     return created
