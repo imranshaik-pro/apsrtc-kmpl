@@ -275,9 +275,6 @@ def write_vehicle_360_sheet(wb, roster, values, events=None, latest_kmpl=None, c
     ws.print_title_rows="1:4"; ws.page_setup.orientation="landscape"; ws.page_setup.fitToWidth=1; ws.page_setup.fitToHeight=0
     ws.sheet_properties.pageSetUpPr.fitToPage=True
     ws.oddFooter.center.text=f"APSRTC | {(depot_name or 'DEPOT').upper()} DEPOT | Vehicle 360°"
-    ws.print_title_rows="1:5"; ws.page_setup.orientation="landscape"; ws.page_setup.fitToWidth=1; ws.page_setup.fitToHeight=0
-    ws.sheet_properties.pageSetUpPr.fitToPage=True
-    ws.oddFooter.center.text=f"APSRTC | {(depot_name or 'DEPOT').upper()} DEPOT | Vehicle Performance"
     return ws
 
 
@@ -368,4 +365,7 @@ def write_history_sheet(wb,roster,values,remarks,population_note=None,depot_name
         row+=1;ws.append(["Month","Vehicle","Source maintenance entries - review required"])
         for c in ws[row]:c.font=Font(bold=True);c.fill=PatternFill("solid",fgColor="D9EAF7")
         for month,vehicle,detail in remarks:ws.append([month,vehicle,detail])
+    ws.print_title_rows="1:5"; ws.page_setup.orientation="landscape"; ws.page_setup.fitToWidth=1; ws.page_setup.fitToHeight=0
+    ws.sheet_properties.pageSetUpPr.fitToPage=True
+    ws.oddFooter.center.text=f"APSRTC | {(depot_name or 'DEPOT').upper()} DEPOT | Vehicle Performance"
     return ws
