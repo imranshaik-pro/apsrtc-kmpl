@@ -16,9 +16,9 @@ function onHubSubmit(e){
   if(!e||!e.range) throw new Error('Run from spreadsheet Form Submit trigger.');
   const sheet=e.range.getSheet(), row=e.range.getRow(), named=e.namedValues||{};
   try{
-    const action=hubPick_(named,['Action / Report Type','Action','Report Type']).toUpperCase();
+    const action=hubPick_(named,['Required Service / Report','Action / Report Type','Action','Report Type']).toUpperCase();
     const depot=hubPick_(named,['Depot']).toUpperCase();
-    if(!action) throw new Error('Action / Report Type is missing.');
+    if(!action) throw new Error('Required Service / Report is missing.');
     if(!depot) throw new Error('Depot is missing.');
 
     if(action==='DAILY HSD KMPL REPORT'){
@@ -50,8 +50,8 @@ function onHubSubmit(e){
     }
 
     if(action==='VEHICLE EVENT ENTRY'){
-      hubStatus_(sheet,row,'ROUTE TO VEHICLE EVENT REGISTER');
-      throw new Error('Vehicle Event Entry must use the Vehicle Event section/API until Hub Phase 2 is deployed.');
+      hubRecordVehicleEvent_(named,sheet,row,depot);
+      return;
     }
     if(action==='VEHICLE 360 HISTORY'){
       hubStatus_(sheet,row,'VEHICLE 360 PHASE 2');
@@ -61,9 +61,12 @@ function onHubSubmit(e){
   }catch(err){hubStatus_(sheet,row,'ERROR: '+err.message);throw err;}
 }
 
-function setupHubTrigger(){
+function setupHubV2Trigger(){
+  const id=PropertiesService.getScriptProperties().getProperty('AUTOMATION_HUB_V2_RESPONSE_SHEET_ID');
+  if(!id) throw new Error('AUTOMATION_HUB_V2_RESPONSE_SHEET_ID is missing.');
   ScriptApp.getProjectTriggers().forEach(t=>{if(t.getHandlerFunction()==='onHubSubmit')ScriptApp.deleteTrigger(t);});
-  ScriptApp.newTrigger('onHubSubmit').forSpreadsheet(SpreadsheetApp.getActive()).onFormSubmit().create();
+  ScriptApp.newTrigger('onHubSubmit').forSpreadsheet(SpreadsheetApp.openById(id)).onFormSubmit().create();
+  console.log('AUTOMATION_HUB_V2_TRIGGER_INSTALLED');
 }
 
 function hubDispatch_(workflow,inputs){
@@ -115,4 +118,48 @@ function formatAutomationHubSheet(){
   s.getRange(1,1,lastRow,lastCol).setBorder(true,true,true,true,true,true,'#C7D5E8',SpreadsheetApp.BorderStyle.SOLID);
   for(let c=1;c<=lastCol;c++)s.setColumnWidth(c,c===1?155:180);
   if(lastRow>2)s.getRange(2,1,lastRow-1,lastCol).applyRowBanding(SpreadsheetApp.BandingTheme.LIGHT_GREY,false,false);
+}
+
+function hubRecordVehicleEvent_(named,hubSheet,hubRow,depot){
+  const eventDateRaw=hubPick_(named,['Event Date']);
+  const vehicleNo=normalizeVehicle_(hubPick_(named,['Vehicle No']));
+  const eventType=normalizeEventType_(hubPick_(named,['Event Type']));
+  if(!eventDateRaw||!vehicleNo||!eventType) throw new Error('Vehicle Event requires Event Date, Vehicle No and Event Type.');
+  const eventDate=parseEventDate_(eventDateRaw);
+  if(!eventDate) throw new Error('Invalid Event Date: '+eventDateRaw);
+  const allowed=['UNIT CHANGE','BREAKDOWN','TYRE CHANGE','SCHEDULE III','SCHEDULE IV'];
+  if(!allowed.includes(eventType)) throw new Error('Unsupported Event Type: '+eventType);
+  const register=SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Vehicle Events');
+  if(!register) throw new Error('Vehicle Events permanent register not found.');
+  const row=register.getLastRow()+1;
+  const eventDateISO=Utilities.formatDate(eventDate,HUB.TZ,'yyyy-MM-dd');
+  const createdAt=Utilities.formatDate(new Date(),HUB.TZ,'yyyy-MM-dd HH:mm:ss');
+  // Full normalized depot slug prevents collisions between depots sharing first letters.
+  const depotCode=depot.replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'')||'DEPOT';
+  const eventId=[depotCode,Utilities.formatDate(eventDate,HUB.TZ,'yyyyMMdd'),vehicleNo,'R'+String(row).padStart(4,'0'),Utilities.formatDate(new Date(),HUB.TZ,'HHmmss')].join('-');
+  const components=hubPick_(named,['Component/Aggregate']);
+  const springs=hubPick_(named,['Spring Assembly Change Position']);
+  const tyrePositions=String(hubPick_(named,['Tyres Change Position'])||'').split(',').map(x=>x.trim()).filter(Boolean);
+  const tyreHistory=tyrePositions.map(p=>{
+    const label=p.toUpperCase()==='SPARE'?'Spare':p.toUpperCase();
+    const no=hubPick_(named,[label+' Tyre No']);
+    return label.toUpperCase()+': '+(no||'TYRE NO NOT ENTERED');
+  }).join(' | ');
+  const fields={
+    'Event ID':eventId,'Depot':depot,'Created At':createdAt,'Entry Source':'AUTOMATION_HUB',
+    'Normalized Event Date':eventDateISO,'Normalized Vehicle No':vehicleNo,'Normalized Event Type':eventType,
+    'Components':components,'Spring Positions':springs,'Tyre History':tyreHistory,
+    'Breakdown Location':hubPick_(named,['Break Down Location']),'KM Cancelled':hubPick_(named,['KMs Canceled']),
+    'Breakdown Details':hubPick_(named,['Break Down Details']),'Event Remarks':hubPick_(named,['Remarks']),
+    'Automation Status':'EVENT RECORDED'
+  };
+  Object.keys(fields).forEach(h=>setAuditValue_(register,row,h,fields[h]));
+  dispatchToGitHub_({
+    event_id:eventId,created_at:createdAt,event_date:eventDateISO,depot:depot,vehicle_no:vehicleNo,event_type:eventType,
+    components:components,spring_positions:springs,tyre_history:tyreHistory,breakdown_location:fields['Breakdown Location'],
+    kms_cancelled:String(fields['KM Cancelled']||''),breakdown_details:fields['Breakdown Details'],remarks:fields['Event Remarks'],
+    entry_source:'AUTOMATION_HUB'
+  });
+  setAuditValue_(register,row,'GitHub Dispatch Status','DISPATCHED');
+  hubStatus_(hubSheet,hubRow,'RECORDED | VEHICLE EVENT | '+depot+' | '+eventId);
 }
