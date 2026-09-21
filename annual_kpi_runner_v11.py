@@ -205,9 +205,96 @@ def format_sheet_v11(spreadsheet_id, mat, fys):
 v7.format_sheet_v7 = format_sheet_v11
 
 
+def _ensure_dashboard_google_sheet(spreadsheet_id, display, fys, mat):
+    """Create/refresh the executive dashboard tab in the live Google Sheet.
+
+    The current FY is deliberately variable-length: its visible period follows the
+    selected-month/source matrix and is never assumed to contain a fixed 6 months.
+    """
+    svc=m.sheets_service()
+    meta=svc.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+    sheets=meta.get("sheets",[])
+    dash=next((s for s in sheets if s.get("properties",{}).get("title")==DASHBOARD_TITLE),None)
+    if dash is None:
+        svc.spreadsheets().batchUpdate(
+            spreadsheetId=spreadsheet_id,
+            body={"requests":[{"addSheet":{"properties":{"title":DASHBOARD_TITLE,"index":0,"gridProperties":{"rowCount":80,"columnCount":15}}}}]}
+        ).execute()
+        dash_id=m.sheet_id(spreadsheet_id,DASHBOARD_TITLE)
+    else:
+        dash_id=dash["properties"]["sheetId"]
+        svc.spreadsheets().values().clear(spreadsheetId=spreadsheet_id,range=f"'{DASHBOARD_TITLE}'!A1:O80",body={}).execute()
+
+    rows={}
+    for row in mat[1:]:
+        if len(row)>=18:
+            rows.setdefault(str(row[1]),{})[str(row[2])]=row[17]
+    preferred=["HSD KMPL INCL AC","HSD KMPL EXCL AC","TOTAL LUB KMPL","B.D RATE","AVG TYRE LIFE","NEW TYRE LIFE","RC TYRE LIFE","N.T.S RATE","Ist RC S Rate","TTL SCP Rate","RT Factor"]
+    values=[
+        ["APSRTC | ANNUAL KPI DASHBOARD"],
+        [f"{display} DEPOT | 3 FINANCIAL YEAR PERFORMANCE"],
+        [f"Financial Years: {' | '.join(fys)}"],
+        [],
+        ["KPI / PARAMETER",*fys],
+    ]
+    for name in preferred:
+        if name in rows:
+            values.append([name,*[rows[name].get(fy,"") for fy in fys]])
+    values += [[],["SOURCE INTEGRITY"],["Dashboard values come only from the Annual KPI matrix. Missing/unavailable source values remain blank or MANUAL; no KPI value is fabricated."]]
+    m.write_values(spreadsheet_id,f"'{DASHBOARD_TITLE}'!A1",values)
+
+    last=max(5,len(values))
+    req=[
+      {"unmergeCells":{"range":{"sheetId":dash_id,"startRowIndex":0,"endRowIndex":80,"startColumnIndex":0,"endColumnIndex":15}}},
+      {"mergeCells":{"range":{"sheetId":dash_id,"startRowIndex":0,"endRowIndex":1,"startColumnIndex":0,"endColumnIndex":15},"mergeType":"MERGE_ALL"}},
+      {"mergeCells":{"range":{"sheetId":dash_id,"startRowIndex":1,"endRowIndex":2,"startColumnIndex":0,"endColumnIndex":15},"mergeType":"MERGE_ALL"}},
+      {"mergeCells":{"range":{"sheetId":dash_id,"startRowIndex":2,"endRowIndex":3,"startColumnIndex":0,"endColumnIndex":15},"mergeType":"MERGE_ALL"}},
+      {"repeatCell":{"range":{"sheetId":dash_id,"startRowIndex":0,"endRowIndex":1,"startColumnIndex":0,"endColumnIndex":15},"cell":{"userEnteredFormat":{"backgroundColor":{"red":0.07,"green":0.23,"blue":0.41},"textFormat":{"foregroundColor":{"red":1,"green":1,"blue":1},"bold":True,"fontSize":18},"horizontalAlignment":"CENTER","verticalAlignment":"MIDDLE"}},"fields":"userEnteredFormat"}},
+      {"repeatCell":{"range":{"sheetId":dash_id,"startRowIndex":4,"endRowIndex":5,"startColumnIndex":0,"endColumnIndex":4},"cell":{"userEnteredFormat":{"backgroundColor":{"red":0.12,"green":0.31,"blue":0.47},"textFormat":{"foregroundColor":{"red":1,"green":1,"blue":1},"bold":True},"horizontalAlignment":"CENTER"}},"fields":"userEnteredFormat"}},
+      {"updateSheetProperties":{"properties":{"sheetId":dash_id,"gridProperties":{"frozenRowCount":5}},"fields":"gridProperties.frozenRowCount"}},
+      {"updateDimensionProperties":{"range":{"sheetId":dash_id,"dimension":"COLUMNS","startIndex":0,"endIndex":1},"properties":{"pixelSize":250},"fields":"pixelSize"}},
+      {"updateDimensionProperties":{"range":{"sheetId":dash_id,"dimension":"COLUMNS","startIndex":1,"endIndex":4},"properties":{"pixelSize":125},"fields":"pixelSize"}},
+    ]
+    fy_colors=[
+      {"red":0.85,"green":0.92,"blue":0.97},
+      {"red":0.88,"green":0.95,"blue":0.85},
+      {"red":1.0,"green":0.95,"blue":0.78},
+    ]
+    for j,color in enumerate(fy_colors,start=1):
+        req.append({"repeatCell":{"range":{"sheetId":dash_id,"startRowIndex":5,"endRowIndex":last,"startColumnIndex":j,"endColumnIndex":j+1},"cell":{"userEnteredFormat":{"backgroundColor":color,"numberFormat":{"type":"NUMBER","pattern":"0.00"},"horizontalAlignment":"CENTER"}},"fields":"userEnteredFormat"}})
+    svc.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id,body={"requests":req}).execute()
+
+
+ORIGINAL_V7_MAIN=v7.main
+
+def main_v11():
+    """Run source-safe Annual build, then refresh the second live dashboard tab."""
+    rc=ORIGINAL_V7_MAIN()
+    # Resolve the same dashboard deterministically after the source-safe build.
+    import argparse as _argparse
+    # main() has already consumed CLI args; read them without altering v7 behaviour.
+    args=sys.argv[1:]
+    def _arg(name, default=""):
+        try: return args[args.index(name)+1]
+        except (ValueError,IndexError): return default
+    depot=_arg("--depot"); selected=_arg("--selected-month")
+    if depot and selected:
+        sy,sm=map(int,selected.split("-"))
+        fys=m.fy_triplet(sy,sm)
+        vehicle,display,region=m.core.depot_info(depot)
+        folder=os.getenv("KPI_DRIVE_FOLDER_ID",m.core.DEFAULT_DRIVE_FOLDER)
+        existing=m.find_file(folder,f"{display}_ANNUAL_KPI_DASHBOARD")
+        if existing:
+            # Read the freshly written detailed matrix. Current-FY row length naturally
+            # follows selected month; no fixed 6-month assumption is made here.
+            live=m.read_values(existing["id"],f"'{m.SHEET_TITLE}'!A:R")
+            _ensure_dashboard_google_sheet(existing["id"],display,fys,live)
+    return rc
+
+
 if __name__ == "__main__":
     try:
-        sys.exit(v7.main())
+        sys.exit(main_v11())
     except Exception as exc:
         print(f"ANNUAL_KPI_FAILURE: {exc}")
         raise
