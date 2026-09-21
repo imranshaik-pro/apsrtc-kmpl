@@ -41,6 +41,18 @@ def norm_event_type(value: str) -> str:
     }
     return aliases.get(event, event)
 
+def norm_event_date(value: str) -> str:
+    """Canonical event date as YYYY-MM-DD; accepts Google display formats too."""
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y", "%m/%d/%y", "%d/%m/%y"):
+        try:
+            return datetime.strptime(text, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            pass
+    raise ValueError(f"Unsupported Event Date format: {text}")
+
 def _first(data: dict[str, str], *keys: str) -> str:
     for key in keys:
         value = data.get(key)
@@ -123,7 +135,7 @@ def aggregate_change_dates(events: Iterable[VehicleEvent]) -> dict[str, list[str
 
 def event_from_mapping(data: dict[str, str], sequence: int = 1, source: str = "") -> VehicleEvent:
     depot = _first(data, "Depot", "depot").upper()
-    event_date = _first(data, "Normalized Event Date", "Event Date", "event_date")
+    event_date = norm_event_date(_first(data, "Normalized Event Date", "Event Date", "event_date"))
     event_type = norm_event_type(_first(data, "Normalized Event Type", "Event Type", "event_type"))
     vehicle = norm_vehicle(_first(data, "Normalized Vehicle No", "Vehicle No", "vehicle_no"))
     created = _first(data, "Created At", "created_at") or datetime.now().isoformat(timespec="seconds")
