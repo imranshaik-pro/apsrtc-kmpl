@@ -377,6 +377,7 @@ def _prepare_live_detail_sheet(spreadsheet_id):
 
 def _style_live_detail(spreadsheet_id, mat):
     """Professional table styling with a bordered three-row block for every KPI."""
+    svc = m.sheets_service().spreadsheets()
     sid = m.sheet_id(spreadsheet_id, m.SHEET_TITLE)
     if sid is None:
         return
