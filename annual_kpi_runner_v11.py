@@ -26,8 +26,8 @@ ORIGINAL_MAKE_XLSX = v7.make_xlsx_v7
 
 
 
-DASHBOARD_TITLE = "KPI Dashboard"
-DETAIL_TITLE = "Annual KPI"
+DASHBOARD_TITLE = "1. KPI Dashboard"
+DETAIL_TITLE = "2. Detailed Data (Our Format)"
 
 
 def _good_number(v):
@@ -90,7 +90,7 @@ def _build_dashboard_xlsx(wb, display, fys, mat):
     for row in mat[1:]:
         if len(row) >= 18:
             rows.setdefault(str(row[1]), {})[str(row[2])] = row[17]
-    preferred=["HSD KMPL INCL AC","HSD KMPL EXCL AC","TOTAL LUB KMPL","B.D RATE","AVG TYRE LIFE","NEW TYRE LIFE","RC TYRE LIFE","N.T.S RATE","Ist RC S Rate","TTL SCP Rate","RT Factor"]
+    preferred=list(rows.keys())
     rr=8
     for name in preferred:
         if name not in rows: continue
@@ -132,9 +132,12 @@ def make_xlsx_v11(display, mat, fys):
     path = ORIGINAL_MAKE_XLSX(display, mat, fys)
     wb = load_workbook(path)
     ws = wb[m.SHEET_TITLE]
+    ws.title = DETAIL_TITLE
     ws.insert_rows(1, 4)
     _style_detailed_xlsx(ws, display, fys)
     _build_dashboard_xlsx(wb, display, fys, mat)
+    if "_META" in wb.sheetnames:
+        del wb["_META"]
     wb.save(path)
     return path
 
@@ -265,9 +268,7 @@ def _ensure_dashboard_google_sheet(spreadsheet_id, display, fys, mat):
             if current_kpi and fy in fys:
                 rows.setdefault(current_kpi,{})[fy]=row[17]
 
-    preferred=["HSD KMPL INCL AC","HSD KMPL EXCL AC","TOTAL LUB KMPL","B.D RATE",
-               "AVG TYRE LIFE","NEW TYRE LIFE","RC TYRE LIFE","N.T.S RATE",
-               "Ist RC S Rate","TTL SCP Rate","RT Factor"]
+    preferred=list(rows.keys())
     values=[
       ["APSRTC | ANNUAL KPI EXECUTIVE DASHBOARD"],
       [f"{display} DEPOT | THREE FINANCIAL YEAR PERFORMANCE"],
@@ -305,7 +306,7 @@ def _ensure_dashboard_google_sheet(spreadsheet_id, display, fys, mat):
        "cell":{"userEnteredFormat":{"backgroundColor":{"red":0.08,"green":0.28,"blue":0.45},"textFormat":{"foregroundColor":{"red":1,"green":1,"blue":1},"bold":True},"horizontalAlignment":"CENTER","verticalAlignment":"MIDDLE","borders":{"bottom":{"style":"SOLID_MEDIUM","color":{"red":0.95,"green":0.65,"blue":0.08}}}}},"fields":"userEnteredFormat"}},
       {"repeatCell":{"range":{"sheetId":dash_id,"startRowIndex":6,"endRowIndex":last,"startColumnIndex":0,"endColumnIndex":5},
        "cell":{"userEnteredFormat":{"borders":{"bottom":{"style":"SOLID","color":{"red":0.82,"green":0.85,"blue":0.88}}},"verticalAlignment":"MIDDLE"}},"fields":"userEnteredFormat.borders,userEnteredFormat.verticalAlignment"}},
-      {"updateSheetProperties":{"properties":{"sheetId":dash_id,"gridProperties":{"frozenRowCount":6,"frozenColumnCount":1},"hiddenGridlines":True},"fields":"gridProperties.frozenRowCount,gridProperties.frozenColumnCount,hiddenGridlines"}},
+      {"updateSheetProperties":{"properties":{"sheetId":dash_id,"gridProperties":{"frozenRowCount":6,"frozenColumnCount":1,"hideGridlines":True}},"fields":"gridProperties.frozenRowCount,gridProperties.frozenColumnCount,gridProperties.hideGridlines"}},
       {"updateDimensionProperties":{"range":{"sheetId":dash_id,"dimension":"COLUMNS","startIndex":0,"endIndex":1},"properties":{"pixelSize":245},"fields":"pixelSize"}},
       {"updateDimensionProperties":{"range":{"sheetId":dash_id,"dimension":"COLUMNS","startIndex":1,"endIndex":4},"properties":{"pixelSize":120},"fields":"pixelSize"}},
       {"updateDimensionProperties":{"range":{"sheetId":dash_id,"dimension":"COLUMNS","startIndex":4,"endIndex":5},"properties":{"pixelSize":125},"fields":"pixelSize"}},
