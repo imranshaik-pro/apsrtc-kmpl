@@ -262,9 +262,17 @@ def _ensure_dashboard_google_sheet(spreadsheet_id, display, fys, mat):
         svc.spreadsheets().values().clear(spreadsheetId=spreadsheet_id,range=f"'{DASHBOARD_TITLE}'!A1:O80",body={}).execute()
 
     rows={}
+    current_kpi=""
     for row in mat[1:]:
         if len(row)>=18:
-            rows.setdefault(str(row[1]),{})[str(row[2])]=row[17]
+            # The detailed sheet vertically merges KPI names across each 3-FY
+            # block, so Google Sheets returns the KPI label only on the first FY
+            # row. Carry it forward for the remaining FY rows.
+            if str(row[1]).strip():
+                current_kpi=str(row[1]).strip()
+            fy=str(row[2]).strip()
+            if current_kpi and fy in fys:
+                rows.setdefault(current_kpi,{})[fy]=row[17]
     preferred=["HSD KMPL INCL AC","HSD KMPL EXCL AC","TOTAL LUB KMPL","B.D RATE","AVG TYRE LIFE","NEW TYRE LIFE","RC TYRE LIFE","N.T.S RATE","Ist RC S Rate","TTL SCP Rate","RT Factor"]
     values=[
         ["APSRTC | ANNUAL KPI DASHBOARD"],
