@@ -30,6 +30,21 @@ DASHBOARD_TITLE = "1. KPI Dashboard"
 DETAIL_TITLE = "2. Detailed Data (Our Format)"
 
 
+def _coerce_dashboard_value(v):
+    """Google values are strings; convert only genuine numeric text for charts/trends."""
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, (int, float)):
+        return v
+    text = str(v or "").strip()
+    if not text or text.upper() == "MANUAL":
+        return v
+    try:
+        return float(text.replace(",", ""))
+    except ValueError:
+        return v
+
+
 def _good_number(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
@@ -93,14 +108,14 @@ def _build_dashboard_xlsx(wb, display, fys, mat):
                 current_kpi=str(row[1]).strip()
             fy=str(row[2] or "").strip()
             if current_kpi and fy in fys:
-                rows.setdefault(current_kpi, {})[fy] = row[17]
+                rows.setdefault(current_kpi, {})[fy] = _coerce_dashboard_value(row[17])
     preferred=list(rows.keys())
     rr=8
     for name in preferred:
         if name not in rows: continue
         ws.cell(rr,1).value=name; ws.cell(rr,1).font=Font(bold=True,color="17365D")
         for j,fy in enumerate(fys,2):
-            val=rows[name].get(fy,"")
+            val=_coerce_dashboard_value(rows[name].get(fy,""))
             ws.cell(rr,j).value=val
             ws.cell(rr,j).number_format="0.00"
             ws.cell(rr,j).alignment=Alignment(horizontal="center")
@@ -270,7 +285,7 @@ def _ensure_dashboard_google_sheet(spreadsheet_id, display, fys, mat):
             if str(row[1]).strip(): current_kpi=str(row[1]).strip()
             fy=str(row[2]).strip()
             if current_kpi and fy in fys:
-                rows.setdefault(current_kpi,{})[fy]=row[17]
+                rows.setdefault(current_kpi,{})[fy]=_coerce_dashboard_value(row[17])
 
     preferred=list(rows.keys())
     values=[
@@ -316,6 +331,10 @@ def _ensure_dashboard_google_sheet(spreadsheet_id, display, fys, mat):
       {"updateDimensionProperties":{"range":{"sheetId":dash_id,"dimension":"COLUMNS","startIndex":4,"endIndex":5},"properties":{"pixelSize":125},"fields":"pixelSize"}},
       {"updateDimensionProperties":{"range":{"sheetId":dash_id,"dimension":"ROWS","startIndex":0,"endIndex":1},"properties":{"pixelSize":42},"fields":"pixelSize"}},
     ]
+    for chart in (dash or {}).get("charts", []):
+        chart_id = chart.get("chartId")
+        if chart_id is not None:
+            req.insert(0, {"deleteEmbeddedObject": {"objectId": chart_id}})
     fy_colors=[
       {"red":0.84,"green":0.91,"blue":0.97},
       {"red":0.86,"green":0.94,"blue":0.86},
@@ -340,18 +359,121 @@ def _ensure_dashboard_google_sheet(spreadsheet_id, display, fys, mat):
         svc.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id,body={"requests":[{"addChart":{"chart":chart}}]}).execute()
 
 
+def _prepare_live_detail_sheet(spreadsheet_id):
+    """Make reruns idempotent and return the detailed sheet to v7's internal name."""
+    svc = m.sheets_service()
+    meta = svc.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+    by_title = {s["properties"]["title"]: s for s in meta.get("sheets", [])}
+    if m.SHEET_TITLE not in by_title and DETAIL_TITLE in by_title:
+        sid = by_title[DETAIL_TITLE]["properties"]["sheetId"]
+        svc.spreadsheets().batchUpdate(
+            spreadsheetId=spreadsheet_id,
+            body={"requests": [{"updateSheetProperties": {
+                "properties": {"sheetId": sid, "title": m.SHEET_TITLE},
+                "fields": "title"
+            }}]}
+        ).execute()
+
+
+def _style_live_detail(spreadsheet_id, mat):
+    """Professional table styling with a bordered three-row block for every KPI."""
+    sid = m.sheet_id(spreadsheet_id, m.SHEET_TITLE)
+    if sid is None:
+        return
+    row_count = max(len(mat), 2)
+    light = {"red": 0.78, "green": 0.82, "blue": 0.86}
+    medium = {"red": 0.12, "green": 0.27, "blue": 0.42}
+    thin = {"style": "SOLID", "color": light}
+    outer = {"style": "SOLID_MEDIUM", "color": medium}
+    requests = [
+        {"updateSheetProperties": {"properties": {"sheetId": sid, "gridProperties": {
+            "frozenRowCount": 1, "frozenColumnCount": 0, "hideGridlines": True
+        }}, "fields": "gridProperties.frozenRowCount,gridProperties.frozenColumnCount,gridProperties.hideGridlines"}},
+        {"repeatCell": {"range": {"sheetId": sid, "startRowIndex": 0, "endRowIndex": 1,
+                                   "startColumnIndex": 0, "endColumnIndex": 18},
+            "cell": {"userEnteredFormat": {"backgroundColor": {"red": 0.04, "green": 0.20, "blue": 0.38},
+                "textFormat": {"foregroundColor": {"red": 1, "green": 1, "blue": 1}, "bold": True, "fontSize": 11},
+                "horizontalAlignment": "CENTER", "verticalAlignment": "MIDDLE", "wrapStrategy": "WRAP"}},
+            "fields": "userEnteredFormat"}},
+        {"updateBorders": {"range": {"sheetId": sid, "startRowIndex": 0, "endRowIndex": row_count,
+                                      "startColumnIndex": 0, "endColumnIndex": 18},
+            "top": thin, "bottom": thin, "left": thin, "right": thin,
+            "innerHorizontal": thin, "innerVertical": thin}},
+        {"updateDimensionProperties": {"range": {"sheetId": sid, "dimension": "ROWS",
+                                                   "startIndex": 0, "endIndex": 1},
+            "properties": {"pixelSize": 42}, "fields": "pixelSize"}},
+    ]
+    widths = [(0, 1, 58), (1, 2, 235), (2, 3, 82), (3, 4, 76), (4, 18, 72)]
+    for start, end, size in widths:
+        requests.append({"updateDimensionProperties": {"range": {"sheetId": sid, "dimension": "COLUMNS",
+            "startIndex": start, "endIndex": end}, "properties": {"pixelSize": size}, "fields": "pixelSize"}})
+    fills = {
+        "HSD": {"red": 0.86, "green": 0.93, "blue": 0.98},
+        "PRODUCT": {"red": 0.88, "green": 0.95, "blue": 0.86},
+        "ENGINE": {"red": 1.00, "green": 0.92, "blue": 0.78},
+        "TYRE": {"red": 0.92, "green": 0.87, "blue": 0.97},
+        "OTHER": {"red": 0.93, "green": 0.94, "blue": 0.95},
+    }
+    current = ""
+    block_start = None
+    for idx, row in enumerate(mat[1:], start=1):
+        label = str(row[1] if len(row) > 1 else "").strip()
+        if label:
+            current = label.upper()
+            block_start = idx
+        if block_start is not None and (idx == row_count - 1 or
+                (idx + 1 < len(mat) and str(mat[idx + 1][1] if len(mat[idx + 1]) > 1 else "").strip())):
+            kind = "HSD" if "HSD" in current else "PRODUCT" if "PRODUCT" in current else "ENGINE" if "ENGINE" in current else "TYRE" if "TYRE" in current else "OTHER"
+            requests.extend([
+                {"repeatCell": {"range": {"sheetId": sid, "startRowIndex": block_start,
+                    "endRowIndex": idx + 1, "startColumnIndex": 0, "endColumnIndex": 2},
+                    "cell": {"userEnteredFormat": {"backgroundColor": fills[kind],
+                        "textFormat": {"bold": True, "foregroundColor": medium},
+                        "verticalAlignment": "MIDDLE", "wrapStrategy": "WRAP"}},
+                    "fields": "userEnteredFormat"}},
+                {"updateBorders": {"range": {"sheetId": sid, "startRowIndex": block_start,
+                    "endRowIndex": idx + 1, "startColumnIndex": 0, "endColumnIndex": 18},
+                    "top": outer, "bottom": outer, "left": outer, "right": outer}}
+            ])
+    svc.batchUpdate(spreadsheetId=spreadsheet_id, body={"requests": requests}).execute()
+
+
+def _finalize_live_workbook(spreadsheet_id):
+    """Expose exactly the two approved sheets and remove stale legacy tabs."""
+    svc = m.sheets_service()
+    meta = svc.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+    sheets = meta.get("sheets", [])
+    detail = next((s for s in sheets if s["properties"]["title"] == m.SHEET_TITLE), None)
+    dash = next((s for s in sheets if s["properties"]["title"] == DASHBOARD_TITLE), None)
+    if detail is None or dash is None:
+        raise RuntimeError("Dashboard/detail sheet finalization failed")
+    requests = [
+        {"updateSheetProperties": {"properties": {"sheetId": dash["properties"]["sheetId"], "index": 0},
+                                    "fields": "index"}},
+        {"updateSheetProperties": {"properties": {"sheetId": detail["properties"]["sheetId"],
+                                                    "title": DETAIL_TITLE, "index": 1},
+                                    "fields": "title,index"}},
+    ]
+    keep = {dash["properties"]["sheetId"], detail["properties"]["sheetId"]}
+    for sheet in sheets:
+        sid = sheet["properties"]["sheetId"]
+        if sid not in keep:
+            requests.append({"deleteSheet": {"sheetId": sid}})
+    svc.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body={"requests": requests}).execute()
+
+
 ORIGINAL_V7_MAIN=v7.main
 
 def main_v11():
-    """Run source-safe Annual build, then refresh the second live dashboard tab."""
-    rc=ORIGINAL_V7_MAIN()
-    # Resolve the same dashboard deterministically after the source-safe build.
-    # main() has already consumed CLI args; read them without altering v7 behaviour.
+    """Build and publish an idempotent professional two-sheet Annual workbook."""
     args=sys.argv[1:]
     def _arg(name, default=""):
         try: return args[args.index(name)+1]
         except (ValueError,IndexError): return default
     depot=_arg("--depot"); selected=_arg("--selected-month")
+    existing = None
+    display = ""
+    fys = []
     if depot and selected:
         sy,sm=map(int,selected.split("-"))
         fys=m.fy_triplet(sy,sm)
@@ -359,10 +481,16 @@ def main_v11():
         folder=os.getenv("KPI_DRIVE_FOLDER_ID",m.core.DEFAULT_DRIVE_FOLDER)
         existing=m.find_file(folder,f"{display}_ANNUAL_KPI_DASHBOARD")
         if existing:
-            # Read the freshly written detailed matrix. Current-FY row length naturally
-            # follows selected month; no fixed 6-month assumption is made here.
+            _prepare_live_detail_sheet(existing["id"])
+    rc=ORIGINAL_V7_MAIN()
+    if depot and selected:
+        folder=os.getenv("KPI_DRIVE_FOLDER_ID",m.core.DEFAULT_DRIVE_FOLDER)
+        existing=m.find_file(folder,f"{display}_ANNUAL_KPI_DASHBOARD")
+        if existing:
             live=m.read_values(existing["id"],f"'{m.SHEET_TITLE}'!A:R")
+            _style_live_detail(existing["id"],live)
             _ensure_dashboard_google_sheet(existing["id"],display,fys,live)
+            _finalize_live_workbook(existing["id"])
     return rc
 
 
