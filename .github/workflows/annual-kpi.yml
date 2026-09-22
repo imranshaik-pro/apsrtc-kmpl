@@ -42,6 +42,10 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Validate Annual Python syntax
+        run: |
+          python -m py_compile annual_kpi_runner_v7.py annual_kpi_runner_v10.py annual_kpi_runner_v11.py
+
       - name: Show annual KPI request
         run: |
           echo "Depot: ${{ inputs.depot }}"
