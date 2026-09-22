@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Annual KPI v11: v10 logic plus visible borders for the Upto column."""
 import sys
+import os
 
 from openpyxl import load_workbook
 from openpyxl.chart import LineChart, Reference
@@ -306,7 +307,6 @@ def main_v11():
     """Run source-safe Annual build, then refresh the second live dashboard tab."""
     rc=ORIGINAL_V7_MAIN()
     # Resolve the same dashboard deterministically after the source-safe build.
-    import argparse as _argparse
     # main() has already consumed CLI args; read them without altering v7 behaviour.
     args=sys.argv[1:]
     def _arg(name, default=""):
