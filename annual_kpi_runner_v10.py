@@ -210,6 +210,9 @@ def safe_tyre_web_backfill(st, s, display, sy, sm):
             except Exception as exc:
                 print(f"TYRE SAFE BACKFILL {y:04d}-{month:02d}: fetch failed, preserving existing cells: {exc}")
                 continue
+            if not any((got.get(k) or {}).get("month") is not None for k in m.TYRE):
+                print(f"TYRE SAFE BACKFILL {display} {y:04d}-{month:02d}: no exact depot values; preserving existing cells")
+                continue
             mon_name = m.month_name(month)
             for k in m.TYRE:
                 pair = got.get(k) or {}
