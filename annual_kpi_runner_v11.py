@@ -326,8 +326,13 @@ def _ensure_dashboard_google_sheet(spreadsheet_id, display, fys, mat):
     # plots blanks as gaps and never manufactures missing values.
     chart_end=min(last,12)
     if chart_end>7:
-        chart_req={"addChart":{"chart":{"spec":{"title":"3-FY KPI Performance Overview","basicChart":{"chartType":"COLUMN","legendPosition":"BOTTOM_LEGEND","axis":[{"position":"BOTTOM_AXIS","title":"KPI"},{"position":"LEFT_AXIS","title":"Value"}],"domains":[{"domain":{"sourceRange":{"sources":[{"sheetId":dash_id,"startRowIndex":6,"endRowIndex":chart_end,"startColumnIndex":0,"endColumnIndex":1}]}}}],"series":[{"series":{"sourceRange":{"sources":[{"sheetId":dash_id,"startRowIndex":6,"endRowIndex":chart_end,"startColumnIndex":j,"endColumnIndex":j+1}]}},"targetAxis":"LEFT_AXIS"} for j in range(1,4)],"headerCount":0}},"position":{"overlayPosition":{"anchorCell":{"sheetId":dash_id,"rowIndex":5,"columnIndex":6},"widthPixels":760,"heightPixels":360}}}}}
-        svc.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id,body={"requests":[chart_req]}).execute()
+        domain={"domain":{"sourceRange":{"sources":[{"sheetId":dash_id,"startRowIndex":6,"endRowIndex":chart_end,"startColumnIndex":0,"endColumnIndex":1}]}}}
+        series=[]
+        for j in range(1,4):
+            series.append({"series":{"sourceRange":{"sources":[{"sheetId":dash_id,"startRowIndex":6,"endRowIndex":chart_end,"startColumnIndex":j,"endColumnIndex":j+1}]}},"targetAxis":"LEFT_AXIS"})
+        basic={"chartType":"COLUMN","legendPosition":"BOTTOM_LEGEND","axis":[{"position":"BOTTOM_AXIS","title":"KPI"},{"position":"LEFT_AXIS","title":"Value"}],"domains":[domain],"series":series,"headerCount":0}
+        chart={"spec":{"title":"3-FY KPI Performance Overview","basicChart":basic},"position":{"overlayPosition":{"anchorCell":{"sheetId":dash_id,"rowIndex":5,"columnIndex":6},"widthPixels":760,"heightPixels":360}}}
+        svc.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id,body={"requests":[{"addChart":{"chart":chart}}]}).execute()
 
 
 ORIGINAL_V7_MAIN=v7.main
