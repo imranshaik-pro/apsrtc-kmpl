@@ -249,12 +249,22 @@ def format_sheet_v7(spreadsheet_id, mat, fys):
         {"updateCells":{"range":{"sheetId":sid,"startRowIndex":0,"endRowIndex":maxr,"startColumnIndex":0,"endColumnIndex":18},"fields":"userEnteredValue"}}
     ]}).execute()
     m.write_values(spreadsheet_id,f"'{m.SHEET_TITLE}'!A1",mat)
-    req=[]; colors=[{"red":.12,"green":.31,"blue":.48},{"red":0,"green":.5,"blue":0},{"red":.75,"green":0,"blue":0}]
-    req.append({"repeatCell":{"range":{"sheetId":sid,"startRowIndex":0,"endRowIndex":1,"startColumnIndex":0,"endColumnIndex":18},"cell":{"userEnteredFormat":{"backgroundColor":{"red":.12,"green":.31,"blue":.47},"textFormat":{"bold":True,"foregroundColor":{"red":1,"green":1,"blue":1}},"horizontalAlignment":"CENTER"}},"fields":"userEnteredFormat"}})
+    req=[]
+    colors=[{"red":.12,"green":.31,"blue":.48},{"red":0,"green":.5,"blue":0},{"red":.75,"green":0,"blue":0}]
+    fy_backgrounds=[{"red":.91,"green":.95,"blue":.98},{"red":.92,"green":.97,"blue":.91},{"red":1.0,"green":.96,"blue":.84}]
+    header_range={"sheetId":sid,"startRowIndex":0,"endRowIndex":1,"startColumnIndex":0,"endColumnIndex":18}
+    header_format={"backgroundColor":{"red":.12,"green":.31,"blue":.47},"textFormat":{"bold":True,"foregroundColor":{"red":1,"green":1,"blue":1}},"horizontalAlignment":"CENTER"}
+    req.append({"repeatCell":{"range":header_range,"cell":{"userEnteredFormat":header_format},"fields":"userEnteredFormat"}})
     for r in range(1,len(mat)):
-        fy=str(mat[r][2]); color=colors[fys.index(fy)]; block_start=r-((r-1)%3); kpi=str(mat[block_start][1]); pattern="0" if kpi=="TOTAL LUB KMPL" else "0.00"
-        fy_bg=[{"red":.91,"green":.95,"blue":.98},{"red":.92,"green":.97,"blue":.91},{"red":1.0,"green":.96,"blue":.84}][fys.index(fy)]
-        req.append({"repeatCell":{"range":{"sheetId":sid,"startRowIndex":r,"endRowIndex":r+1,"startColumnIndex":2,"endColumnIndex":18},"cell":{"userEnteredFormat":{"textFormat":{"foregroundColor":color},"horizontalAlignment":"CENTER","verticalAlignment":"MIDDLE","backgroundColor":fy_bg}},"fields":"userEnteredFormat(textFormat.foregroundColor,horizontalAlignment,verticalAlignment,backgroundColor)"}})
+        fy=str(mat[r][2])
+        fy_index=fys.index(fy)
+        color=colors[fy_index]
+        block_start=r-((r-1)%3)
+        kpi=str(mat[block_start][1])
+        pattern="0" if kpi=="TOTAL LUB KMPL" else "0.00"
+        fy_range={"sheetId":sid,"startRowIndex":r,"endRowIndex":r+1,"startColumnIndex":2,"endColumnIndex":18}
+        fy_format={"textFormat":{"foregroundColor":color},"horizontalAlignment":"CENTER","verticalAlignment":"MIDDLE","backgroundColor":fy_backgrounds[fy_index]}
+        req.append({"repeatCell":{"range":fy_range,"cell":{"userEnteredFormat":fy_format},"fields":"userEnteredFormat"}})
         for c0,c1 in ((3,16),(17,18)):
             req.append({"repeatCell":{"range":{"sheetId":sid,"startRowIndex":r,"endRowIndex":r+1,"startColumnIndex":c0,"endColumnIndex":c1},"cell":{"userEnteredFormat":{"numberFormat":{"type":"NUMBER","pattern":pattern}}},"fields":"userEnteredFormat.numberFormat"}})
     for r in range(1,len(mat),3):
