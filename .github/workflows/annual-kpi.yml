@@ -50,7 +50,7 @@ jobs:
             --depot "${{ inputs.depot }}" \
             --years "${{ inputs.financial_years }}" \
             --selected-month "${{ inputs.selected_month }}" | tee annual-kpi.log
-          REPORT_URL="$(grep -Eo 'https://drive.google.com/[^[:space:]]+' annual-kpi.log | tail -1)"
+          REPORT_URL="$(grep -Eo 'https://(docs|drive)\.google\.com/[^[:space:]]+' annual-kpi.log | tail -1)"
           if [ -z "$REPORT_URL" ]; then
             echo "Annual KPI Google Sheet link was not emitted by the report generator."
             exit 1
