@@ -13,6 +13,10 @@ on:
       financial_years:
         description: Financial year derived from selected month (YYYY-YY)
         required: true
+      hub_row:
+        description: Automation Hub response row for report-link callback
+        required: false
+        default: ''
 
 jobs:
   annual-kpi:
@@ -56,6 +60,37 @@ jobs:
             exit 1
           fi
           echo "REPORT_URL=$REPORT_URL" >> "$GITHUB_ENV"
+
+      - name: Write Annual report link back to Automation Hub
+        if: success() && inputs.hub_row != ''
+        env:
+          HUB_CALLBACK_URL: ${{ secrets.HUB_CALLBACK_URL }}
+          HUB_CALLBACK_TOKEN: ${{ secrets.HUB_CALLBACK_TOKEN }}
+          HUB_ROW: ${{ inputs.hub_row }}
+          REPORT_URL: ${{ env.REPORT_URL }}
+          DEPOT: ${{ inputs.depot }}
+          SELECTED_MONTH: ${{ inputs.selected_month }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          url=os.environ.get("HUB_CALLBACK_URL","").strip()
+          token=os.environ.get("HUB_CALLBACK_TOKEN","").strip()
+          if not url or not token:
+              print("HUB_CALLBACK_SKIPPED: callback secrets are not configured")
+              raise SystemExit(0)
+          payload=json.dumps({
+              "token":token,
+              "row":int(os.environ["HUB_ROW"]),
+              "url":os.environ["REPORT_URL"],
+              "status":f"COMPLETED | ANNUAL KPI | {os.environ['DEPOT']} | {os.environ['SELECTED_MONTH']}"
+          }).encode()
+          req=urllib.request.Request(url,data=payload,headers={"Content-Type":"application/json"},method="POST")
+          with urllib.request.urlopen(req,timeout=30) as resp:
+              result=json.loads(resp.read().decode())
+          if not result.get("ok"):
+              raise SystemExit("Automation Hub callback failed: "+str(result))
+          print("AUTOMATION_HUB_LINK_UPDATED")
+          PY
 
       - name: Send Annual KPI success to Telegram
         if: success()
