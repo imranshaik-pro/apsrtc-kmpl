@@ -245,7 +245,7 @@ def make_xlsx_v7(display, mat, fys):
 def format_sheet_v7(spreadsheet_id, mat, fys):
     sid=m.sheet_id(spreadsheet_id,m.SHEET_TITLE); svc=m.sheets_service(); maxr=max(1000,len(mat)+100)
     svc.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id,body={"requests":[
-        {"unmergeCells":{"range":{"sheetId":sid,"startRowIndex":1,"endRowIndex":maxr,"startColumnIndex":0,"endColumnIndex":2}}},
+        {"unmergeCells":{"range":{"sheetId":sid,"startRowIndex":0,"endRowIndex":maxr,"startColumnIndex":0,"endColumnIndex":18}}},
         {"updateCells":{"range":{"sheetId":sid,"startRowIndex":0,"endRowIndex":maxr,"startColumnIndex":0,"endColumnIndex":18},"fields":"userEnteredValue"}}
     ]}).execute()
     m.write_values(spreadsheet_id,f"'{m.SHEET_TITLE}'!A1",mat)
@@ -253,7 +253,7 @@ def format_sheet_v7(spreadsheet_id, mat, fys):
     req.append({"repeatCell":{"range":{"sheetId":sid,"startRowIndex":0,"endRowIndex":1,"startColumnIndex":0,"endColumnIndex":18},"cell":{"userEnteredFormat":{"backgroundColor":{"red":.12,"green":.31,"blue":.47},"textFormat":{"bold":True,"foregroundColor":{"red":1,"green":1,"blue":1}},"horizontalAlignment":"CENTER"}},"fields":"userEnteredFormat"}})
     for r in range(1,len(mat)):
         fy=str(mat[r][2]); color=colors[fys.index(fy)]; block_start=r-((r-1)%3); kpi=str(mat[block_start][1]); pattern="0" if kpi=="TOTAL LUB KMPL" else "0.00"
-        req.append({"repeatCell":{"range":{"sheetId":sid,"startRowIndex":r,"endRowIndex":r+1,"startColumnIndex":2,"endColumnIndex":18},"cell":{"userEnteredFormat":{"textFormat":{"foregroundColor":color},"horizontalAlignment":"CENTER","verticalAlignment":"MIDDLE"}},"fields":"userEnteredFormat(textFormat.foregroundColor,horizontalAlignment,verticalAlignment)"}})
+        req.append({"repeatCell":{"range":{"sheetId":sid,"startRowIndex":r,"endRowIndex":r+1,"startColumnIndex":2,"endColumnIndex":18},"cell":{"userEnteredFormat":{"textFormat":{"foregroundColor":color},"horizontalAlignment":"CENTER","verticalAlignment":"MIDDLE"}},"backgroundColor":[{"red":.91,"green":.95,"blue":.98},{"red":.92,"green":.97,"blue":.91},{"red":1.0,"green":.96,"blue":.84}][fys.index(fy)]}},"fields":"userEnteredFormat(textFormat.foregroundColor,horizontalAlignment,verticalAlignment,backgroundColor)"}})
         for c0,c1 in ((3,16),(17,18)):
             req.append({"repeatCell":{"range":{"sheetId":sid,"startRowIndex":r,"endRowIndex":r+1,"startColumnIndex":c0,"endColumnIndex":c1},"cell":{"userEnteredFormat":{"numberFormat":{"type":"NUMBER","pattern":pattern}}},"fields":"userEnteredFormat.numberFormat"}})
     for r in range(1,len(mat),3):
