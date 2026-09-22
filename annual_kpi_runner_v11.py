@@ -242,11 +242,7 @@ v7.format_sheet_v7 = format_sheet_v11
 
 
 def _ensure_dashboard_google_sheet(spreadsheet_id, display, fys, mat):
-    """Create/refresh the executive dashboard tab in the live Google Sheet.
-
-    The current FY is deliberately variable-length: its visible period follows the
-    selected-month/source matrix and is never assumed to contain a fixed 6 months.
-    """
+    """Refresh the live executive dashboard from source-grounded Annual KPI values."""
     svc=m.sheets_service()
     meta=svc.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
     sheets=meta.get("sheets",[])
@@ -254,59 +250,84 @@ def _ensure_dashboard_google_sheet(spreadsheet_id, display, fys, mat):
     if dash is None:
         svc.spreadsheets().batchUpdate(
             spreadsheetId=spreadsheet_id,
-            body={"requests":[{"addSheet":{"properties":{"title":DASHBOARD_TITLE,"index":0,"gridProperties":{"rowCount":80,"columnCount":15}}}}]}
+            body={"requests":[{"addSheet":{"properties":{"title":DASHBOARD_TITLE,"index":0,"gridProperties":{"rowCount":90,"columnCount":18}}}}]}
         ).execute()
         dash_id=m.sheet_id(spreadsheet_id,DASHBOARD_TITLE)
     else:
         dash_id=dash["properties"]["sheetId"]
-        svc.spreadsheets().values().clear(spreadsheetId=spreadsheet_id,range=f"'{DASHBOARD_TITLE}'!A1:O80",body={}).execute()
+        svc.spreadsheets().values().clear(spreadsheetId=spreadsheet_id,range=f"'{DASHBOARD_TITLE}'!A1:R90",body={}).execute()
 
-    rows={}
-    current_kpi=""
+    rows={}; current_kpi=""
     for row in mat[1:]:
         if len(row)>=18:
-            # The detailed sheet vertically merges KPI names across each 3-FY
-            # block, so Google Sheets returns the KPI label only on the first FY
-            # row. Carry it forward for the remaining FY rows.
-            if str(row[1]).strip():
-                current_kpi=str(row[1]).strip()
+            if str(row[1]).strip(): current_kpi=str(row[1]).strip()
             fy=str(row[2]).strip()
             if current_kpi and fy in fys:
                 rows.setdefault(current_kpi,{})[fy]=row[17]
-    preferred=["HSD KMPL INCL AC","HSD KMPL EXCL AC","TOTAL LUB KMPL","B.D RATE","AVG TYRE LIFE","NEW TYRE LIFE","RC TYRE LIFE","N.T.S RATE","Ist RC S Rate","TTL SCP Rate","RT Factor"]
+
+    preferred=["HSD KMPL INCL AC","HSD KMPL EXCL AC","TOTAL LUB KMPL","B.D RATE",
+               "AVG TYRE LIFE","NEW TYRE LIFE","RC TYRE LIFE","N.T.S RATE",
+               "Ist RC S Rate","TTL SCP Rate","RT Factor"]
     values=[
-        ["APSRTC | ANNUAL KPI DASHBOARD"],
-        [f"{display} DEPOT | 3 FINANCIAL YEAR PERFORMANCE"],
-        [f"Financial Years: {' | '.join(fys)}"],
-        [],
-        ["KPI / PARAMETER",*fys],
+      ["APSRTC | ANNUAL KPI EXECUTIVE DASHBOARD"],
+      [f"{display} DEPOT | THREE FINANCIAL YEAR PERFORMANCE"],
+      [f"Financial Years: {' | '.join(fys)}"],
+      ["Source-grounded management view | Current FY automatically follows selected reporting month"],
+      [],
+      ["KPI / PARAMETER",*fys,"TREND / STATUS"]
     ]
     for name in preferred:
         if name in rows:
-            values.append([name,*[rows[name].get(fy,"") for fy in fys]])
-    values += [[],["SOURCE INTEGRITY"],["Dashboard values come only from the Annual KPI matrix. Missing/unavailable source values remain blank or MANUAL; no KPI value is fabricated."]]
+            vals=[rows[name].get(fy,"") for fy in fys]
+            numeric=[v for v in vals if isinstance(v,(int,float)) and not isinstance(v,bool)]
+            trend=""
+            if len(numeric)>=2:
+                d=numeric[-1]-numeric[-2]
+                trend=("▲ " if d>0 else "▼ " if d<0 else "● ")+f"{abs(d):.2f}"
+            values.append([name,*vals,trend])
+    values += [[],["SOURCE INTEGRITY"],["Missing/unavailable source values remain blank or MANUAL. No KPI value is fabricated."]]
     m.write_values(spreadsheet_id,f"'{DASHBOARD_TITLE}'!A1",values)
 
-    last=max(5,len(values))
+    last=len(values)
     req=[
-      {"unmergeCells":{"range":{"sheetId":dash_id,"startRowIndex":0,"endRowIndex":80,"startColumnIndex":0,"endColumnIndex":15}}},
-      {"mergeCells":{"range":{"sheetId":dash_id,"startRowIndex":0,"endRowIndex":1,"startColumnIndex":0,"endColumnIndex":15},"mergeType":"MERGE_ALL"}},
-      {"mergeCells":{"range":{"sheetId":dash_id,"startRowIndex":1,"endRowIndex":2,"startColumnIndex":0,"endColumnIndex":15},"mergeType":"MERGE_ALL"}},
-      {"mergeCells":{"range":{"sheetId":dash_id,"startRowIndex":2,"endRowIndex":3,"startColumnIndex":0,"endColumnIndex":15},"mergeType":"MERGE_ALL"}},
-      {"repeatCell":{"range":{"sheetId":dash_id,"startRowIndex":0,"endRowIndex":1,"startColumnIndex":0,"endColumnIndex":15},"cell":{"userEnteredFormat":{"backgroundColor":{"red":0.07,"green":0.23,"blue":0.41},"textFormat":{"foregroundColor":{"red":1,"green":1,"blue":1},"bold":True,"fontSize":18},"horizontalAlignment":"CENTER","verticalAlignment":"MIDDLE"}},"fields":"userEnteredFormat"}},
-      {"repeatCell":{"range":{"sheetId":dash_id,"startRowIndex":4,"endRowIndex":5,"startColumnIndex":0,"endColumnIndex":4},"cell":{"userEnteredFormat":{"backgroundColor":{"red":0.12,"green":0.31,"blue":0.47},"textFormat":{"foregroundColor":{"red":1,"green":1,"blue":1},"bold":True},"horizontalAlignment":"CENTER"}},"fields":"userEnteredFormat"}},
-      {"updateSheetProperties":{"properties":{"sheetId":dash_id,"gridProperties":{"frozenRowCount":5}},"fields":"gridProperties.frozenRowCount"}},
-      {"updateDimensionProperties":{"range":{"sheetId":dash_id,"dimension":"COLUMNS","startIndex":0,"endIndex":1},"properties":{"pixelSize":250},"fields":"pixelSize"}},
-      {"updateDimensionProperties":{"range":{"sheetId":dash_id,"dimension":"COLUMNS","startIndex":1,"endIndex":4},"properties":{"pixelSize":125},"fields":"pixelSize"}},
+      {"unmergeCells":{"range":{"sheetId":dash_id,"startRowIndex":0,"endRowIndex":90,"startColumnIndex":0,"endColumnIndex":18}}},
+      {"mergeCells":{"range":{"sheetId":dash_id,"startRowIndex":0,"endRowIndex":1,"startColumnIndex":0,"endColumnIndex":18},"mergeType":"MERGE_ALL"}},
+      {"mergeCells":{"range":{"sheetId":dash_id,"startRowIndex":1,"endRowIndex":2,"startColumnIndex":0,"endColumnIndex":18},"mergeType":"MERGE_ALL"}},
+      {"mergeCells":{"range":{"sheetId":dash_id,"startRowIndex":2,"endRowIndex":3,"startColumnIndex":0,"endColumnIndex":18},"mergeType":"MERGE_ALL"}},
+      {"mergeCells":{"range":{"sheetId":dash_id,"startRowIndex":3,"endRowIndex":4,"startColumnIndex":0,"endColumnIndex":18},"mergeType":"MERGE_ALL"}},
+      {"repeatCell":{"range":{"sheetId":dash_id,"startRowIndex":0,"endRowIndex":1,"startColumnIndex":0,"endColumnIndex":18},
+       "cell":{"userEnteredFormat":{"backgroundColor":{"red":0.035,"green":0.18,"blue":0.34},"textFormat":{"foregroundColor":{"red":1,"green":1,"blue":1},"bold":True,"fontSize":20},"horizontalAlignment":"CENTER","verticalAlignment":"MIDDLE"}},"fields":"userEnteredFormat"}},
+      {"repeatCell":{"range":{"sheetId":dash_id,"startRowIndex":1,"endRowIndex":2,"startColumnIndex":0,"endColumnIndex":18},
+       "cell":{"userEnteredFormat":{"backgroundColor":{"red":0.08,"green":0.32,"blue":0.52},"textFormat":{"foregroundColor":{"red":1,"green":1,"blue":1},"bold":True,"fontSize":13},"horizontalAlignment":"CENTER"}},"fields":"userEnteredFormat"}},
+      {"repeatCell":{"range":{"sheetId":dash_id,"startRowIndex":2,"endRowIndex":4,"startColumnIndex":0,"endColumnIndex":18},
+       "cell":{"userEnteredFormat":{"backgroundColor":{"red":0.92,"green":0.96,"blue":0.99},"textFormat":{"foregroundColor":{"red":0.10,"green":0.23,"blue":0.36},"bold":True},"horizontalAlignment":"CENTER"}},"fields":"userEnteredFormat"}},
+      {"repeatCell":{"range":{"sheetId":dash_id,"startRowIndex":5,"endRowIndex":6,"startColumnIndex":0,"endColumnIndex":5},
+       "cell":{"userEnteredFormat":{"backgroundColor":{"red":0.08,"green":0.28,"blue":0.45},"textFormat":{"foregroundColor":{"red":1,"green":1,"blue":1},"bold":True},"horizontalAlignment":"CENTER","verticalAlignment":"MIDDLE","borders":{"bottom":{"style":"SOLID_MEDIUM","color":{"red":0.95,"green":0.65,"blue":0.08}}}}},"fields":"userEnteredFormat"}},
+      {"repeatCell":{"range":{"sheetId":dash_id,"startRowIndex":6,"endRowIndex":last,"startColumnIndex":0,"endColumnIndex":5},
+       "cell":{"userEnteredFormat":{"borders":{"bottom":{"style":"SOLID","color":{"red":0.82,"green":0.85,"blue":0.88}}},"verticalAlignment":"MIDDLE"}},"fields":"userEnteredFormat.borders,userEnteredFormat.verticalAlignment"}},
+      {"updateSheetProperties":{"properties":{"sheetId":dash_id,"gridProperties":{"frozenRowCount":6,"frozenColumnCount":1},"hiddenGridlines":True},"fields":"gridProperties.frozenRowCount,gridProperties.frozenColumnCount,hiddenGridlines"}},
+      {"updateDimensionProperties":{"range":{"sheetId":dash_id,"dimension":"COLUMNS","startIndex":0,"endIndex":1},"properties":{"pixelSize":245},"fields":"pixelSize"}},
+      {"updateDimensionProperties":{"range":{"sheetId":dash_id,"dimension":"COLUMNS","startIndex":1,"endIndex":4},"properties":{"pixelSize":120},"fields":"pixelSize"}},
+      {"updateDimensionProperties":{"range":{"sheetId":dash_id,"dimension":"COLUMNS","startIndex":4,"endIndex":5},"properties":{"pixelSize":125},"fields":"pixelSize"}},
+      {"updateDimensionProperties":{"range":{"sheetId":dash_id,"dimension":"ROWS","startIndex":0,"endIndex":1},"properties":{"pixelSize":42},"fields":"pixelSize"}},
     ]
     fy_colors=[
-      {"red":0.85,"green":0.92,"blue":0.97},
-      {"red":0.88,"green":0.95,"blue":0.85},
-      {"red":1.0,"green":0.95,"blue":0.78},
+      {"red":0.84,"green":0.91,"blue":0.97},
+      {"red":0.86,"green":0.94,"blue":0.86},
+      {"red":1.0,"green":0.94,"blue":0.75},
     ]
     for j,color in enumerate(fy_colors,start=1):
-        req.append({"repeatCell":{"range":{"sheetId":dash_id,"startRowIndex":5,"endRowIndex":last,"startColumnIndex":j,"endColumnIndex":j+1},"cell":{"userEnteredFormat":{"backgroundColor":color,"numberFormat":{"type":"NUMBER","pattern":"0.00"},"horizontalAlignment":"CENTER"}},"fields":"userEnteredFormat"}})
+        req.append({"repeatCell":{"range":{"sheetId":dash_id,"startRowIndex":6,"endRowIndex":last,"startColumnIndex":j,"endColumnIndex":j+1},
+          "cell":{"userEnteredFormat":{"backgroundColor":color,"numberFormat":{"type":"NUMBER","pattern":"0.00"},"horizontalAlignment":"CENTER","textFormat":{"bold":True}}},
+          "fields":"userEnteredFormat"}})
     svc.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id,body={"requests":req}).execute()
+
+    # Add source-grounded trend chart from the dashboard table. It intentionally
+    # plots blanks as gaps and never manufactures missing values.
+    chart_end=min(last,12)
+    if chart_end>7:
+        chart_req={"addChart":{"chart":{"spec":{"title":"3-FY KPI Performance Overview","basicChart":{"chartType":"COLUMN","legendPosition":"BOTTOM_LEGEND","axis":[{"position":"BOTTOM_AXIS","title":"KPI"},{"position":"LEFT_AXIS","title":"Value"}],"domains":[{"domain":{"sourceRange":{"sources":[{"sheetId":dash_id,"startRowIndex":6,"endRowIndex":chart_end,"startColumnIndex":0,"endColumnIndex":1}]}}}],"series":[{"series":{"sourceRange":{"sources":[{"sheetId":dash_id,"startRowIndex":6,"endRowIndex":chart_end,"startColumnIndex":j,"endColumnIndex":j+1}]}},"targetAxis":"LEFT_AXIS"} for j in range(1,4)],"headerCount":0}},"position":{"overlayPosition":{"anchorCell":{"sheetId":dash_id,"rowIndex":5,"columnIndex":6},"widthPixels":760,"heightPixels":360}}}}}
+        svc.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id,body={"requests":[chart_req]}).execute()
 
 
 ORIGINAL_V7_MAIN=v7.main
