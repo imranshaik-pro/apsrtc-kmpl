@@ -26,7 +26,7 @@ function onHubSubmit(e){
       if(!raw) throw new Error('Report Date is missing.');
       const d=hubDate_(raw), today=Utilities.formatDate(new Date(),HUB.TZ,'yyyy-MM-dd');
       if(d>today) throw new Error("Can't retrieve future-date data.");
-      hubDispatch_('daily-report.yml',{depot:depot,report_date:d});
+      hubDispatch_('daily-report.yml',{depot:depot,report_date:d,hub_row:String(row)});
       hubStatus_(sheet,row,'SUBMITTED | DAILY | '+depot+' | '+d); return;
     }
 
@@ -35,7 +35,7 @@ function onHubSubmit(e){
       if(!raw) throw new Error('Report Month is missing.');
       const m=hubMonth_(raw), current=Utilities.formatDate(new Date(),HUB.TZ,'yyyy-MM');
       if(m>current) throw new Error("Can't retrieve future-month data.");
-      hubDispatch_('monthly-report.yml',{depot:depot,month:m});
+      hubDispatch_('monthly-report.yml',{depot:depot,month:m,hub_row:String(row)});
       hubStatus_(sheet,row,'SUBMITTED | MONTHLY | '+depot+' | '+m); return;
     }
 
@@ -45,7 +45,7 @@ function onHubSubmit(e){
       const m=hubMonth_(raw), current=Utilities.formatDate(new Date(),HUB.TZ,'yyyy-MM');
       if(m>current) throw new Error("Can't retrieve future-month data.");
       const fy=hubFY_(m);
-      hubDispatch_('annual-kpi.yml',{depot:depot,selected_month:m,financial_years:fy});
+      hubDispatch_('annual-kpi.yml',{depot:depot,selected_month:m,financial_years:fy,hub_row:String(row)});
       hubStatus_(sheet,row,'SUBMITTED | ANNUAL KPI | '+depot+' | '+m+' | FY '+fy); return;
     }
 
@@ -130,6 +130,28 @@ function hubSetDriveLink_(sheet,row,url){
   if(!url)return;
   const c=hubEnsureColumn_(sheet,'Drive Report Link');
   sheet.getRange(row,c).setFormula('=HYPERLINK("'+String(url).replace(/"/g,'""')+'","Open Report")');
+}
+
+/* GitHub Actions callback endpoint.
+ * Deploy this Apps Script project as a Web App (execute as owner; access restricted
+ * by the shared HUB_CALLBACK_TOKEN). Workflows POST the real report URL here. */
+function doPost(e){
+  try{
+    const body=JSON.parse((e&&e.postData&&e.postData.contents)||'{}');
+    const expected=PropertiesService.getScriptProperties().getProperty('HUB_CALLBACK_TOKEN');
+    if(!expected||String(body.token||'')!==expected) throw new Error('Unauthorized callback.');
+    const ssid=PropertiesService.getScriptProperties().getProperty('AUTOMATION_HUB_V2_RESPONSE_SHEET_ID');
+    if(!ssid) throw new Error('AUTOMATION_HUB_V2_RESPONSE_SHEET_ID is missing.');
+    const ss=SpreadsheetApp.openById(ssid);
+    const sheet=ss.getSheets()[0];
+    const row=Number(body.row||0);
+    if(row<2) throw new Error('Invalid Hub row.');
+    hubSetDriveLink_(sheet,row,String(body.url||''));
+    if(body.status) hubStatus_(sheet,row,String(body.status));
+    return ContentService.createTextOutput(JSON.stringify({ok:true,row:row})).setMimeType(ContentService.MimeType.JSON);
+  }catch(err){
+    return ContentService.createTextOutput(JSON.stringify({ok:false,error:err.message})).setMimeType(ContentService.MimeType.JSON);
+  }
 }
 
 /* Professional response-sheet presentation. Keeps raw response columns intact. */
