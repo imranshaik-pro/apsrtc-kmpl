@@ -156,10 +156,19 @@ def tyre_values(h,row):
     if not row:return {}
     rv=lambda a:core.row_value(h,row,a)
     return {"N.T.S RATE":rv(["NEW TYRE %","NEW %"]),"TTL SCP Rate":rv(["TOTAL %"]),"RC TYRE LIFE":rv(["RC_MILEAGE","RC MILEAGE"]),"AVG TYRE LIFE":rv(["AVG_TOTAL MILEAGE","AVG TOTAL MILEAGE"]),"Ist RC S Rate":rv(["IST RC %"]),"RT Factor":rv(["RT_FACTOR","RT FACTOR"]),"NEW TYRE LIFE":rv(["NEW MILEAGE"])}
-def tyre_page(s,path,d,y,m):
-    info=TYRE_SITE.get(n(d));
+def tyre_site_info(d,y,m):
+    """Return the date-effective tyre portal route for a depot."""
+    key=n(d)
+    info=TYRE_SITE.get(key)
     if not info: raise RuntimeError(f"No tyre mapping for {d}")
-    code,zone,region=info
+    # Rajampet was under DPTO ANNAMAYYA through Dec-2025 and moved back to
+    # DPTO YSR KADAPA from Jan-2026. The depot code remains RJP.
+    if key=="RAJAMPET" and (y,m)<(2026,1):
+        return ("RJP","KADAPA(KDP ZONE)","DPTO ANNAMAYYA")
+    return info
+
+def tyre_page(s,path,d,y,m):
+    code,zone,region=tyre_site_info(d,y,m)
     html=get_html(s,core.TYRE_BASE,path,{"zone":zone,"region":region,"depot":code,"month_year":datetime(y,m,1).strftime("%b-%Y").upper(),"tyre_size":"All Tyre Sizes Total"})
     h,rows=core.find_table(html,["DEPOT"],["NEW MILEAGE","AVG TOTAL MILEAGE","RT"])
     return h,tyre_row(h,rows,code)
