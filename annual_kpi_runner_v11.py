@@ -86,10 +86,14 @@ def _build_dashboard_xlsx(wb, display, fys, mat):
     headers=["KPI / Parameter"] + fys
     for j,v in enumerate(headers,1):
         cell=ws.cell(7,j); cell.value=v; cell.font=Font(bold=True,color="FFFFFF"); cell.fill=PatternFill("solid",fgColor="1F4E78"); cell.alignment=Alignment(horizontal="center")
-    rows={}
+    rows={}; current_kpi=""
     for row in mat[1:]:
         if len(row) >= 18:
-            rows.setdefault(str(row[1]), {})[str(row[2])] = row[17]
+            if str(row[1] or "").strip():
+                current_kpi=str(row[1]).strip()
+            fy=str(row[2] or "").strip()
+            if current_kpi and fy in fys:
+                rows.setdefault(current_kpi, {})[fy] = row[17]
     preferred=list(rows.keys())
     rr=8
     for name in preferred:
