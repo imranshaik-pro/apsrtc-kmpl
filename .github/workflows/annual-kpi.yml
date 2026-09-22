@@ -1,4 +1,5 @@
 name: Annual KPI Dashboard
+# Controlled verification: RAJAMPET 2026-06 after dashboard FY mapping fix.
 
 on:
   push:
