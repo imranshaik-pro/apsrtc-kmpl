@@ -99,7 +99,11 @@ function hubDate_(raw){
   return Utilities.formatDate(d,HUB.TZ,'yyyy-MM-dd');
 }
 function hubMonth_(raw){
-  const s=String(raw).trim();let m=s.match(/^(20\d{2})[-\/]([01]?\d)$/);
+  const s=String(raw).trim();
+  // Parse ISO dates before Date construction to avoid first-of-month timezone rollback.
+  let m=s.match(/^(20\d{2})[-\/]([01]?\d)[-\/](?:[0-3]?\d)(?:[T\s].*)?$/);
+  if(m&&+m[2]>=1&&+m[2]<=12)return m[1]+'-'+String(+m[2]).padStart(2,'0');
+  m=s.match(/^(20\d{2})[-\/]([01]?\d)$/);
   if(m&&+m[2]>=1&&+m[2]<=12)return m[1]+'-'+String(+m[2]).padStart(2,'0');
   m=s.match(/^([A-Za-z]{3,9})[\s\-\/]+(20\d{2})$/);
   if(m){const a=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'],i=a.indexOf(m[1].slice(0,3).toLowerCase());if(i>=0)return m[2]+'-'+String(i+1).padStart(2,'0');}
