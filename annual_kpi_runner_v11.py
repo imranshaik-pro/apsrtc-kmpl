@@ -187,8 +187,39 @@ def format_sheet_v11(spreadsheet_id, mat, fys):
                 "fields":"gridProperties.frozenRowCount,gridProperties.frozenColumnCount"
             }}]}
         ).execute()
-    # v10 already retries transient failures for the main sheet formatting.
-    ORIGINAL_FORMAT_SHEET(spreadsheet_id, mat, fys)
+    # v7's legacy formatter tries to freeze A:D after it has merged the
+    # three-FY KPI labels in A:B. Google Sheets rejects that boundary. For the
+    # live sheet, suppress that legacy freeze request during the rebuild and
+    # apply only the safe header-row freeze afterwards.
+    svc = m.sheets_service()
+    original_batch_update = svc.spreadsheets().batchUpdate
+    def safe_batch_update(*args, **kwargs):
+        body = kwargs.get("body") or {}
+        requests = body.get("requests") or []
+        for req in requests:
+            usp = req.get("updateSheetProperties")
+            if not usp:
+                continue
+            props = usp.get("properties", {})
+            grid = props.get("gridProperties", {})
+            if grid.get("frozenColumnCount") == 4:
+                grid["frozenColumnCount"] = 0
+                usp["fields"] = "gridProperties.frozenRowCount,gridProperties.frozenColumnCount"
+        return original_batch_update(*args, **kwargs)
+    svc.spreadsheets().batchUpdate = safe_batch_update
+    try:
+        ORIGINAL_FORMAT_SHEET(spreadsheet_id, mat, fys)
+    finally:
+        svc.spreadsheets().batchUpdate = original_batch_update
+    # Keep the header visible; columns remain scrollable because the merged KPI
+    # blocks make a four-column freeze invalid in Google Sheets.
+    original_batch_update(
+        spreadsheetId=spreadsheet_id,
+        body={"requests":[{"updateSheetProperties":{
+            "properties":{"sheetId":sid,"gridProperties":{"frozenRowCount":1,"frozenColumnCount":0}},
+            "fields":"gridProperties.frozenRowCount,gridProperties.frozenColumnCount"
+        }}]}
+    ).execute()
     # Apply a visible grid specifically to column R (Upto), including header and rows.
     attempts = 4
     for attempt in range(1, attempts + 1):
