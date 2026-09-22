@@ -53,7 +53,9 @@ jobs:
           echo "Financial year: ${{ inputs.financial_years }}"
 
       - name: Build or repair annual KPI dashboard
+        shell: bash
         run: |
+          set -o pipefail
           python annual_kpi_runner_v11.py \
             --depot "${{ inputs.depot }}" \
             --years "${{ inputs.financial_years }}" \
