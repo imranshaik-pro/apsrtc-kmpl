@@ -164,7 +164,8 @@ def tyre_site_info(d,y,m):
     # Rajampet was under DPTO ANNAMAYYA through Dec-2025 and moved back to
     # DPTO YSR KADAPA from Jan-2026. The depot code remains RJP.
     if key=="RAJAMPET" and (y,m)<(2026,1):
-        return ("RJP","KADAPA(KDP ZONE)","DPTO ANNAMAYYA")
+        # Historical tyre portal identity before the Jan-2026 district restructuring.
+        return ("RJPT","KADAPA(KDP ZONE)","DPTO ANNAMAYYA")
     return info
 
 def tyre_page(s,path,d,y,m):
