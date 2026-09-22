@@ -263,7 +263,10 @@ def format_sheet_v7(spreadsheet_id, mat, fys):
             req.append({"repeatCell":{"range":{"sheetId":sid,"startRowIndex":r,"endRowIndex":end,"startColumnIndex":c,"endColumnIndex":c+1},"cell":{"userEnteredFormat":{"textFormat":{"bold":True,"foregroundColor":{"red":0,"green":0,"blue":0}},"horizontalAlignment":"CENTER","verticalAlignment":"MIDDLE"}},"fields":"userEnteredFormat(textFormat,horizontalAlignment,verticalAlignment)"}})
     widths=[65,240,95,85]+[85]*12+[20,95]
     for i,w in enumerate(widths): req.append({"updateDimensionProperties":{"range":{"sheetId":sid,"dimension":"COLUMNS","startIndex":i,"endIndex":i+1},"properties":{"pixelSize":w},"fields":"pixelSize"}})
-    req.append({"updateSheetProperties":{"properties":{"sheetId":sid,"gridProperties":{"frozenRowCount":1,"frozenColumnCount":4}},"fields":"gridProperties.frozenRowCount,gridProperties.frozenColumnCount"}})
+    # KPI labels are vertically merged across each 3-FY block in columns A:B.
+    # Google Sheets rejects a frozen-column boundary that intersects those merged
+    # blocks. Freeze the header row only; keep all columns horizontally scrollable.
+    req.append({"updateSheetProperties":{"properties":{"sheetId":sid,"gridProperties":{"frozenRowCount":1,"frozenColumnCount":0}},"fields":"gridProperties.frozenRowCount,gridProperties.frozenColumnCount"}})
     svc.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id,body={"requests":req}).execute()
 
 
