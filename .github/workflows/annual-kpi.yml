@@ -1,10 +1,6 @@
 name: Annual KPI Dashboard
-# Controlled validation retry 3: auto-resolve historical tyre route
 
 on:
-  push:
-    branches: [master]
-    paths: ['.github/workflows/annual-kpi.yml']
   workflow_dispatch:
     inputs:
       depot:
@@ -52,18 +48,18 @@ jobs:
 
       - name: Show annual KPI request
         run: |
-          echo "Depot: ${{ inputs.depot || 'RAJAMPET' }}"
-          echo "Selected month: ${{ inputs.selected_month || '2026-06' }}"
-          echo "Financial year: ${{ inputs.financial_years || '2026-27' }}"
+          echo "Depot: ${{ inputs.depot }}"
+          echo "Selected month: ${{ inputs.selected_month }}"
+          echo "Financial year: ${{ inputs.financial_years }}"
 
       - name: Build or repair annual KPI dashboard
         shell: bash
         run: |
           set -o pipefail
           python annual_kpi_runner_v11.py \
-            --depot "${{ inputs.depot || 'RAJAMPET' }}" \
-            --years "${{ inputs.financial_years || '2026-27' }}" \
-            --selected-month "${{ inputs.selected_month || '2026-06' }}" | tee annual-kpi.log
+            --depot "${{ inputs.depot }}" \
+            --years "${{ inputs.financial_years }}" \
+            --selected-month "${{ inputs.selected_month }}" | tee annual-kpi.log
           REPORT_URL="$(grep -Eo 'https://(docs|drive)\.google\.com/[^[:space:]]+' annual-kpi.log | tail -1)"
           if [ -z "$REPORT_URL" ]; then
             echo "Annual KPI Google Sheet link was not emitted by the report generator."
@@ -78,8 +74,8 @@ jobs:
           HUB_CALLBACK_TOKEN: ${{ secrets.HUB_CALLBACK_TOKEN }}
           HUB_ROW: ${{ inputs.hub_row }}
           REPORT_URL: ${{ env.REPORT_URL }}
-          DEPOT: ${{ inputs.depot || 'RAJAMPET' }}
-          SELECTED_MONTH: ${{ inputs.selected_month || '2026-06' }}
+          DEPOT: ${{ inputs.depot }}
+          SELECTED_MONTH: ${{ inputs.selected_month }}
         run: |
           python - <<'PY'
           import json, os, urllib.request
@@ -107,8 +103,8 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          DEPOT: ${{ inputs.depot || 'RAJAMPET' }}
-          SELECTED_MONTH: ${{ inputs.selected_month || '2026-06' }}
+          DEPOT: ${{ inputs.depot }}
+          SELECTED_MONTH: ${{ inputs.selected_month }}
           REPORT_URL: ${{ env.REPORT_URL }}
         run: |
           python - <<'PY'
@@ -138,8 +134,8 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          DEPOT: ${{ inputs.depot || 'RAJAMPET' }}
-          SELECTED_MONTH: ${{ inputs.selected_month || '2026-06' }}
+          DEPOT: ${{ inputs.depot }}
+          SELECTED_MONTH: ${{ inputs.selected_month }}
         run: |
           python - <<'PY'
           import json, os, urllib.parse, urllib.request
@@ -166,7 +162,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: annual-kpi-${{ inputs.depot || 'RAJAMPET' }}-${{ inputs.selected_month || '2026-06' }}
+          name: annual-kpi-${{ inputs.depot }}-${{ inputs.selected_month }}
           path: reports/*ANNUAL_KPI*.xlsx
           if-no-files-found: ignore
           retention-days: 7
