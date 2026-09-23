@@ -125,6 +125,7 @@ def make_xlsx_v11(display, mat, fys):
     for end in range(23,ws.max_row,18): ws.row_breaks.append(Break(id=end))
     ws.column_dimensions["B"].width=27
     ws.column_dimensions["Q"].width=2
+    ws.column_dimensions["Q"].hidden=True
     print_setup(ws,display,period_label(REPORT_MONTH),"1:5",18,ws.max_row)
     _build_dashboard_xlsx(wb, display, fys, mat)
     if "_META" in wb.sheetnames:
@@ -335,6 +336,8 @@ def _style_live_detail(spreadsheet_id, mat):
         height=58 if any("MANUAL" in str(v) for v in row) else 30
         requests.append({"updateDimensionProperties":{"range":{"sheetId":sid,"dimension":"ROWS","startIndex":idx,"endIndex":idx+1},"properties":{"pixelSize":height},"fields":"pixelSize"}})
     widths = [(0, 1, 58), (1, 2, 235), (2, 3, 82), (3, 4, 76), (4, 16, 72), (16,17,20), (17,18,90)]
+    requests.append({"updateDimensionProperties":{"range":{"sheetId":sid,"dimension":"COLUMNS",
+        "startIndex":16,"endIndex":17},"properties":{"hiddenByUser":True},"fields":"hiddenByUser"}})
     for start, end, size in widths:
         requests.append({"updateDimensionProperties": {"range": {"sheetId": sid, "dimension": "COLUMNS",
             "startIndex": start, "endIndex": end}, "properties": {"pixelSize": size}, "fields": "pixelSize"}})

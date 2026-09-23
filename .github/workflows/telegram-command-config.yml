@@ -1,0 +1,28 @@
+name: Configure Telegram Commands
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - telegram_command_bot.py
+      - .github/workflows/telegram-command-config.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: telegram-command-config
+  cancel-in-progress: false
+
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Register commands and verify Telegram read-back
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python telegram_command_bot.py --configure

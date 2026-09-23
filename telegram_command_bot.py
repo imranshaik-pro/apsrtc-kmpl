@@ -1,6 +1,6 @@
 """Authorized Telegram menu/command processor for APSRTC automation."""
 from __future__ import annotations
-import json, os, re, urllib.parse, urllib.request
+import json, os, re, sys, urllib.parse, urllib.request
 from urllib.error import HTTPError
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
@@ -26,6 +26,35 @@ def _request(url, *, data=None, headers=None):
 
 def telegram(token,method,params):
     return _request(API.format(token=token,method=method),data=urllib.parse.urlencode(params).encode())
+
+BOT_COMMANDS = [
+    {'command':'start','description':'Select depot and open the APSRTC menu'},
+    {'command':'menu','description':'Select depot, then report or vehicle event'},
+    {'command':'daily','description':'Request the latest completed daily report'},
+    {'command':'monthly','description':'Select depot and reporting month'},
+    {'command':'annual','description':'Select depot and Annual KPI reporting month'},
+    {'command':'event','description':'Enter a vehicle event and confirm before saving'},
+    {'command':'status','description':'Check command processor response'},
+    {'command':'help','description':'Show usage and response-time information'},
+]
+
+def configure_commands(token,chat_id):
+    """Register and read back commands for the authorized chat; no messages/events."""
+    scope=json.dumps({'type':'chat','chat_id':chat_id})
+    for language in ('','en'):
+        params={'scope':scope,'language_code':language}
+        result=telegram(token,'setMyCommands',{**params,'commands':json.dumps(BOT_COMMANDS)})
+        if not result.get('ok') or result.get('result') is not True:
+            raise RuntimeError('Telegram command registration failed')
+        actual=telegram(token,'getMyCommands',params)
+        if not actual.get('ok') or actual.get('result')!=BOT_COMMANDS:
+            raise RuntimeError('Telegram command read-back differs from configured commands')
+    # Telegram only supports per-chat menu buttons for private chats.
+    if str(chat_id).isdigit():
+        result=telegram(token,'setChatMenuButton',{'chat_id':chat_id,'menu_button':json.dumps({'type':'commands'})})
+        if not result.get('ok') or result.get('result') is not True:
+            raise RuntimeError('Telegram menu button configuration failed')
+    print('TELEGRAM_COMMAND_CONFIGURATION_VERIFIED: 8 commands; authorized chat only')
 
 def send(token,chat_id,text,keyboard=None,force_reply=False):
     p={"chat_id":chat_id,"text":text,"disable_web_page_preview":"true"}
@@ -320,4 +349,7 @@ def main():
     print(f"TELEGRAM_COMMANDS_OK: {len(updates)} update(s); acknowledged_through={max_update-1 if max_update else 'none'}")
 
 if __name__=="__main__":
-    main()
+    if sys.argv[1:]==['--configure']:
+        configure_commands(os.environ['TELEGRAM_BOT_TOKEN'].strip(),os.environ['TELEGRAM_CHAT_ID'].strip())
+    else:
+        main()
