@@ -163,43 +163,26 @@ def tyre_site_info(d,y,m):
     if not info: raise RuntimeError(f"No tyre mapping for {d}")
     # Rajampet was under DPTO ANNAMAYYA through Dec-2025 and moved back to
     # DPTO YSR KADAPA from Jan-2026. The depot code remains RJP.
-    if key=="RAJAMPET" and (y,m)<(2026,1):
-        # Historical tyre portal identity before the Jan-2026 district restructuring.
-        return ("RJPT","KADAPA(KDP ZONE)","DPTO ANNAMAYYA")
+    # Zone/region are retained as metadata only; tyre_page queries All Zones and
+    # All Regions and identifies history solely through the depot code.
     return info
 
-_TYRE_ROUTE_CACHE = {}
-
 def tyre_page(s,path,d,y,m):
-    code,zone,region=tyre_site_info(d,y,m)
-    historical = n(d) == "RAJAMPET" and (y,m) < (2026,1)
-    cache_key = "RAJAMPET_PRE_2026"
-    routes = [(code,zone,region)]
-    if historical:
-        cached = _TYRE_ROUTE_CACHE.get(cache_key)
-        if cached:
-            routes = [cached]
-        else:
-            routes = [
-                ("RJP","KADAPA(KDP ZONE)","DPTO ANNAMAYYA"),
-                ("RJPT","KADAPA(KDP ZONE)","DPTO ANNAMAYYA"),
-                ("RJP","TIRUPATI(TPT ZONE)","DPTO ANNAMAYYA"),
-                ("RJPT","TIRUPATI(TPT ZONE)","DPTO ANNAMAYYA"),
-                ("RJP","KADAPA(KDP ZONE)","ANNAMAYYA"),
-                ("RJPT","KADAPA(KDP ZONE)","ANNAMAYYA"),
-            ]
-    last = (None, None)
-    for route_code, route_zone, route_region in routes:
-        html=get_html(s,core.TYRE_BASE,path,{"zone":route_zone,"region":route_region,"depot":route_code,"month_year":datetime(y,m,1).strftime("%b-%Y").upper(),"tyre_size":"All Tyre Sizes Total"})
-        h,rows=core.find_table(html,["DEPOT"],["NEW MILEAGE","AVG TOTAL MILEAGE","RT"])
-        row=tyre_row(h,rows,route_code)
-        last=(h,row)
-        if row:
-            if historical and cache_key not in _TYRE_ROUTE_CACHE:
-                _TYRE_ROUTE_CACHE[cache_key]=(route_code,route_zone,route_region)
-                print(f"TYRE HISTORICAL ROUTE RESOLVED: {route_code} | {route_zone} | {route_region}")
-            return h,row
-    return last
+    """Fetch tyres by depot across All Zones / All Regions.
+
+    The APSRTC tyre portal supports blank zone and region parameters. This makes
+    depot history independent of district/zone restructuring.
+    """
+    code, _zone, _region = tyre_site_info(d,y,m)
+    html=get_html(s,core.TYRE_BASE,path,{
+        "zone":"",
+        "region":"",
+        "depot":code,
+        "month_year":datetime(y,m,1).strftime("%b-%Y").upper(),
+        "tyre_size":"All Tyre Sizes Total"
+    })
+    h,rows=core.find_table(html,["DEPOT"],["NEW MILEAGE","AVG TOTAL MILEAGE","RT"])
+    return h,tyre_row(h,rows,code)
 
 def normalize_tyre(dct):
     out={}
