@@ -1,5 +1,5 @@
 name: Annual KPI Dashboard
-# Controlled validation retry 2: historical RJPT tyre identity
+# Controlled validation retry 3: auto-resolve historical tyre route
 
 on:
   push:
