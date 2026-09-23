@@ -168,11 +168,38 @@ def tyre_site_info(d,y,m):
         return ("RJPT","KADAPA(KDP ZONE)","DPTO ANNAMAYYA")
     return info
 
+_TYRE_ROUTE_CACHE = {}
+
 def tyre_page(s,path,d,y,m):
     code,zone,region=tyre_site_info(d,y,m)
-    html=get_html(s,core.TYRE_BASE,path,{"zone":zone,"region":region,"depot":code,"month_year":datetime(y,m,1).strftime("%b-%Y").upper(),"tyre_size":"All Tyre Sizes Total"})
-    h,rows=core.find_table(html,["DEPOT"],["NEW MILEAGE","AVG TOTAL MILEAGE","RT"])
-    return h,tyre_row(h,rows,code)
+    historical = n(d) == "RAJAMPET" and (y,m) < (2026,1)
+    cache_key = "RAJAMPET_PRE_2026"
+    routes = [(code,zone,region)]
+    if historical:
+        cached = _TYRE_ROUTE_CACHE.get(cache_key)
+        if cached:
+            routes = [cached]
+        else:
+            routes = [
+                ("RJP","KADAPA(KDP ZONE)","DPTO ANNAMAYYA"),
+                ("RJPT","KADAPA(KDP ZONE)","DPTO ANNAMAYYA"),
+                ("RJP","TIRUPATI(TPT ZONE)","DPTO ANNAMAYYA"),
+                ("RJPT","TIRUPATI(TPT ZONE)","DPTO ANNAMAYYA"),
+                ("RJP","KADAPA(KDP ZONE)","ANNAMAYYA"),
+                ("RJPT","KADAPA(KDP ZONE)","ANNAMAYYA"),
+            ]
+    last = (None, None)
+    for route_code, route_zone, route_region in routes:
+        html=get_html(s,core.TYRE_BASE,path,{"zone":route_zone,"region":route_region,"depot":route_code,"month_year":datetime(y,m,1).strftime("%b-%Y").upper(),"tyre_size":"All Tyre Sizes Total"})
+        h,rows=core.find_table(html,["DEPOT"],["NEW MILEAGE","AVG TOTAL MILEAGE","RT"])
+        row=tyre_row(h,rows,route_code)
+        last=(h,row)
+        if row:
+            if historical and cache_key not in _TYRE_ROUTE_CACHE:
+                _TYRE_ROUTE_CACHE[cache_key]=(route_code,route_zone,route_region)
+                print(f"TYRE HISTORICAL ROUTE RESOLVED: {route_code} | {route_zone} | {route_region}")
+            return h,row
+    return last
 
 def normalize_tyre(dct):
     out={}
