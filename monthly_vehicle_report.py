@@ -109,7 +109,7 @@ def fetch_monthly_schedule_markers(session, year, month, zone, region_code, depo
     return markers
 
 
-def apply_formatting(workbook, display_name):
+def apply_formatting(workbook, display_name, report_period):
     ws = workbook["Monthly KMPL"]
     # Professional report identity: title band + reporting context above the data.
     ws.insert_rows(1, 4)
@@ -122,7 +122,7 @@ def apply_formatting(workbook, display_name):
     ws["A1"].alignment = Alignment(horizontal="center", vertical="center")
     ws.row_dimensions[1].height = 28
     ws.merge_cells(f"A2:{last_letter}2")
-    ws["A2"] = "MONTHLY VEHICLE KMPL PERFORMANCE"
+    ws["A2"] = f"MONTHLY VEHICLE KMPL PERFORMANCE — {report_period}"
     ws["A2"].font = Font(bold=True, color="1F4E78", size=12)
     ws["A2"].alignment = Alignment(horizontal="center", vertical="center")
     ws.merge_cells(f"A3:{last_letter}3")
@@ -183,6 +183,17 @@ def apply_formatting(workbook, display_name):
     widths = {1: 7, 2: 14, 3: 20, 4: 18}
     for c in range(1, last_col + 1):
         ws.column_dimensions[get_column_letter(c)].width = widths.get(c, 9 if c < last_col else 20)
+
+    ws.print_title_rows = "1:5"
+    ws.print_title_cols = "A:D"
+    ws.print_area = f"A1:{last_letter}{ws.max_row}"
+    ws.page_setup.orientation = "landscape"
+    ws.page_setup.paperSize = ws.PAPERSIZE_A3
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 0
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
+    ws.oddHeader.center.text = f"APSRTC — {display_name} DEPOT — {report_period}"
+    ws.oddFooter.right.text = "Page &P of &N"
 
 
 def main():
@@ -251,7 +262,8 @@ def main():
         existing_history = {}
 
     pd.DataFrame(rows).to_excel(xlsx_path, sheet_name="Monthly KMPL", index=False, engine="openpyxl")
-    workbook = load_workbook(xlsx_path); apply_formatting(workbook, display_name)
+    report_period = datetime(year, month, 1).strftime("%B %Y")
+    workbook = load_workbook(xlsx_path); apply_formatting(workbook, display_name, report_period)
     if selected_month >= (2026, 4):
         print(f"Building Vehicle Performance history: region={region_code}, zone={zone or '[blank]'}")
         vehicle_events = []

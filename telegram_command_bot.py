@@ -1,7 +1,17 @@
 """Authorized Telegram menu/command processor for APSRTC automation."""
 from __future__ import annotations
 import json, os, re, urllib.parse, urllib.request
+from urllib.error import HTTPError
 from datetime import date, datetime
+from zoneinfo import ZoneInfo
+
+def today_ist():
+    return datetime.now(ZoneInfo("Asia/Kolkata")).date()
+
+def normalize_vehicle(value):
+    vehicle = re.sub(r"[^A-Z0-9]", "", str(value).upper())
+    if vehicle.startswith("AP"): vehicle=vehicle[2:]
+    return vehicle if re.fullmatch(r"(?:[A-Z]{2})?[0-9]{2}[A-Z]{1,3}[0-9]{4}", vehicle) else ""
 
 API="https://api.telegram.org/bot{token}/{method}"
 REPO=os.getenv("GITHUB_REPOSITORY","imranshaik-pro/apsrtc-kmpl")
@@ -24,7 +34,16 @@ def send(token,chat_id,text,keyboard=None,force_reply=False):
     return telegram(token,"sendMessage",p)
 
 def answer_callback(token,callback_id,text=""):
-    telegram(token,"answerCallbackQuery",{"callback_query_id":callback_id,"text":text})
+    try:
+        telegram(token,"answerCallbackQuery",{"callback_query_id":callback_id,"text":text})
+    except HTTPError as exc:
+        # Scheduled polling can exceed Telegram's callback acknowledgement window.
+        # Still process the authorized action; only the UI acknowledgement expires.
+        description=exc.read().decode("utf-8",errors="replace").lower()
+        if exc.code==400 and ("query is too old" in description or "query id is invalid" in description):
+            print("TELEGRAM_CALLBACK_ACK_EXPIRED")
+            return
+        raise
 
 def dispatch(workflow,inputs):
     gh=os.environ["GH_DISPATCH_TOKEN"].strip()
@@ -45,13 +64,13 @@ def depot_keyboard(action):
         rows.append([{"text":d,"callback_data":f"{action}|{d}"} for d in DEPOTS[i:i+2]])
     return rows
 
-def month_keyboard(depot):
-    today=date.today()
+def month_keyboard(depot, action="monthlyrun"):
+    today=today_ist()
     months=[]
     y,m=today.year,today.month
     for _ in range(6):
         value=f"{y:04d}-{m:02d}"
-        months.append([{"text":value,"callback_data":f"monthlyrun|{depot}|{value}"}])
+        months.append([{"text":value,"callback_data":f"{action}|{depot}|{value}"}])
         m-=1
         if m==0: m=12;y-=1
     return months
@@ -134,11 +153,13 @@ def main_menu():
         [{"text":"🚌 Vehicle 360","callback_data":"menu|vehicle"},
          {"text":"🛠 Vehicle Event","callback_data":"menu|event"}],
         [{"text":"✅ Status","callback_data":"menu|status"}],
+        [{"text":"Annual KPI","callback_data":"menu|annual"}],
     ]
 
 def help_text():
     return ("🚌 APSRTC AUTOMATION BOT\n\nChoose an action below. "
-            "Daily and Monthly reports will ask for the depot before anything is triggered.")
+            "Daily, Monthly and Annual KPI reports ask for the depot before being triggered. "
+            "The bot polls periodically; replies are not instantaneous.")
 
 def handle_message(token,chat_id,text):
     parts=text.strip().split()
@@ -151,6 +172,8 @@ def handle_message(token,chat_id,text):
         send(token,chat_id,"Select depot for Daily Report:",depot_keyboard("daily")); return
     if cmd=="/monthly":
         send(token,chat_id,"Select depot for Monthly Report:",depot_keyboard("monthly")); return
+    if cmd=="/annual":
+        send(token,chat_id,"Select depot for Annual KPI:",depot_keyboard("annual")); return
     if cmd=="/vehicle":
         send(token,chat_id,"Vehicle 360 lookup is the next phase. No report has been triggered.",main_menu()); return
     if cmd=="/event":
@@ -166,6 +189,22 @@ def handle_callback(token,chat_id,cq):
         send(token,chat_id,"Select depot for Daily Report:",depot_keyboard("daily")); return
     if data=="menu|monthly":
         send(token,chat_id,"Select depot for Monthly Report:",depot_keyboard("monthly")); return
+    if data=="menu|annual":
+        send(token,chat_id,"Select depot for Annual KPI:",depot_keyboard("annual")); return
+    if len(parts)==2 and parts[0]=="annual" and parts[1] in DEPOTS:
+        send(token,chat_id,f"Annual KPI — {parts[1]}\nSelect reporting month:",month_keyboard(parts[1],"annualrun")); return
+    if len(parts)==3 and parts[0]=="annualrun" and parts[1] in DEPOTS:
+        depot,month=parts[1],parts[2]
+        try:
+            if not re.fullmatch(r"\d{4}-\d{2}",month): raise ValueError()
+            selected=datetime.strptime(month,"%Y-%m")
+        except ValueError:
+            send(token,chat_id,"Invalid month.",main_menu()); return
+        if month>today_ist().strftime("%Y-%m"):
+            send(token,chat_id,"Future months are not allowed.",main_menu()); return
+        start=selected.year if selected.month>=4 else selected.year-1
+        dispatch("annual-kpi.yml",{"depot":depot,"selected_month":month,"financial_years":f"{start}-{str(start+1)[-2:]}"})
+        send(token,chat_id,f"Annual KPI requested for {depot} — {month}. The report link will be sent when complete.",main_menu()); return
     if data=="menu|status":
         send(token,chat_id,"✅ APSRTC automation bot is online.\nAuthorized chat verified.",main_menu()); return
     if data=="menu|vehicle":
@@ -176,7 +215,7 @@ def handle_callback(token,chat_id,cq):
         send(token,chat_id,f"VEHICLE NUMBER [{parts[1]}]\nReply with the vehicle number:",force_reply=True); return
     if len(parts)==4 and parts[0]=="etype" and parts[1] in DEPOTS:
         depot,vehicle,event_type=parts[1],normalize_vehicle(parts[2]),parts[3]
-        today=date.today().isoformat()
+        today=today_ist().isoformat()
         keyboard=[[{"text":"Today — "+today,"callback_data":f"edate|{depot}|{vehicle}|{event_type}|{today}"}]]
         send(token,chat_id,f"{event_type} — select Event Date:",keyboard); return
     if len(parts)==5 and parts[0]=="edate" and parts[1] in DEPOTS:
@@ -199,7 +238,7 @@ def handle_callback(token,chat_id,cq):
         try: datetime.strptime(month,"%Y-%m")
         except ValueError:
             send(token,chat_id,"Invalid month.",main_menu()); return
-        if month>date.today().strftime("%Y-%m"):
+        if month>today_ist().strftime("%Y-%m"):
             send(token,chat_id,"Future months are not allowed.",main_menu()); return
         dispatch("monthly-report.yml",{"depot":depot,"month":month})
         send(token,chat_id,f"⏳ Monthly report requested for {depot} — {month}.",main_menu()); return

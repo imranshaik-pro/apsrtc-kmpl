@@ -2,6 +2,10 @@
 """Annual KPI v11: v10 logic plus visible borders for the Upto column."""
 import sys
 import os
+from datetime import datetime
+from annual_visuals import dashboard_model, render_xlsx_dashboard, google_dashboard_requests, print_setup, period_label, rgb, number
+
+REPORT_MONTH = ""
 
 from openpyxl import load_workbook
 from openpyxl.chart import LineChart, Reference
@@ -84,76 +88,43 @@ def _style_detailed_xlsx(ws, display, fys):
 
 
 def _build_dashboard_xlsx(wb, display, fys, mat):
-    """Create a separate executive dashboard; never invent KPI values."""
-    if DASHBOARD_TITLE in wb.sheetnames:
-        del wb[DASHBOARD_TITLE]
-    ws = wb.create_sheet(DASHBOARD_TITLE, 0)
-    ws.sheet_view.showGridLines = False
-    for col, width in {"A":5,"B":28,"C":12,"D":12,"E":12,"F":12,"G":12,"H":12,"I":12,"J":12,"K":12,"L":12,"M":12,"N":12,"O":12}.items():
-        ws.column_dimensions[col].width = width
-    ws.merge_cells("A1:O2"); ws["A1"] = "APSRTC  |  ANNUAL KPI DASHBOARD"
-    ws["A1"].font=Font(bold=True,color="FFFFFF",size=20); ws["A1"].fill=PatternFill("solid",fgColor="123B69"); ws["A1"].alignment=Alignment(horizontal="center",vertical="center")
-    ws.merge_cells("A3:O3"); ws["A3"]=f"{display} DEPOT  •  3 FINANCIAL YEAR PERFORMANCE"
-    ws["A3"].font=Font(bold=True,color="17365D",size=13); ws["A3"].alignment=Alignment(horizontal="center")
-    ws.merge_cells("A4:O4"); ws["A4"]=f"Financial Years Covered: {' | '.join(fys)}"
-    ws["A4"].font=Font(bold=True,color="008000",size=10); ws["A4"].alignment=Alignment(horizontal="center")
-    # Executive summary uses only existing Upto values from the report matrix.
-    headers=["KPI / Parameter"] + fys
-    for j,v in enumerate(headers,1):
-        cell=ws.cell(7,j); cell.value=v; cell.font=Font(bold=True,color="FFFFFF"); cell.fill=PatternFill("solid",fgColor="1F4E78"); cell.alignment=Alignment(horizontal="center")
-    rows={}; current_kpi=""
-    for row in mat[1:]:
-        if len(row) >= 18:
-            if str(row[1] or "").strip():
-                current_kpi=str(row[1]).strip()
-            fy=str(row[2] or "").strip()
-            if current_kpi and fy in fys:
-                rows.setdefault(current_kpi, {})[fy] = _coerce_dashboard_value(row[17])
-    preferred=list(rows.keys())
-    rr=8
-    for name in preferred:
-        if name not in rows: continue
-        ws.cell(rr,1).value=name; ws.cell(rr,1).font=Font(bold=True,color="17365D")
-        for j,fy in enumerate(fys,2):
-            val=_coerce_dashboard_value(rows[name].get(fy,""))
-            ws.cell(rr,j).value=val
-            ws.cell(rr,j).number_format="0.00"
-            ws.cell(rr,j).alignment=Alignment(horizontal="center")
-            ws.cell(rr,j).fill=PatternFill("solid",fgColor=["D9EAF7","E2F0D9","FFF2CC"][j-2])
-        rr+=1
-    ws.merge_cells(start_row=6,start_column=6,end_row=6,end_column=15); ws.cell(6,6).value="3-FY TREND VIEW"
-    ws.cell(6,6).font=Font(bold=True,color="FFFFFF"); ws.cell(6,6).fill=PatternFill("solid",fgColor="009E60"); ws.cell(6,6).alignment=Alignment(horizontal="center")
-    # Chart only source-grounded Upto values; blanks/MANUAL remain gaps.
-    chart_rows=[]
-    for name in ("HSD KMPL INCL AC","HSD KMPL EXCL AC","B.D RATE"):
-        if name in rows and any(_good_number(rows[name].get(fy)) for fy in fys):
-            chart_rows.append(name)
-    if chart_rows:
-        start=8
-        for i,name in enumerate(chart_rows,start):
-            ws.cell(i,6).value=name
-            for j,fy in enumerate(fys,7): ws.cell(i,j).value=rows[name].get(fy,"")
-        for j,fy in enumerate(fys,7): ws.cell(7,j).value=fy
-        chart=LineChart(); chart.title="Selected KPI Upto Trend"; chart.style=10; chart.height=7; chart.width=16
-        data=Reference(ws,min_col=7,max_col=9,min_row=7,max_row=7+len(chart_rows))
-        cats=Reference(ws,min_col=6,min_row=8,max_row=7+len(chart_rows))
-        chart.add_data(data,titles_from_data=True); chart.set_categories(cats); ws.add_chart(chart,"F12")
-    note_row=max(rr+2,25)
-    ws.merge_cells(start_row=note_row,start_column=1,end_row=note_row,end_column=15)
-    ws.cell(note_row,1).value="Dashboard values are derived only from the Annual KPI source matrix. Missing/unavailable source values remain blank or MANUAL; no KPI value is fabricated."
-    ws.cell(note_row,1).font=Font(italic=True,color="595959",size=9); ws.cell(note_row,1).alignment=Alignment(wrap_text=True)
-    ws.freeze_panes="A7"; ws.print_title_rows="1:6"; ws.page_setup.orientation="landscape"; ws.page_setup.fitToWidth=1; ws.page_setup.fitToHeight=1; ws.sheet_properties.pageSetUpPr.fitToPage=True
-    return ws
+    return render_xlsx_dashboard(wb,DASHBOARD_TITLE,
+        dashboard_model(display,fys,mat,REPORT_MONTH),display,REPORT_MONTH)
 
 
 def make_xlsx_v11(display, mat, fys):
     """Approved two-sheet Annual workbook: executive dashboard + detailed APSRTC data."""
+    mat=list(mat)
+    while mat and not any(v not in (None, "") for v in mat[-1]): mat.pop()
     path = ORIGINAL_MAKE_XLSX(display, mat, fys)
     wb = load_workbook(path)
     ws = wb[m.SHEET_TITLE]
     ws.title = DETAIL_TITLE
+    # Move merge definitions explicitly when adding presentation headers.
+    for merged in list(ws.merged_cells.ranges): ws.unmerge_cells(str(merged))
     ws.insert_rows(1, 4)
     _style_detailed_xlsx(ws, display, fys)
+    ws["A2"] = f"ANNUAL KPI — Through {period_label(REPORT_MONTH)}"
+    ws["A3"] = f"FY {fys[0]} / {fys[1]}: full year. FY {fys[-1]}: through selected month. Blank = unavailable."
+    for r in range(6,ws.max_row+1,3):
+        for col in (1,2):
+            ws.merge_cells(start_row=r,start_column=col,end_row=min(r+2,ws.max_row),end_column=col)
+    for r in range(5,ws.max_row+1):
+        for col in range(1,19):
+            cell=ws.cell(r,col)
+            cell.border=Border(left=Side(style="thin",color="CCD7E3"),right=Side(style="thin",color="CCD7E3"),
+                               top=Side(style="medium" if (r-6)%3==0 else "thin",color="CCD7E3"),
+                               bottom=Side(style="thin",color="CCD7E3"))
+            cell.alignment=Alignment(horizontal="left" if col==2 else "center",vertical="center",wrap_text=True)
+            if r>5:
+                cell.font=Font(name="Arial",size=10,color="23364D",bold=col in (1,2,18))
+        ws.row_dimensions[r].height=44 if any("MANUAL" in str(ws.cell(r,c).value) for c in range(4,19)) else 26
+    from openpyxl.worksheet.pagebreak import Break
+    # Six complete KPI blocks per page, including taller MANUAL rows.
+    for end in range(23,ws.max_row,18): ws.row_breaks.append(Break(id=end))
+    ws.column_dimensions["B"].width=27
+    ws.column_dimensions["Q"].width=2
+    print_setup(ws,display,period_label(REPORT_MONTH),"1:5",18,ws.max_row)
     _build_dashboard_xlsx(wb, display, fys, mat)
     if "_META" in wb.sheetnames:
         del wb["_META"]
@@ -194,6 +165,8 @@ def _apply_upto_borders(spreadsheet_id, mat):
 
 
 def format_sheet_v11(spreadsheet_id, mat, fys):
+    # A newly imported XLSX already uses the presentation detail-tab name.
+    _prepare_live_detail_sheet(spreadsheet_id)
     # Google Sheets rejects a merge that crosses a frozen-row boundary. The v7
     # formatter merges each 3-FY KPI block starting at row 2, so clear frozen
     # rows before formatting; v7 will then restore its intended freeze state.
@@ -264,99 +237,40 @@ v7.format_sheet_v7 = format_sheet_v11
 
 
 def _ensure_dashboard_google_sheet(spreadsheet_id, display, fys, mat):
-    """Refresh the live executive dashboard from source-grounded Annual KPI values."""
-    svc=m.sheets_service()
-    meta=svc.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
-    sheets=meta.get("sheets",[])
-    dash=next((s for s in sheets if s.get("properties",{}).get("title")==DASHBOARD_TITLE),None)
+    svc=m.sheets_service().spreadsheets()
+    meta=svc.get(spreadsheetId=spreadsheet_id).execute()
+    dash=next((s for s in meta.get("sheets",[]) if s["properties"]["title"]==DASHBOARD_TITLE),None)
     if dash is None:
-        svc.spreadsheets().batchUpdate(
-            spreadsheetId=spreadsheet_id,
-            body={"requests":[{"addSheet":{"properties":{"title":DASHBOARD_TITLE,"index":0,"gridProperties":{"rowCount":90,"columnCount":18}}}}]}
-        ).execute()
-        dash_id=m.sheet_id(spreadsheet_id,DASHBOARD_TITLE)
+        result=svc.batchUpdate(spreadsheetId=spreadsheet_id,body={"requests":[{"addSheet":{"properties":{"title":DASHBOARD_TITLE,"gridProperties":{"rowCount":100,"columnCount":24}}}}]}).execute()
+        sid=result["replies"][0]["addSheet"]["properties"]["sheetId"]
     else:
-        dash_id=dash["properties"]["sheetId"]
-        svc.spreadsheets().values().clear(spreadsheetId=spreadsheet_id,range=f"'{DASHBOARD_TITLE}'!A1:R90",body={}).execute()
+        sid=dash["properties"]["sheetId"]
+    req=[{"deleteEmbeddedObject":{"objectId":chart["chartId"]}} for chart in (dash or {}).get("charts",[])]
+    req+=google_dashboard_requests(sid,dashboard_model(display,fys,mat,REPORT_MONTH))
+    svc.batchUpdate(spreadsheetId=spreadsheet_id,body={"requests":req}).execute()
 
-    rows={}; current_kpi=""
-    for row in mat[1:]:
-        if len(row)>=18:
-            if str(row[1]).strip(): current_kpi=str(row[1]).strip()
-            fy=str(row[2]).strip()
-            if current_kpi and fy in fys:
-                rows.setdefault(current_kpi,{})[fy]=_coerce_dashboard_value(row[17])
 
-    preferred=list(rows.keys())
-    values=[
-      ["APSRTC | ANNUAL KPI EXECUTIVE DASHBOARD"],
-      [f"{display} DEPOT | THREE FINANCIAL YEAR PERFORMANCE"],
-      [f"Financial Years: {' | '.join(fys)}"],
-      ["Source-grounded management view | Current FY automatically follows selected reporting month"],
-      [],
-      ["KPI / PARAMETER",*fys,"TREND / STATUS"]
-    ]
-    for name in preferred:
-        if name in rows:
-            vals=[rows[name].get(fy,"") for fy in fys]
-            numeric=[v for v in vals if isinstance(v,(int,float)) and not isinstance(v,bool)]
-            trend=""
-            if len(numeric)>=2:
-                d=numeric[-1]-numeric[-2]
-                trend=("▲ " if d>0 else "▼ " if d<0 else "● ")+f"{abs(d):.2f}"
-            values.append([name,*vals,trend])
-    values += [[],["SOURCE INTEGRITY"],["Missing/unavailable source values remain blank or MANUAL. No KPI value is fabricated."]]
-    m.write_values(spreadsheet_id,f"'{DASHBOARD_TITLE}'!A1",values)
-
-    last=len(values)
-    req=[
-      {"unmergeCells":{"range":{"sheetId":dash_id,"startRowIndex":0,"endRowIndex":90,"startColumnIndex":0,"endColumnIndex":18}}},
-      {"mergeCells":{"range":{"sheetId":dash_id,"startRowIndex":0,"endRowIndex":1,"startColumnIndex":0,"endColumnIndex":18},"mergeType":"MERGE_ALL"}},
-      {"mergeCells":{"range":{"sheetId":dash_id,"startRowIndex":1,"endRowIndex":2,"startColumnIndex":0,"endColumnIndex":18},"mergeType":"MERGE_ALL"}},
-      {"mergeCells":{"range":{"sheetId":dash_id,"startRowIndex":2,"endRowIndex":3,"startColumnIndex":0,"endColumnIndex":18},"mergeType":"MERGE_ALL"}},
-      {"mergeCells":{"range":{"sheetId":dash_id,"startRowIndex":3,"endRowIndex":4,"startColumnIndex":0,"endColumnIndex":18},"mergeType":"MERGE_ALL"}},
-      {"repeatCell":{"range":{"sheetId":dash_id,"startRowIndex":0,"endRowIndex":1,"startColumnIndex":0,"endColumnIndex":18},
-       "cell":{"userEnteredFormat":{"backgroundColor":{"red":0.035,"green":0.18,"blue":0.34},"textFormat":{"foregroundColor":{"red":1,"green":1,"blue":1},"bold":True,"fontSize":20},"horizontalAlignment":"CENTER","verticalAlignment":"MIDDLE"}},"fields":"userEnteredFormat"}},
-      {"repeatCell":{"range":{"sheetId":dash_id,"startRowIndex":1,"endRowIndex":2,"startColumnIndex":0,"endColumnIndex":18},
-       "cell":{"userEnteredFormat":{"backgroundColor":{"red":0.08,"green":0.32,"blue":0.52},"textFormat":{"foregroundColor":{"red":1,"green":1,"blue":1},"bold":True,"fontSize":13},"horizontalAlignment":"CENTER"}},"fields":"userEnteredFormat"}},
-      {"repeatCell":{"range":{"sheetId":dash_id,"startRowIndex":2,"endRowIndex":4,"startColumnIndex":0,"endColumnIndex":18},
-       "cell":{"userEnteredFormat":{"backgroundColor":{"red":0.92,"green":0.96,"blue":0.99},"textFormat":{"foregroundColor":{"red":0.10,"green":0.23,"blue":0.36},"bold":True},"horizontalAlignment":"CENTER"}},"fields":"userEnteredFormat"}},
-      {"repeatCell":{"range":{"sheetId":dash_id,"startRowIndex":5,"endRowIndex":6,"startColumnIndex":0,"endColumnIndex":5},
-       "cell":{"userEnteredFormat":{"backgroundColor":{"red":0.08,"green":0.28,"blue":0.45},"textFormat":{"foregroundColor":{"red":1,"green":1,"blue":1},"bold":True},"horizontalAlignment":"CENTER","verticalAlignment":"MIDDLE","borders":{"bottom":{"style":"SOLID_MEDIUM","color":{"red":0.95,"green":0.65,"blue":0.08}}}}},"fields":"userEnteredFormat"}},
-      {"repeatCell":{"range":{"sheetId":dash_id,"startRowIndex":6,"endRowIndex":last,"startColumnIndex":0,"endColumnIndex":5},
-       "cell":{"userEnteredFormat":{"borders":{"bottom":{"style":"SOLID","color":{"red":0.82,"green":0.85,"blue":0.88}}},"verticalAlignment":"MIDDLE"}},"fields":"userEnteredFormat.borders,userEnteredFormat.verticalAlignment"}},
-      {"updateSheetProperties":{"properties":{"sheetId":dash_id,"gridProperties":{"frozenRowCount":6,"frozenColumnCount":0,"hideGridlines":True}},"fields":"gridProperties.frozenRowCount,gridProperties.frozenColumnCount,gridProperties.hideGridlines"}},
-      {"updateDimensionProperties":{"range":{"sheetId":dash_id,"dimension":"COLUMNS","startIndex":0,"endIndex":1},"properties":{"pixelSize":245},"fields":"pixelSize"}},
-      {"updateDimensionProperties":{"range":{"sheetId":dash_id,"dimension":"COLUMNS","startIndex":1,"endIndex":4},"properties":{"pixelSize":120},"fields":"pixelSize"}},
-      {"updateDimensionProperties":{"range":{"sheetId":dash_id,"dimension":"COLUMNS","startIndex":4,"endIndex":5},"properties":{"pixelSize":125},"fields":"pixelSize"}},
-      {"updateDimensionProperties":{"range":{"sheetId":dash_id,"dimension":"ROWS","startIndex":0,"endIndex":1},"properties":{"pixelSize":42},"fields":"pixelSize"}},
-    ]
-    for chart in (dash or {}).get("charts", []):
-        chart_id = chart.get("chartId")
-        if chart_id is not None:
-            req.insert(0, {"deleteEmbeddedObject": {"objectId": chart_id}})
-    fy_colors=[
-      {"red":0.84,"green":0.91,"blue":0.97},
-      {"red":0.86,"green":0.94,"blue":0.86},
-      {"red":1.0,"green":0.94,"blue":0.75},
-    ]
-    for j,color in enumerate(fy_colors,start=1):
-        req.append({"repeatCell":{"range":{"sheetId":dash_id,"startRowIndex":6,"endRowIndex":last,"startColumnIndex":j,"endColumnIndex":j+1},
-          "cell":{"userEnteredFormat":{"backgroundColor":color,"numberFormat":{"type":"NUMBER","pattern":"0.00"},"horizontalAlignment":"CENTER","textFormat":{"bold":True}}},
-          "fields":"userEnteredFormat"}})
-    svc.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id,body={"requests":req}).execute()
-
-    # Add source-grounded trend chart from the dashboard table. It intentionally
-    # plots blanks as gaps and never manufactures missing values.
-    chart_end=min(last,12)
-    if chart_end>7:
-        domain={"domain":{"sourceRange":{"sources":[{"sheetId":dash_id,"startRowIndex":6,"endRowIndex":chart_end,"startColumnIndex":0,"endColumnIndex":1}]}}}
-        series=[]
-        for j in range(1,4):
-            series.append({"series":{"sourceRange":{"sources":[{"sheetId":dash_id,"startRowIndex":6,"endRowIndex":chart_end,"startColumnIndex":j,"endColumnIndex":j+1}]}},"targetAxis":"LEFT_AXIS"})
-        basic={"chartType":"COLUMN","legendPosition":"BOTTOM_LEGEND","axis":[{"position":"BOTTOM_AXIS","title":"KPI"},{"position":"LEFT_AXIS","title":"Value"}],"domains":[domain],"series":series,"headerCount":0}
-        chart={"spec":{"title":"3-FY KPI Performance Overview","basicChart":basic},"position":{"overlayPosition":{"anchorCell":{"sheetId":dash_id,"rowIndex":5,"columnIndex":6},"widthPixels":760,"heightPixels":360}}}
-        svc.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id,body={"requests":[{"addChart":{"chart":chart}}]}).execute()
+def _add_live_identity(spreadsheet_id,display,fys):
+    sid=m.sheet_id(spreadsheet_id,m.SHEET_TITLE)
+    svc=m.sheets_service().spreadsheets()
+    req=[{"updateSheetProperties":{"properties":{"sheetId":sid,"gridProperties":{"frozenRowCount":0,"frozenColumnCount":0}},"fields":"gridProperties.frozenRowCount,gridProperties.frozenColumnCount"}},
+         {"insertDimension":{"range":{"sheetId":sid,"dimension":"ROWS","startIndex":0,"endIndex":4},"inheritFromBefore":False}}]
+    for r in range(3):
+        area={"sheetId":sid,"startRowIndex":r,"endRowIndex":r+1,"startColumnIndex":0,"endColumnIndex":18}
+        req.extend([{"mergeCells":{"range":area,"mergeType":"MERGE_ALL"}},
+                    {"repeatCell":{"range":area,"cell":{"userEnteredFormat":{
+                        "backgroundColor":rgb("12345B" if r==0 else "EAF2FA"),
+                        "textFormat":{"fontFamily":"Arial","fontSize":16 if r==0 else 11,"bold":True,
+                                      "foregroundColor":rgb("FFFFFF" if r==0 else "12345B")},
+                        "verticalAlignment":"MIDDLE","horizontalAlignment":"CENTER"}},"fields":"userEnteredFormat"}},
+                    {"updateDimensionProperties":{"range":{"sheetId":sid,"dimension":"ROWS","startIndex":r,"endIndex":r+1},
+                     "properties":{"pixelSize":36 if r==0 else 28},"fields":"pixelSize"}}])
+    req.append({"updateSheetProperties":{"properties":{"sheetId":sid,"gridProperties":{"frozenRowCount":5}},"fields":"gridProperties.frozenRowCount"}})
+    svc.batchUpdate(spreadsheetId=spreadsheet_id,body={"requests":req}).execute()
+    m.write_values(spreadsheet_id,f"'{m.SHEET_TITLE}'!A1",[
+        [f"APSRTC — {display} DEPOT"],
+        [f"ANNUAL KPI — Reporting through {period_label(REPORT_MONTH)}"],
+        [f"FY {fys[0]} / {fys[1]}: full year. FY {fys[-1]}: selected-month YTD. Blank = unavailable."]])
 
 
 def _prepare_live_detail_sheet(spreadsheet_id):
@@ -364,6 +278,15 @@ def _prepare_live_detail_sheet(spreadsheet_id):
     svc = m.sheets_service()
     meta = svc.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
     by_title = {s["properties"]["title"]: s for s in meta.get("sheets", [])}
+    detail=by_title.get(m.SHEET_TITLE) or by_title.get(DETAIL_TITLE)
+    if detail:
+        title=detail["properties"]["title"]; sid=detail["properties"]["sheetId"]
+        top=m.read_values(spreadsheet_id,f"'{title}'!A1:B5")
+        if top and str(top[0][0]).startswith("APSRTC") and len(top)>4 and top[4] and top[4][0]=="SL.No":
+            svc.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id,body={"requests":[
+                {"updateSheetProperties":{"properties":{"sheetId":sid,"gridProperties":{"frozenRowCount":0,"frozenColumnCount":0}},"fields":"gridProperties.frozenRowCount,gridProperties.frozenColumnCount"}},
+                {"deleteDimension":{"range":{"sheetId":sid,"dimension":"ROWS","startIndex":0,"endIndex":4}}}
+            ]}).execute()
     if m.SHEET_TITLE not in by_title and DETAIL_TITLE in by_title:
         sid = by_title[DETAIL_TITLE]["properties"]["sheetId"]
         svc.spreadsheets().batchUpdate(
@@ -404,7 +327,13 @@ def _style_live_detail(spreadsheet_id, mat):
                                                    "startIndex": 0, "endIndex": 1},
             "properties": {"pixelSize": 42}, "fields": "pixelSize"}},
     ]
-    widths = [(0, 1, 58), (1, 2, 235), (2, 3, 82), (3, 4, 76), (4, 18, 72)]
+    requests.insert(0,{"repeatCell":{"range":{"sheetId":sid,"startRowIndex":0,"endRowIndex":row_count,"startColumnIndex":0,"endColumnIndex":18},
+        "cell":{"userEnteredFormat":{"textFormat":{"fontFamily":"Arial","fontSize":10,"foregroundColor":medium},"verticalAlignment":"MIDDLE","wrapStrategy":"WRAP"}},
+        "fields":"userEnteredFormat.textFormat,userEnteredFormat.verticalAlignment,userEnteredFormat.wrapStrategy"}})
+    for idx,row in enumerate(mat[1:],1):
+        height=58 if any("MANUAL" in str(v) for v in row) else 30
+        requests.append({"updateDimensionProperties":{"range":{"sheetId":sid,"dimension":"ROWS","startIndex":idx,"endIndex":idx+1},"properties":{"pixelSize":height},"fields":"pixelSize"}})
+    widths = [(0, 1, 58), (1, 2, 235), (2, 3, 82), (3, 4, 76), (4, 16, 72), (16,17,20), (17,18,90)]
     for start, end, size in widths:
         requests.append({"updateDimensionProperties": {"range": {"sheetId": sid, "dimension": "COLUMNS",
             "startIndex": start, "endIndex": end}, "properties": {"pixelSize": size}, "fields": "pixelSize"}})
@@ -471,7 +400,9 @@ def main_v11():
     def _arg(name, default=""):
         try: return args[args.index(name)+1]
         except (ValueError,IndexError): return default
+    global REPORT_MONTH
     depot=_arg("--depot"); selected=_arg("--selected-month")
+    REPORT_MONTH=selected
     existing = None
     display = ""
     fys = []
@@ -491,6 +422,7 @@ def main_v11():
             live=m.read_values(existing["id"],f"'{m.SHEET_TITLE}'!A:R")
             _style_live_detail(existing["id"],live)
             _ensure_dashboard_google_sheet(existing["id"],display,fys,live)
+            _add_live_identity(existing["id"],display,fys)
             _finalize_live_workbook(existing["id"])
     return rc
 

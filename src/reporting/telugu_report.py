@@ -100,7 +100,7 @@ def build_telugu_daily_report(
     weekday = WEEKDAYS[dt.weekday()]
     date_display = dt.strftime("%d/%m/%Y")
 
-    header = f"🌟 {depot} డిపో :: {date_display} ({weekday})"
+    header = f"APSRTC — {depot} DEPOT — DAILY HSD KMPL\nReport date: {dt.strftime('%d %B %Y')}\n🌟 {depot} డిపో :: {date_display} ({weekday})"
     region_block = format_region_kmpl_block(region_reporting_data)
 
     low_day_vehicles = vehicle_summary.get("low_day_vehicles", [])

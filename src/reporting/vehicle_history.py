@@ -123,10 +123,13 @@ def _selected_month_index(year,month): return month-4 if month>=4 else month+8
 def read_existing_history(ws):
     out={}
     if ws is None:return out
-    headers={str(c.value).strip():c.column for c in ws[1] if c.value is not None}
-    if "Veh No" not in headers or "FY Year" not in headers:return out
+    headers={}; header_row=1
+    for header_row in range(1,min(ws.max_row,8)+1):
+        headers={str(c.value).strip():c.column for c in ws[header_row] if c.value is not None}
+        if "Veh No" in headers and "FY Year" in headers:break
+    else:return out
     last_vehicle=""
-    for r in range(2,ws.max_row+1):
+    for r in range(header_row+1,ws.max_row+1):
         raw_v=ws.cell(r,headers["Veh No"]).value
         if raw_v not in (None,""):last_vehicle=norm_vehicle(raw_v)
         fy=str(ws.cell(r,headers["FY Year"]).value or "").strip()
@@ -274,7 +277,9 @@ def write_vehicle_360_sheet(wb, roster, values, events=None, latest_kmpl=None, c
     ws.freeze_panes="E5"; ws.auto_filter.ref=f"A4:H{ws.max_row}"
     ws.print_title_rows="1:4"; ws.page_setup.orientation="landscape"; ws.page_setup.fitToWidth=1; ws.page_setup.fitToHeight=0
     ws.sheet_properties.pageSetUpPr.fitToPage=True
-    ws.oddFooter.center.text=f"APSRTC | {(depot_name or 'DEPOT').upper()} DEPOT | Vehicle 360°"
+    ws.oddFooter.center.text=f"APSRTC | {(depot_name or 'DEPOT').upper()} DEPOT | {report_period or ''} | Vehicle 360°"
+    ws.oddFooter.right.text="Page &P of &N"
+    ws.print_area=f"A1:H{ws.max_row}"
     return ws
 
 
@@ -367,5 +372,7 @@ def write_history_sheet(wb,roster,values,remarks,population_note=None,depot_name
         for month,vehicle,detail in remarks:ws.append([month,vehicle,detail])
     ws.print_title_rows="1:5"; ws.page_setup.orientation="landscape"; ws.page_setup.fitToWidth=1; ws.page_setup.fitToHeight=0
     ws.sheet_properties.pageSetUpPr.fitToPage=True
-    ws.oddFooter.center.text=f"APSRTC | {(depot_name or 'DEPOT').upper()} DEPOT | Vehicle Performance"
+    ws.oddFooter.center.text=f"APSRTC | {(depot_name or 'DEPOT').upper()} DEPOT | {report_period or ''} | Vehicle Performance"
+    ws.oddFooter.right.text="Page &P of &N"
+    ws.print_area=f"A1:Q{ws.max_row}"
     return ws
