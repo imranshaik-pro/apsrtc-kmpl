@@ -2,6 +2,7 @@
 """Annual KPI v11: v10 logic plus visible borders for the Upto column."""
 import sys
 import os
+import annual_history as history
 from datetime import datetime
 from annual_visuals import dashboard_model, render_xlsx_dashboard, google_dashboard_requests, print_setup, period_label, rgb, number
 
@@ -388,14 +389,17 @@ def _finalize_live_workbook(spreadsheet_id):
     for sheet in sheets:
         sid = sheet["properties"]["sheetId"]
         if sid not in keep:
-            requests.append({"deleteSheet": {"sheetId": sid}})
+            # History and metadata are durable storage, not presentation tabs.
+            # Hide legacy tabs as well: formatting must never delete user history.
+            requests.append({"updateSheetProperties": {"properties": {"sheetId": sid, "hidden": True},
+                                                        "fields": "hidden"}})
     svc.spreadsheets().batchUpdate(spreadsheetId=spreadsheet_id, body={"requests": requests}).execute()
 
 
 ORIGINAL_V7_MAIN=v7.main
 
 def main_v11():
-    """Build and publish an idempotent professional two-sheet Annual workbook."""
+    """Reuse persistent history and render the selected month into two visible tabs."""
     args=sys.argv[1:]
     def _arg(name, default=""):
         try: return args[args.index(name)+1]
@@ -403,28 +407,85 @@ def main_v11():
     global REPORT_MONTH
     depot=_arg("--depot"); selected=_arg("--selected-month")
     REPORT_MONTH=selected
-    existing = None
-    display = ""
-    fys = []
-    if depot and selected:
-        sy,sm=map(int,selected.split("-"))
-        fys=m.fy_triplet(sy,sm)
-        vehicle,display,region=m.core.depot_info(depot)
-        folder=os.getenv("KPI_DRIVE_FOLDER_ID",m.core.DEFAULT_DRIVE_FOLDER)
-        existing=m.find_file(folder,f"{display}_ANNUAL_KPI_DASHBOARD")
-        if existing:
-            _prepare_live_detail_sheet(existing["id"])
-    rc=ORIGINAL_V7_MAIN()
-    if depot and selected:
-        folder=os.getenv("KPI_DRIVE_FOLDER_ID",m.core.DEFAULT_DRIVE_FOLDER)
-        existing=m.find_file(folder,f"{display}_ANNUAL_KPI_DASHBOARD")
-        if existing:
-            live=m.read_values(existing["id"],f"'{m.SHEET_TITLE}'!A:R")
-            _style_live_detail(existing["id"],live)
-            _ensure_dashboard_google_sheet(existing["id"],display,fys,live)
-            _add_live_identity(existing["id"],display,fys)
-            _finalize_live_workbook(existing["id"])
-    return rc
+    datetime.strptime(selected,'%Y-%m')
+    sy,sm=map(int,selected.split('-'))
+    fys=m.fy_triplet(sy,sm)
+    vehicle,display,region=m.core.depot_info(depot)
+    folder=os.getenv('KPI_DRIVE_FOLDER_ID',m.core.DEFAULT_DRIVE_FOLDER)
+    name=f'{display}_ANNUAL_KPI_DASHBOARD'
+    existing=m.find_file(folder,name)
+    cache=history.new_cache(display)
+    if existing:
+        sid=existing['id']
+        meta=m.sheets_service().spreadsheets().get(spreadsheetId=sid).execute()
+        titles={s['properties']['title'] for s in meta.get('sheets',[])}
+        if history.CACHE_TITLE in titles:
+            # Read errors or invalid caches fail closed. Never fall back to a rebuild.
+            cache=history.decode(m.read_values(sid,f"'{history.CACHE_TITLE}'!A:D"),display)
+        else:
+            title=DETAIL_TITLE if DETAIL_TITLE in titles else m.SHEET_TITLE
+            values=m.read_values(sid,f"'{title}'!A:R")
+            previous=history.period_from_heading(values)
+            if not previous and m.META_TITLE in titles:
+                pairs=m.read_values(sid,f"'{m.META_TITLE}'!A:B")
+                previous=dict(r[:2] for r in pairs if len(r)>=2).get('LAST_SELECTED_MONTH','')
+            history.migrate(cache,values,previous)
+            print('HISTORY MIGRATED: existing monthly values retained without a full rebuild')
+    else:
+        empty=m.new_store(fys); m.seed(empty)
+        xlsx=make_xlsx_v11(display,v7.matrix_with_target(empty),fys)
+        existing=m.upload_xlsx_as_google_sheet(xlsx,folder,name)
+        sid=existing['id']
+    last_saved=None
+    def save_cache():
+        nonlocal last_saved
+        rows=history.encode(cache)
+        if rows==last_saved: return
+        hid=m.ensure_hidden_sheet(sid,history.CACHE_TITLE)
+        m.sheets_service().spreadsheets().batchUpdate(spreadsheetId=sid,body={'requests':[
+            {'updateSheetProperties':{'properties':{'sheetId':hid,'hidden':True,
+                'gridProperties':{'rowCount':max(1000,len(rows)+10),'columnCount':4}},
+                'fields':'hidden,gridProperties.rowCount,gridProperties.columnCount'}}]}).execute()
+        # One atomic values update, with a length and checksum. Stale trailing chunks are ignored.
+        m.write_values(sid,f"'{history.CACHE_TITLE}'!A1",rows)
+        last_saved=rows
+    # Persist migrated history BEFORE changing the visible report or contacting APSRTC.
+    save_cache()
+    session=None
+    def get_session():
+        nonlocal session
+        if session is None: session=m.login()
+        return session
+    def fetch(group,period):
+        y,mo=map(int,period.split('-')); s=get_session()
+        if group=='PRODUCT': return m.fetch_dimension(s,'prodkmpl_um.php','PRODUCT','PRODUCT',display,region,y,mo)
+        if group=='ENGINE': return m.fetch_dimension(s,'engkmpl_um.php','ENGINE TYPE','ENGINE',display,region,y,mo)
+        if group=='TYRE': return v10.fetch_tyre_v10(s,display,y,mo,True)
+        funcs={'HSD':m.fetch_hsd,'LUB':m.fetch_lub,'BD':m.fetch_bd,'MED':m.fetch_med,'SPRING':m.fetch_spring}
+        return funcs[group](s,display,vehicle,region,y,mo)
+    history.update(cache,fys,selected,fetch,save_cache)
+    for fy in fys:
+        if fy in cache['target_attempts']: continue
+        target_store=m.new_store([fy]); m.seed(target_store)
+        # Targets only, once per FY. Do not invoke v10's all-month backfill wrapper.
+        v10.ORIGINAL_POPULATE_TARGETS(target_store,get_session(),display,vehicle,region,sy,sm)
+        cache['targets'][fy]={k:v[fy]['target'] for k,v in target_store['rows'].items() if history.good(v[fy].get('target'))}
+        cache['target_attempts'].append(fy)
+        save_cache()
+    st=history.view_store(cache,fys,selected,m)
+    mat=v7.matrix_with_target(st)
+    make_xlsx_v11(display,mat,fys)
+    format_sheet_v11(sid,mat,fys)
+    _style_live_detail(sid,mat)
+    _ensure_dashboard_google_sheet(sid,display,fys,mat)
+    _add_live_identity(sid,display,fys)
+    m.ensure_hidden_sheet(sid,m.META_TITLE)
+    m.write_values(sid,f"'{m.META_TITLE}'!A1",[['KEY','VALUE'],['DEPOT',display],
+        ['LAST_SELECTED_MONTH',selected],['LAYOUT_VERSION',LAYOUT_VERSION],['HISTORY_SCHEMA',history.SCHEMA]])
+    _finalize_live_workbook(sid)
+    print(f'ANNUAL_KPI_DASHBOARD_SUCCESS: https://docs.google.com/spreadsheets/d/{sid}/edit')
+    print(f'GOOGLE_SHEET_ID: {sid}')
+    return 0
 
 
 if __name__ == "__main__":

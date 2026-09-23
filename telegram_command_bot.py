@@ -147,6 +147,19 @@ def confirmation_text(payload):
     return "\n".join(lines)
 
 def main_menu():
+    return depot_keyboard('depot')
+
+def depot_actions(depot):
+    return [
+        [{'text':'Daily Report','callback_data':f'daily|{depot}'},
+         {'text':'Monthly Report','callback_data':f'monthly|{depot}'}],
+        [{'text':'Annual KPI','callback_data':f'annual|{depot}'},
+         {'text':'Vehicle Event','callback_data':f'event|{depot}'}],
+        [{'text':'Vehicle 360 — not yet available','callback_data':f'vehicle|{depot}'}],
+        [{'text':'Change depot','callback_data':'menu|depots'}],
+    ]
+
+def legacy_action_menu():
     return [
         [{"text":"📅 Daily Report","callback_data":"menu|daily"},
          {"text":"📊 Monthly Report","callback_data":"menu|monthly"}],
@@ -157,8 +170,7 @@ def main_menu():
     ]
 
 def help_text():
-    return ("🚌 APSRTC AUTOMATION BOT\n\nChoose an action below. "
-            "Daily, Monthly and Annual KPI reports ask for the depot before being triggered. "
+    return ("🚌 APSRTC AUTOMATION BOT\n\nSelect your depot, then choose a report or Vehicle Event. "
             "The bot polls periodically; replies are not instantaneous.")
 
 def handle_message(token,chat_id,text):
@@ -185,6 +197,12 @@ def handle_callback(token,chat_id,cq):
     cid=str(cq.get("id") or "")
     answer_callback(token,cid)
     parts=data.split("|")
+    if data=='menu|depots':
+        send(token,chat_id,'Select depot:',main_menu()); return
+    if len(parts)==2 and parts[0]=='depot' and parts[1] in DEPOTS:
+        send(token,chat_id,f'Depot: {parts[1]}\nChoose an action:',depot_actions(parts[1])); return
+    if len(parts)==2 and parts[0]=='vehicle' and parts[1] in DEPOTS:
+        send(token,chat_id,'Standalone Vehicle 360 lookup is not yet available. No request was submitted.',depot_actions(parts[1])); return
     if data=="menu|daily":
         send(token,chat_id,"Select depot for Daily Report:",depot_keyboard("daily")); return
     if data=="menu|monthly":
