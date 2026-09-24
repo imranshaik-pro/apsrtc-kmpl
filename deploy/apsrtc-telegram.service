@@ -1,0 +1,24 @@
+[Unit]
+Description=APSRTC Telegram command listener
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+WorkingDirectory=/opt/apsrtc-kmpl
+EnvironmentFile=/etc/apsrtc-telegram.env
+Environment=PYTHONUNBUFFERED=1
+Environment=TELEGRAM_STATE_DIR=/var/lib/apsrtc-telegram
+StateDirectory=apsrtc-telegram
+ExecStart=/usr/bin/python3 /opt/apsrtc-kmpl/telegram_listener.py
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

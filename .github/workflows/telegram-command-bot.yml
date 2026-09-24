@@ -15,6 +15,7 @@ concurrency:
 
 jobs:
   commands:
+    if: vars.TELEGRAM_LISTENER_MODE != 'service'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

@@ -2,7 +2,7 @@
 from __future__ import annotations
 import json, os, re, sys, urllib.parse, urllib.request
 from urllib.error import HTTPError
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 def today_ist():
@@ -20,12 +20,16 @@ REF=os.getenv("GITHUB_REF_NAME","master")
 # This avoids maintaining separate hard-coded lists in Telegram.
 DEPOTS=tuple(d.strip().upper() for d in os.getenv("DEPOT_MASTER","").split("|") if d.strip())
 
-def _request(url, *, data=None, headers=None):
+def _request(url, *, data=None, headers=None, timeout=25):
     req=urllib.request.Request(url,data=data,headers=headers or {})
-    with urllib.request.urlopen(req,timeout=25) as r: return json.load(r)
+    with urllib.request.urlopen(req,timeout=timeout) as r: return json.load(r)
 
 def telegram(token,method,params):
-    return _request(API.format(token=token,method=method),data=urllib.parse.urlencode(params).encode())
+    result=_request(API.format(token=token,method=method),data=urllib.parse.urlencode(params).encode(),
+                    timeout=max(25,int(params.get('timeout',0))+15))
+    if not result.get('ok'):
+        raise RuntimeError(f'Telegram {method} failed')
+    return result
 
 BOT_COMMANDS = [
     {'command':'start','description':'Select depot and open the APSRTC menu'},
@@ -99,7 +103,7 @@ def month_keyboard(depot, action="monthlyrun"):
     y,m=today.year,today.month
     for _ in range(6):
         value=f"{y:04d}-{m:02d}"
-        months.append([{"text":value,"callback_data":f"{action}|{depot}|{value}"}])
+        months.append([{"text":date(y,m,1).strftime('%B %Y'),"callback_data":f"{action}|{depot}|{value}"}])
         m-=1
         if m==0: m=12;y-=1
     return months
@@ -263,17 +267,29 @@ def handle_callback(token,chat_id,cq):
     if len(parts)==4 and parts[0]=="etype" and parts[1] in DEPOTS:
         depot,vehicle,event_type=parts[1],normalize_vehicle(parts[2]),parts[3]
         today=today_ist().isoformat()
-        keyboard=[[{"text":"Today — "+today,"callback_data":f"edate|{depot}|{vehicle}|{event_type}|{today}"}]]
-        send(token,chat_id,f"{event_type} — select Event Date:",keyboard); return
+        keyboard=[[{"text":(today_ist()-timedelta(days=i)).strftime('%d %b %Y'),
+                    "callback_data":f"edate|{depot}|{vehicle}|{event_type}|{(today_ist()-timedelta(days=i)).isoformat()}"}] for i in range(7)]
+        send(token,chat_id,f"Depot: {depot}\nVehicle: {vehicle}\n{event_type} — select Event Date (IST):",keyboard); return
     if len(parts)==5 and parts[0]=="edate" and parts[1] in DEPOTS:
+        try:
+            if date.fromisoformat(parts[4])>today_ist(): raise ValueError()
+        except ValueError:
+            send(token,chat_id,'Invalid event date.',main_menu()); return
         send(token,chat_id,event_detail_prompt(parts[1],normalize_vehicle(parts[2]),parts[3],parts[4]),force_reply=True); return
     if len(parts)==2 and parts[0]=="daily" and parts[1] in DEPOTS:
         depot=parts[1]
-        keyboard=[
-          [{"text":"▶ Latest completed day","callback_data":f"dailyrun|{depot}|latest"}],
-          [{"text":"⬅ Back to depots","callback_data":"menu|daily"}],
-        ]
-        send(token,chat_id,f"Daily Report — {depot}\nChoose report date:",keyboard); return
+        keyboard=[[{'text':(today_ist()-timedelta(days=i)).strftime('%d %b %Y'),
+                    'callback_data':f'dailyrun|{depot}|{(today_ist()-timedelta(days=i)).isoformat()}'}] for i in range(1,8)]
+        keyboard.append([{'text':'Back to depot options','callback_data':f'depot|{depot}'}])
+        send(token,chat_id,f"Daily Report — {depot}\nChoose completed report date (IST):",keyboard); return
+    if len(parts)==3 and parts[0]=='dailyrun' and parts[1] in DEPOTS and parts[2]!='latest':
+        try:
+            chosen=date.fromisoformat(parts[2])
+            if chosen>=today_ist(): raise ValueError()
+        except ValueError:
+            send(token,chat_id,'Select a completed date before today.',main_menu()); return
+        dispatch('daily-report.yml',{'depot':parts[1],'report_date':chosen.isoformat()})
+        send(token,chat_id,f'Daily report requested\nDepot: {parts[1]}\nReport date: {chosen:%d %B %Y}\nThe report will be delivered when generation finishes.',depot_actions(parts[1])); return
     if len(parts)==3 and parts[0]=="dailyrun" and parts[1] in DEPOTS and parts[2]=="latest":
         depot=parts[1]
         dispatch("daily-report.yml",{"depot":depot,"report_date":""})
@@ -291,12 +307,13 @@ def handle_callback(token,chat_id,cq):
         send(token,chat_id,f"⏳ Monthly report requested for {depot} — {month}.",main_menu()); return
     send(token,chat_id,"That menu option is no longer valid. Open /menu again.",main_menu())
 
-def main():
+def main(payload=None):
     token=os.environ["TELEGRAM_BOT_TOKEN"].strip()
     authorized=os.environ["TELEGRAM_CHAT_ID"].strip()
-    payload=telegram(token,"getUpdates",{
-        "timeout":0,"limit":100,
-        "allowed_updates":json.dumps(["message","callback_query"])})
+    if payload is None:
+        payload=telegram(token,"getUpdates",{
+            "timeout":0,"limit":100,
+            "allowed_updates":json.dumps(["message","callback_query"])})
     updates=payload.get("result",[])
     max_update=0
     for update in updates:
