@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   commands:
-    if: vars.TELEGRAM_LISTENER_MODE != 'service'
+    if: vars.TELEGRAM_LISTENER_MODE != 'service' && vars.TELEGRAM_LISTENER_MODE != 'webhook'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
