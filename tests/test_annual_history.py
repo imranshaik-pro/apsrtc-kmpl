@@ -75,6 +75,22 @@ class HistoryTests(unittest.TestCase):
         h.update(self.cache,['2026-27'],'2026-06',lambda *_:{'HSD KMPL INCL AC':{'month':None,'upto':h.MANUAL}})
         self.assertEqual(self.cache,old)
 
+    def test_legacy_engine_cache_repairs_new_source_rows_once(self):
+        # A pre-repair cache may look complete for its old engine names while
+        # the APSRTC page has introduced a different exact source row name.
+        self.cache['dynamic_repairs'].pop('ENGINE')
+        self.cache['months']['2026-04']={'ENGINE':{
+            'ENGINE: Old Engine': {'month':'5.0', 'upto':'5.1'}}}
+        def fetched(group, period):
+            self.assertEqual(group, 'ENGINE')
+            return {
+                'ENGINE: Old Engine': {'month':'5.0', 'upto':'5.1'},
+                'ENGINE: New Engine': {'month':'5.2', 'upto':'5.3'},
+            }
+        h.update(self.cache,['2026-27'],'2026-04',fetched)
+        self.assertIn('ENGINE: New Engine', self.cache['months']['2026-04']['ENGINE'])
+        self.assertEqual(self.cache['dynamic_repairs']['ENGINE'], h.ENGINE_REPAIR_VERSION)
+
     def test_existing_workbook_migration_with_no_meta_and_ragged_rows(self):
         values=[['APSRTC RAJAMPET'],['ANNUAL KPI — Through June 2026'],[],[],
                 ['SL.No','KPI','Year','Target'],

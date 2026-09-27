@@ -8,6 +8,7 @@ from datetime import datetime
 CACHE_TITLE = '_ANNUAL_HISTORY'
 SCHEMA = 'annual-history-1'
 MANUAL = 'MANUAL INPUT REQUIRED'
+ENGINE_REPAIR_VERSION = 'engine-rowset-v1'
 MONTHS = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar']
 GROUPS = {
     'HSD': ['HSD KMPL INCL AC','HSD KMPL EXCL AC'],
@@ -29,7 +30,11 @@ def good(value):
     return value is not None and str(value).strip() not in ('', MANUAL, 'MANUAL')
 
 def new_cache(depot):
-    return dict(schema=SCHEMA, depot=depot, months={}, targets={}, target_attempts=[], legacy=[])
+    # A newly created cache does not need the one-time legacy row-set repair.
+    # Existing caches without this marker are repaired on their next run.
+    return dict(schema=SCHEMA, depot=depot, months={}, targets={},
+                target_attempts=[], legacy=[],
+                dynamic_repairs={'ENGINE': ENGINE_REPAIR_VERSION})
 
 def encode(cache):
     raw = json.dumps(cache, ensure_ascii=True, separators=(',',':'), allow_nan=False)
@@ -45,6 +50,7 @@ def decode(rows, depot):
     cache=json.loads(raw)
     if cache.get('schema')!=SCHEMA or cache.get('depot')!=depot:
         raise ValueError('History identity mismatch')
+    cache.setdefault('dynamic_repairs', {})
     return cache
 
 def group_for(name):
@@ -89,6 +95,12 @@ def complete(data, group, field):
 def update(cache, fys, selected, fetch, checkpoint=lambda:None):
     """Fetch only missing groups; never replace saved numbers with failed fetches."""
     calls=0
+    repairs=cache.setdefault('dynamic_repairs', {})
+    # Older caches were built before engine row identities were stable. Force a
+    # one-time source refresh so newly observed historical engine rows are added
+    # without merging them into another engine type.
+    engine_repair = repairs.get('ENGINE') != ENGINE_REPAIR_VERSION
+    repair_ok = engine_repair
     for fy in fys:
         wanted=[p for p in periods(fy) if p<=selected]
         for period in wanted:
@@ -100,19 +112,25 @@ def update(cache, fys, selected, fetch, checkpoint=lambda:None):
                     continue
                 missing_month=not complete(data,group,'month')
                 missing_upto=need_upto and not complete(data,group,'upto')
-                if not (missing_month or missing_upto): continue
+                force_refresh = group == 'ENGINE' and engine_repair
+                if not (force_refresh or missing_month or missing_upto): continue
                 calls+=1
                 print(f'HISTORY FETCH {period} {group}: missing source values')
                 try: fetched=fetch(group,period)
                 except Exception as exc:
+                    if force_refresh: repair_ok = False
                     print(f'HISTORY SOURCE FAILED {period} {group}: preserving saved values: {exc}')
                     continue
+                if force_refresh and not fetched:
+                    repair_ok = False
                 for name,pair in (fetched or {}).items():
                     if group_for(name)!=group: continue
                     old=data.setdefault(name,{})
                     for field in ('month','upto'):
                         if not good(old.get(field)) and good(pair.get(field)): old[field]=pair[field]
             checkpoint()
+    if engine_repair and repair_ok:
+        repairs['ENGINE'] = ENGINE_REPAIR_VERSION
     print(f'HISTORY SOURCE GROUP REQUESTS: {calls}')
     return calls
 
