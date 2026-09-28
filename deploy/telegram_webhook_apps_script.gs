@@ -56,9 +56,10 @@ function removeTelegramWebhook() {
 function configureCommands_() {
   const props = getProps_();
   const scope = JSON.stringify({ type: 'chat', chat_id: props.TELEGRAM_CHAT_ID });
+  // Omit language_code for Telegram's default command set. An explicitly
+  // empty language_code is rejected with HTTP 400.
   telegram_('setMyCommands', {
     scope,
-    language_code: '',
     commands: JSON.stringify(BOT_COMMANDS),
   });
   telegram_('setMyCommands', {
@@ -574,3 +575,4 @@ function financialYear_(month) {
 function safeError_(err) {
   return String(err && err.message ? err.message : err).replace(/bot[0-9]+:[A-Za-z0-9_-]+/g, 'bot<redacted>');
 }
+
