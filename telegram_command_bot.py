@@ -22,7 +22,15 @@ DEPOTS=tuple(d.strip().upper() for d in os.getenv("DEPOT_MASTER","").split("|") 
 
 def _request(url, *, data=None, headers=None, timeout=25):
     req=urllib.request.Request(url,data=data,headers=headers or {})
-    with urllib.request.urlopen(req,timeout=timeout) as r: return json.load(r)
+    try:
+        with urllib.request.urlopen(req,timeout=timeout) as r: return json.load(r)
+    except HTTPError as exc:
+        # Telegram's HTTP status alone is not actionable (for example, 400
+        # may mean chat not found, invalid bot scope, or malformed credentials).
+        # Preserve the API response in the workflow log without exposing the
+        # bot token, so configuration can be corrected without blind retries.
+        body=exc.read().decode('utf-8',errors='replace').strip()
+        raise RuntimeError(f'Telegram API HTTP {exc.code}: {body or exc.reason}') from exc
 
 def telegram(token,method,params):
     result=_request(API.format(token=token,method=method),data=urllib.parse.urlencode(params).encode(),
