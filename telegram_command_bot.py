@@ -45,8 +45,12 @@ BOT_COMMANDS = [
 def configure_commands(token,chat_id):
     """Register and read back commands for the authorized chat; no messages/events."""
     scope=json.dumps({'type':'chat','chat_id':chat_id})
-    for language in ('','en'):
-        params={'scope':scope,'language_code':language}
+    for language in (None,'en'):
+        # Telegram accepts an omitted language_code for the default command
+        # set, but rejects an explicitly empty language_code with HTTP 400.
+        params={'scope':scope}
+        if language:
+            params['language_code']=language
         result=telegram(token,'setMyCommands',{**params,'commands':json.dumps(BOT_COMMANDS)})
         if not result.get('ok') or result.get('result') is not True:
             raise RuntimeError('Telegram command registration failed')
@@ -370,3 +374,4 @@ if __name__=="__main__":
         configure_commands(os.environ['TELEGRAM_BOT_TOKEN'].strip(),os.environ['TELEGRAM_CHAT_ID'].strip())
     else:
         main()
+

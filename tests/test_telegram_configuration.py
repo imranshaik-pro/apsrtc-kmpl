@@ -15,6 +15,8 @@ class ConfigurationTests(unittest.TestCase):
         with patch.object(bot,'telegram',side_effect=api): bot.configure_commands('test','123')
         self.assertEqual([m for m,_ in calls],['setMyCommands','getMyCommands','setMyCommands','getMyCommands','setChatMenuButton'])
         self.assertEqual(json.loads(calls[0][1]['scope']),{'type':'chat','chat_id':'123'})
+        self.assertNotIn('language_code', calls[0][1])
+        self.assertEqual(calls[2][1]['language_code'], 'en')
 
     def test_failed_readback_is_not_reported_as_success(self):
         def api(token,method,params):
@@ -28,3 +30,4 @@ class ConfigurationTests(unittest.TestCase):
         self.assertNotIn('setChatMenuButton',[c.args[1] for c in api.call_args_list])
 
 if __name__=='__main__': unittest.main()
+
