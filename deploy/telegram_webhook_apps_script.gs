@@ -36,6 +36,7 @@ function doPost(e) {
 
 function setupTelegramWebhook() {
   const props = getProps_();
+  if (!props.WEBHOOK_URL) throw new Error('Missing script property: WEBHOOK_URL');
   configureCommands_();
   telegram_('setWebhook', {
     url: props.WEBHOOK_URL,
@@ -478,7 +479,7 @@ function telegram_(method, params) {
   });
   const body = JSON.parse(response.getContentText() || '{}');
   if (response.getResponseCode() >= 300 || body.ok === false) {
-    throw new Error('Telegram ' + method + ' failed: HTTP ' + response.getResponseCode());
+    throw new Error('Telegram ' + method + ' failed: HTTP ' + response.getResponseCode() + ' — ' + safeError_(body.description || response.getContentText()));
   }
   return body;
 }
