@@ -176,6 +176,11 @@ def populate_targets(st, s, display, vehicle, region, sy, sm):
 def matrix_with_target(st):
     m.reorder(st); ensure_target_slots(st)
     headers = ["SL.No", "KPI", "Year", "Target"] + m.MONTHS + ["", "Upto"]
+    # Keep the Upto column explicit when APSRTC has no cumulative value for a
+    # retained historical/source row.  A blank is ambiguous in a printed KPI
+    # report and was being mistaken for a failed fetch.  The dash means the
+    # source value is unavailable; it is never treated as zero or backfilled.
+    missing_upto = "—"
     out = [headers]
     serial = 0
     for name in st["order"]:
@@ -190,7 +195,7 @@ def matrix_with_target(st):
                 target if target is not None else "",
                 *[v["months"].get(mon, "") for mon in m.MONTHS],
                 "",
-                v["upto"] if v["upto"] is not None else "",
+                v["upto"] if v["upto"] is not None else missing_upto,
             ])
     return out
 
@@ -319,3 +324,4 @@ def main():
 if __name__=="__main__":
     try: sys.exit(main())
     except Exception as exc: print(f"ANNUAL_KPI_FAILURE: {exc}"); raise
+
