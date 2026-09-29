@@ -22,11 +22,8 @@ MONTHS=["Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec","Jan","Feb","Mar"]
 HEADERS=["KPI","Year"]+MONTHS+["","Upto"]
 FIXED=["HSD KMPL INCL AC","HSD KMPL EXCL AC","TOTAL LUB KMPL","B.D RATE","MED CANCL.","SPRING CONS","AVG TYRE LIFE","NEW TYRE LIFE","RC TYRE LIFE","N.T.S RATE","Ist RC S Rate","TTL SCP Rate","RT Factor"]
 TYRE=FIXED[-7:]
-# Website depot codes are deliberately separate from vehicle/PDF codes.
-# The portal route is queried with blank zone and region filters.
 TYRE_SITE={
 "BADVEL":("BDV","KADAPA(KDP ZONE)","DPTO YSR KADAPA"),"JAMMALAMADUGU":("JMD","KADAPA(KDP ZONE)","DPTO YSR KADAPA"),"KADAPA":("KDP","KADAPA(KDP ZONE)","DPTO YSR KADAPA"),"MYDUKUR":("MYD","KADAPA(KDP ZONE)","DPTO YSR KADAPA"),"PRODDUTUR":("PDT","KADAPA(KDP ZONE)","DPTO YSR KADAPA"),"PULIVENDULA":("PVD","KADAPA(KDP ZONE)","DPTO YSR KADAPA"),"RAJAMPET":("RJP","KADAPA(KDP ZONE)","DPTO YSR KADAPA")}
-PDF_DEPOT_CODE={"BADVEL":"BDVL","JAMMALAMADUGU":"JMD","KADAPA":"KDP","MYDUKUR":"MYDK","PRODDUTUR":"PDTR","PULIVENDULA":"PVL","RAJAMPET":"RJPT"}
 REPORTS=Path(__file__).resolve().parent/"reports"; REPORTS.mkdir(exist_ok=True)
 
 def n(v): return core.norm(v)
@@ -69,21 +66,60 @@ def fetch_hsd(s,d,v,r,y,m):
     nf=idxs(h,["WITHOUT AC KMPL","FOR"]); nu=idxs(h,["WITHOUT AC KMPL","UP TO"])
     return {"HSD KMPL INCL AC":{"month":at(row,wf[0] if wf else None),"upto":at(row,wu[0] if wu else None)},"HSD KMPL EXCL AC":{"month":at(row,nf[0] if nf else None),"upto":at(row,nu[0] if nu else None)}}
 
+def _expanded_dimension_cells(tr):
+    """Return direct row cells with HTML colspans expanded.
+
+    APSRTC has used two slightly different table layouts for Product/Engine
+    reports.  One layout puts the current-month and cumulative columns at
+    positions 3 and 6; another adds a grouped header/colspan and shifts the
+    cumulative value.  Expanding the row cells lets the parser use the same
+    column indexes as the header instead of silently reading the wrong cell.
+    """
+    cells=[]
+    for cell in tr.find_all(["td","th"],recursive=False):
+        text=cell.get_text(" ",strip=True)
+        try: span=max(1,int(cell.get("colspan","1") or 1))
+        except (TypeError,ValueError): span=1
+        cells.extend([text]*span)
+    return cells
+
+def _dimension_indexes(table):
+    """Find body-column indexes from the report header when available."""
+    month_i=upto_i=None
+    for tr in table.find_all("tr"):
+        cells=_expanded_dimension_cells(tr)
+        joined=n(" ".join(cells))
+        if "FOR THE MONTH" not in joined and "UP TO THE MONTH" not in joined and "UPTO THE MONTH" not in joined:
+            continue
+        for i,cell in enumerate(cells):
+            text=n(cell)
+            if month_i is None and "FOR THE MONTH" in text and "CY" in text:
+                month_i=i
+            if upto_i is None and ("UP TO THE MONTH" in text or "UPTO THE MONTH" in text) and "CY" in text:
+                upto_i=i
+        if month_i is not None and upto_i is not None:
+            break
+    # Preserve the established APSRTC layout as a safe fallback when the
+    # portal emits grouped headers without repeating their labels on the body.
+    return (3 if month_i is None else month_i, 6 if upto_i is None else upto_i)
+
 def direct_dimension_rows(html,label,prefix):
-    # These APSRTC pages have a stable body layout: SNO, PRODUCT/ENGINE TYPE, BUSES/HELD,
-    # FOR MONTH CY, LY, VAR, UPTO CY, LY, VAR. Parse body rows directly to avoid colspan header drift.
+    # The usual body layout is SNO, PRODUCT/ENGINE TYPE, BUSES/HELD,
+    # FOR MONTH CY, LY, VAR, UPTO CY, LY, VAR.  Header-derived indexes are
+    # preferred so Proddatur's alternate grouped table does not lose Upto.
     soup=BeautifulSoup(html,"html.parser"); out={}
     for table in soup.find_all("table"):
         text=n(table.get_text(" ",strip=True))
         if n(label) not in text or "FOR THE MONTH" not in text or "UP TO THE MONTH" not in text: continue
+        month_i,upto_i=_dimension_indexes(table)
         for tr in table.find_all("tr"):
-            cells=[c.get_text(" ",strip=True) for c in tr.find_all(["td"],recursive=False)]
-            if len(cells)<7: continue
+            cells=_expanded_dimension_cells(tr)
+            if len(cells)<=max(1,month_i,upto_i): continue
             name=cells[1].strip()
             if not name or n(name) in {"TOTAL","GRAND TOTAL"}: continue
             # Defensive rule: source dimension names must contain letters; numeric totals/held counts are never names.
             if not re.search(r"[A-Za-z]",name): continue
-            mv=num(cells[3]); uv=num(cells[6])
+            mv=num(cells[month_i]); uv=num(cells[upto_i])
             out[f"{prefix}: {name}"]={"month":mv,"upto":uv}
     return out
 
@@ -160,23 +196,16 @@ def tyre_values(h,row):
     rv=lambda a:core.row_value(h,row,a)
     return {"N.T.S RATE":rv(["NEW TYRE %","NEW %"]),"TTL SCP Rate":rv(["TOTAL %"]),"RC TYRE LIFE":rv(["RC_MILEAGE","RC MILEAGE"]),"AVG TYRE LIFE":rv(["AVG_TOTAL MILEAGE","AVG TOTAL MILEAGE"]),"Ist RC S Rate":rv(["IST RC %"]),"RT Factor":rv(["RT_FACTOR","RT FACTOR"]),"NEW TYRE LIFE":rv(["NEW MILEAGE"])}
 def tyre_site_info(d,y,m):
-    """Return a stable tyre portal code for any depot in the central master.
-
-    Known KDP-zone depots use the portal's short website code. For every
-    other depot, derive the portal code from depot_mapping.json rather than
-    failing because a new depot was not added to this table. The request
-    uses blank zone/region filters, so Rajampet's Jan-2026 district change
-    cannot redirect the query to the wrong district.
-    """
+    """Return the date-effective tyre portal route for a depot."""
     key=n(d)
     info=TYRE_SITE.get(key)
-    if info:
-        return info
-    try:
-        vehicle, _display, _region = core.depot_info(d)
-    except Exception as exc:
-        raise RuntimeError(f"No tyre mapping for {d}") from exc
-    return (vehicle.split("/",1)[0], "", "")
+    if not info: raise RuntimeError(f"No tyre mapping for {d}")
+    # Rajampet was under DPTO ANNAMAYYA through Dec-2025 and moved back to
+    # DPTO YSR KADAPA from Jan-2026. The depot code remains RJP.
+    # Zone/region are retained as metadata only; tyre_page queries All Zones and
+    # All Regions and identifies history solely through the depot code.
+    return info
+
 def tyre_page(s,path,d,y,m):
     """Fetch tyres by depot across All Zones / All Regions.
 
@@ -224,10 +253,7 @@ def tyre_pdf_fallback(s,d,y,m):
     mon=datetime(y,m,1).strftime("%b").lower(); url=f"{core.MED_BASE}/trs_booklet/2024-25/{mon}-{y}.pdf"
     rr=s.get(url,timeout=60); rr.raise_for_status()
     if not rr.content.startswith(b"%PDF"): raise RuntimeError("TRS booklet is not a PDF")
-    code=PDF_DEPOT_CODE.get(n(d))
-    if not code:
-        raise RuntimeError(f"No FY2024-25 booklet code for {d}")
-    monthly={}; upto={}
+    code=TYRE_SITE[n(d)][0]; monthly={}; upto={}
     with pdfplumber.open(io.BytesIO(rr.content)) as pdf:
         for page in pdf.pages:
             ptxt=n(page.extract_text() or "")
