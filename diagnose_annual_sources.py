@@ -198,6 +198,15 @@ def print_engine(session,y,mo):
 def print_engine_candidates(session,y,mo):
     print(f'\n=== ENGINE CANDIDATE ENDPOINTS {y:04d}-{mo:02d} ===')
     candidates=['engkmpl.php','engkmpl_dpt.php','engkmpl_rpt.php','enginekmpl_um.php','enginekmpl.php']
+    print('REGION VARIANT CHECK:')
+    for reg in ('YSRKADAPA','KADAPA','ANNAMAYYA',''):
+        try:
+            vr=session.post(f"{m.core.MEDNEW_BASE}/engkmpl_um.php",data={"yymm":m.token(y,mo),"reg":reg,"dept":DISPLAY},timeout=30)
+            vt=' '.join(BeautifulSoup(vr.text,'html.parser').get_text(' ',strip=True).split()).upper()
+            legacy=[n for n in ('EICHER-BS-III','EURO-3','INDRA NEW','TA-1510','TA-BS-IV','EICHER BS-III LATEST','TATA BS-III NRE SPIN') if n in vt]
+            print('REGION',reg or '<blank>','status=',vr.status_code,'bytes=',len(vr.text),'legacy_names=',legacy)
+        except Exception as e:
+            print('REGION',reg or '<blank>','ERROR=',repr(e))
     data={"yymm":m.token(y,mo),"reg":REGION,"dept":DISPLAY}
     for path in candidates:
         try:
