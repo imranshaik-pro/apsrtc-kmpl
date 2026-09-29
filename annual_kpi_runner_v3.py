@@ -386,3 +386,5 @@ def main():
     format_sheet(sid,mat,fys); ensure_hidden_sheet(sid,META_TITLE); write_values(sid,f"'{META_TITLE}'!A1",[["KEY","VALUE"],["DEPOT",display],["FYS",','.join(fys)],["LAST_SELECTED_MONTH",a.selected_month],["LAYOUT_VERSION","3"]])
     print(f"ANNUAL_KPI_DASHBOARD_SUCCESS: {link}"); print(f"GOOGLE_SHEET_ID: {sid}"); return 0
 if __name__=="__main__":
+    try: sys.exit(main())
+    except Exception as exc: print(f"ANNUAL_KPI_FAILURE: {exc}"); raise
