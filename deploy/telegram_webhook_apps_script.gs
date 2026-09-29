@@ -76,6 +76,62 @@ function removeTelegramWebhook() {
   return result;
 }
 
+/**
+ * Reliable cloud fallback: poll Telegram from Apps Script every minute.
+ * This removes dependence on GitHub's delayed/omitted scheduled runs.
+ */
+function installTelegramPollingTrigger() {
+  removeTelegramWebhook();
+  const triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(trigger => {
+    if (trigger.getHandlerFunction() === 'pollTelegram') {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+  const props = PropertiesService.getScriptProperties();
+  props.deleteProperty('LAST_UPDATE_ID');
+  props.deleteProperty('POLL_OFFSET');
+  props.deleteProperty('LAST_WEBHOOK_STATUS');
+  ScriptApp.newTrigger('pollTelegram').timeBased().everyMinutes(1).create();
+  pollTelegram();
+  return 'Telegram polling trigger installed (every minute).';
+}
+
+function pollTelegram() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(25000);
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const offset = Number(props.getProperty('POLL_OFFSET') || '0');
+    const result = telegram_('getUpdates', {
+      offset: String(offset),
+      limit: '100',
+      timeout: '0',
+      allowed_updates: JSON.stringify(['message', 'callback_query']),
+    });
+    const updates = result.result || [];
+    let nextOffset = offset;
+    updates.forEach(update => {
+      const updateId = Number(update.update_id);
+      if (!isFinite(updateId) || updateId < nextOffset) return;
+      nextOffset = Math.max(nextOffset, updateId + 1);
+      try {
+        handleUpdate_(update);
+        log_('TELEGRAM_POLL_PROCESSED update_id=' + String(updateId));
+      } catch (err) {
+        log_('TELEGRAM_POLL_UPDATE_FAILED update_id=' + String(updateId) + ': ' + safeError_(err));
+      }
+    });
+    props.setProperty('POLL_OFFSET', String(nextOffset));
+    const status = 'TELEGRAM_POLL_OK updates=' + updates.length + ' next_offset=' + nextOffset;
+    setWebhookStatus_(status);
+    log_(status);
+    return status;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function configureCommands_() {
   const props = getProps_();
   const scope = JSON.stringify({ type: 'chat', chat_id: props.TELEGRAM_CHAT_ID });
