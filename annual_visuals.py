@@ -59,15 +59,19 @@ def dashboard_model(display, fys, mat, selected):
     cell(0,0,"APSRTC  ANNUAL KPI",cs=18,fill=NAVY,color="FFFFFF",size=20,bold=True)
     cell(1,0,f"{display} DEPOT    Reporting through {period}",cs=18,size=14,bold=True)
     cell(2,0,f"FY {fys[0]} and {fys[1]}: full-year Upto     FY {current}: April–{endmon} YTD",cs=18,size=10)
-    cards=[("HSD KMPL EXCL AC","HSD EXCL. AC · YTD KMPL",BLUE),
+    # Keep both HSD measures visible: they are separate source KPIs and must
+    # never be merged into a single card. Four equal cards fit the 18-column
+    # dashboard without pushing content into the hidden chart-source columns.
+    cards=[("HSD KMPL INCL AC","HSD INCL. AC · YTD KMPL",BLUE),
+           ("HSD KMPL EXCL AC","HSD EXCL. AC · YTD KMPL",BLUE),
            ("AVG TYRE LIFE","AVERAGE TYRE LIFE · YTD LAKH KM",PURPLE),
            ("B.D RATE","BREAKDOWN RATE · YTD",ORANGE)]
     for i,(key,label,color) in enumerate(cards):
-        col=i*6
+        col=i*4
         val=number(data.get(key,{}).get(current,[""]*18)[17])
-        cell(4,col,label,cs=5,fill=color,color="FFFFFF",bold=True,size=10)
-        cell(5,col,"Not available" if val is None else val,rs=2,cs=5,fill=PALE,color=color,size=24,bold=True,align="center")
-        cell(7,col,f"FY {current} through {endmon}",cs=5,fill=PALE,size=10,align="center")
+        cell(4,col,label,cs=4,fill=color,color="FFFFFF",bold=True,size=10)
+        cell(5,col,"Not available" if val is None else val,rs=2,cs=4,fill=PALE,color=color,size=20,bold=True,align="center")
+        cell(7,col,f"FY {current} through {endmon}",cs=4,fill=PALE,size=9,align="center")
     cell(9,0,"KPI summary",cs=7,size=13,bold=True)
     cell(10,0,"KPI / parameter",cs=4,fill=NAVY,color="FFFFFF",bold=True)
     for i,fy in enumerate(fys):
