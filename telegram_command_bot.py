@@ -42,6 +42,7 @@ def telegram(token,method,params):
 BOT_COMMANDS = [
     {'command':'start','description':'Select depot and open the APSRTC menu'},
     {'command':'menu','description':'Select depot, then report or vehicle event'},
+    {'command':'report','description':'Guided depot and report request'},
     {'command':'daily','description':'Request the latest completed daily report'},
     {'command':'monthly','description':'Select depot and reporting month'},
     {'command':'annual','description':'Select depot and Annual KPI reporting month'},
@@ -194,6 +195,44 @@ def confirmation_text(payload):
 def main_menu():
     return depot_keyboard('depot')
 
+def report_actions(depot):
+    return [
+        [{'text':'Daily Report','callback_data':f'reportdaily|{depot}'},
+         {'text':'Monthly Report','callback_data':f'reportmonthly|{depot}'}],
+        [{'text':'Annual KPI','callback_data':f'reportannual|{depot}'}],
+        [{'text':'Change depot','callback_data':'report|depots'}],
+    ]
+
+def report_review_keyboard(kind, depot, period):
+    return [[
+        {'text':'✅ SUBMIT','callback_data':f'reportsubmit|{kind}|{depot}|{period}'},
+        {'text':'CANCEL','callback_data':'reportcancel'}
+    ]]
+
+def report_review_text(kind, depot, period):
+    label={'daily':'DAILY REPORT','monthly':'MONTHLY REPORT','annual':'ANNUAL KPI'}[kind]
+    field='Date' if kind=='daily' else 'Month'
+    return f'REPORT REQUEST\\nDepot: {depot}\\nReport: {label}\\n{field}: {period}\\n\\nPress SUBMIT to start processing or CANCEL.'
+
+def report_date_keyboard(depot):
+    today=today_ist()
+    rows=[[{'text':(today-timedelta(days=i)).strftime('%d %b %Y'),
+            'callback_data':f'reportd|{depot}|{(today-timedelta(days=i)).isoformat()}'}] for i in range(1,8)]
+    rows.append([{'text':'Back to report type','callback_data':f'reportdepot|{depot}'}])
+    return rows
+
+def report_month_keyboard(depot, kind):
+    today=today_ist()
+    rows=[]
+    y,m=today.year,today.month
+    for _ in range(6):
+        value=f'{y:04d}-{m:02d}'
+        rows.append([{'text':date(y,m,1).strftime('%B %Y'),
+                      'callback_data':f'reportm|{kind}|{depot}|{value}'}])
+        m-=1
+        if m==0: m=12; y-=1
+    return rows
+
 def depot_actions(depot):
     return [
         [{'text':'Daily Report','callback_data':f'daily|{depot}'},
@@ -225,6 +264,30 @@ def handle_message(token,chat_id,text):
         send(token,chat_id,help_text(),main_menu()); return
     if cmd=="/status":
         send(token,chat_id,"✅ APSRTC automation bot is online.\nAuthorized chat verified.",main_menu()); return
+    if cmd=="/report":
+        if len(parts) >= 4:
+            depot,kind,period=parts[1].upper(),parts[2].lower(),parts[3]
+            if depot not in DEPOTS or kind not in ("daily","monthly","annual"):
+                send(token,chat_id,"Use /report DEPOT DAILY YYYY-MM-DD SUBMIT (or /report for guided options).",main_menu()); return
+            if kind=="daily":
+                try:
+                    chosen=date.fromisoformat(period)
+                    if chosen==today_ist(): chosen=today_ist()-timedelta(days=1)
+                    if chosen>=today_ist(): raise ValueError()
+                    period=chosen.isoformat()
+                except ValueError:
+                    send(token,chat_id,"Daily date must be YYYY-MM-DD and completed.",main_menu()); return
+            else:
+                try:
+                    selected=datetime.strptime(period,"%Y-%m")
+                    if period==today_ist().strftime("%Y-%m"):
+                        selected=(selected.replace(day=1)-timedelta(days=1))
+                        period=selected.strftime("%Y-%m")
+                    if period>today_ist().strftime("%Y-%m"): raise ValueError()
+                except ValueError:
+                    send(token,chat_id,"Month must be YYYY-MM.",main_menu()); return
+            send(token,chat_id,report_review_text(kind,depot,period),report_review_keyboard(kind,depot,period)); return
+        send(token,chat_id,"Select depot for your report request:",depot_keyboard("reportdepot")); return
     if cmd=="/daily":
         send(token,chat_id,"Select depot for Daily Report:",depot_keyboard("daily")); return
     if cmd=="/monthly":
@@ -242,8 +305,35 @@ def handle_callback(token,chat_id,cq):
     cid=str(cq.get("id") or "")
     answer_callback(token,cid)
     parts=data.split("|")
-    if data=='menu|depots':
-        send(token,chat_id,'Select depot:',main_menu()); return
+    if data in ('menu|depots','report|depots'):
+        send(token,chat_id,'Select depot for your report request:',depot_keyboard('reportdepot')); return
+    if len(parts)==2 and parts[0]=='reportdepot' and parts[1] in DEPOTS:
+        send(token,chat_id,f'✅ Selected depot: {parts[1]}\\nChoose report type:',report_actions(parts[1])); return
+    if len(parts)==2 and parts[0]=='reportdaily' and parts[1] in DEPOTS:
+        send(token,chat_id,f'{parts[1]} — DAILY REPORT\\nSelect completed date:',report_date_keyboard(parts[1])); return
+    if len(parts)==2 and parts[0]=='reportmonthly' and parts[1] in DEPOTS:
+        send(token,chat_id,f'{parts[1]} — MONTHLY REPORT\\nSelect month:',report_month_keyboard(parts[1],'monthly')); return
+    if len(parts)==2 and parts[0]=='reportannual' and parts[1] in DEPOTS:
+        send(token,chat_id,f'{parts[1]} — ANNUAL KPI\\nSelect reporting month:',report_month_keyboard(parts[1],'annual')); return
+    if len(parts)==3 and parts[0]=='reportd' and parts[1] in DEPOTS:
+        send(token,chat_id,report_review_text('daily',parts[1],parts[2]),report_review_keyboard('daily',parts[1],parts[2])); return
+    if len(parts)==4 and parts[0]=='reportm' and parts[2] in DEPOTS:
+        send(token,chat_id,report_review_text(parts[1],parts[2],parts[3]),report_review_keyboard(parts[1],parts[2],parts[3])); return
+    if data=='reportcancel':
+        send(token,chat_id,'Request cancelled. Nothing was submitted.',main_menu()); return
+    if len(parts)==4 and parts[0]=='reportsubmit' and parts[1] in ('daily','monthly','annual') and parts[2] in DEPOTS:
+        kind,depot,period=parts[1],parts[2],parts[3]
+        if kind=='daily':
+            dispatch('daily-report.yml',{'depot':depot,'report_date':period})
+            label=f'DAILY REPORT\\nDepot: {depot}\\nDate: {period}'
+        elif kind=='monthly':
+            dispatch('monthly-report.yml',{'depot':depot,'month':period})
+            label=f'MONTHLY REPORT\\nDepot: {depot}\\nMonth: {period}'
+        else:
+            start=int(period[:4]) if int(period[5:])>=4 else int(period[:4])-1
+            dispatch('annual-kpi.yml',{'depot':depot,'selected_month':period,'financial_years':f'{start}-{str(start+1)[-2:]}'})
+            label=f'ANNUAL KPI\\nDepot: {depot}\\nMonth: {period}'
+        send(token,chat_id,'⏳ REQUEST SUBMITTED\\n'+label+'\\nStatus: Processing...',depot_actions(depot)); return
     if len(parts)==2 and parts[0]=='depot' and parts[1] in DEPOTS:
         send(token,chat_id,f'Depot: {parts[1]}\nChoose an action:',depot_actions(parts[1])); return
     if len(parts)==2 and parts[0]=='vehicle' and parts[1] in DEPOTS:
