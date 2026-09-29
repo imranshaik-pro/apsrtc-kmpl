@@ -180,6 +180,52 @@ function handleUpdate_(update) {
 }
 
 function handleMessage_(chatId, text) {
+  const parts = String(text || '').trim().split(/\\s+/);
+  const cmd = String((parts[0] || '').split('@')[0]).toLowerCase();
+
+  // Fast one-line report path:
+  // /report PRODDUTUR DAILY 2026-09-28 SUBMIT
+  if (cmd === '/report') {
+    if (parts.length < 5 || String(parts[4]).toUpperCase() !== 'SUBMIT') {
+      send_(chatId, 'Use one line exactly:\\n/report PRODDUTUR DAILY 2026-09-28 SUBMIT\\n\\nMonthly example:\\n/report PRODDUTUR MONTHLY 2026-08 SUBMIT\\nAnnual example:\\n/report PRODDUTUR ANNUAL 2026-06 SUBMIT');
+      return;
+    }
+    const depot = String(parts[1] || '').toUpperCase();
+    const kind = String(parts[2] || '').toUpperCase();
+    let period = String(parts[3] || '');
+    if (depots_().indexOf(depot) === -1) {
+      send_(chatId, 'Unknown depot: ' + depot + '. Use /menu to view configured depots.');
+      return;
+    }
+    if (kind === 'DAILY') {
+      if (period === todayIso_()) period = addDaysIso_(todayIso_(), -1);
+      if (!isCompletedDate_(period)) {
+        send_(chatId, 'Daily date must be YYYY-MM-DD and completed. Today automatically means yesterday.');
+        return;
+      }
+      dispatch_('daily-report.yml', { depot: depot, report_date: period });
+      send_(chatId, '⏳ REQUEST SUBMITTED\\n' + depot + ' — DAILY REPORT\\nDate: ' + period + '\\nStatus: Processing...');
+      return;
+    }
+    if (kind === 'MONTHLY' || kind === 'ANNUAL') {
+      if (period === currentMonth_()) period = previousMonth_(currentMonth_());
+      if (!isAllowedMonth_(period)) {
+        send_(chatId, 'Month must be YYYY-MM. Current month automatically means last month.');
+        return;
+      }
+      if (kind === 'MONTHLY') {
+        dispatch_('monthly-report.yml', { depot: depot, month: period });
+        send_(chatId, '⏳ REQUEST SUBMITTED\\n' + depot + ' — MONTHLY REPORT\\nMonth: ' + period + '\\nStatus: Processing...');
+      } else {
+        dispatch_('annual-kpi.yml', { depot: depot, selected_month: period, financial_years: financialYear_(period) });
+        send_(chatId, '⏳ REQUEST SUBMITTED\\n' + depot + ' — ANNUAL KPI\\nMonth: ' + period + '\\nStatus: Processing...');
+      }
+      return;
+    }
+    send_(chatId, 'Report type must be DAILY, MONTHLY, or ANNUAL.');
+    return;
+  }
+
   const state = getState_();
   if (state && !text.startsWith('/')) {
     handleStateMessage_(chatId, text, state);
