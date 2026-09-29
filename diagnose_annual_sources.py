@@ -169,69 +169,11 @@ def inspect_lub_contract(session,y,mo):
 
 
 
-def print_engine(session,y,mo):
-    print(f'\n=== ENGINE {y:04d}-{mo:02d} ===')
-    url=f"{m.core.MEDNEW_BASE}/engkmpl_um.php"
-    data={"yymm":m.token(y,mo),"reg":REGION,"dept":DISPLAY}
-    rr=session.post(url,data=data,timeout=45)
-    rr.raise_for_status()
-    soup=BeautifulSoup(rr.text,'html.parser')
-    print('ENGINE HTTP:',rr.status_code,'bytes=',len(rr.text),'url=',rr.url)
-    tables=0
-    for table in soup.find_all('table'):
-        text=' '.join(table.get_text(' ',strip=True).split())
-        if 'ENGINE TYPE' not in text.upper() and 'FOR THE MONTH' not in text.upper():
-            continue
-        tables += 1
-        print('ENGINE TABLE',tables,'header_indexes=',m._dimension_indexes(table))
-        for tr in table.find_all('tr'):
-            cells=m._expanded_dimension_cells(tr)
-            if len(cells) >= 2 and any(k in cells[1].upper() for k in ('EICHER','EURO-3','INDRA','TA-1510','TA-BS-IV','TATA BS-III NRE')):
-                print('ENGINE ROW:',cells)
-    try:
-        parsed=m.direct_dimension_rows(rr.text,'ENGINE TYPE','ENGINE')
-        print('ENGINE PARSED:',parsed)
-    except Exception as e:
-        print('ENGINE PARSE ERROR:',repr(e))
-
-
-def print_engine_candidates(session,y,mo):
-    print(f'\n=== ENGINE CANDIDATE ENDPOINTS {y:04d}-{mo:02d} ===')
-    candidates=['engkmpl.php','engkmpl_dpt.php','engkmpl_rpt.php','enginekmpl_um.php','enginekmpl.php']
-    print('DEPOT IDENTIFIER CHECK:')
-    for dept in ('PRODDUTUR','PDTR','PDT','PRODDATUR'):
-        try:
-            dr=session.post(f"{m.core.MEDNEW_BASE}/engkmpl_um.php",data={"yymm":m.token(y,mo),"reg":REGION,"dept":dept},timeout=30)
-            dt=' '.join(BeautifulSoup(dr.text,'html.parser').get_text(' ',strip=True).split()).upper()
-            legacy=[n for n in ('EICHER-BS-III','EURO-3','INDRA NEW','TA-1510','TA-BS-IV','EICHER BS-III LATEST','TATA BS-III NRE SPIN') if n in dt]
-            print('DEPOT',dept,'status=',dr.status_code,'bytes=',len(dr.text),'legacy_names=',legacy)
-        except Exception as e:
-            print('DEPOT',dept,'ERROR=',repr(e))
-    print('REGION VARIANT CHECK:')
-    for reg in ('YSRKADAPA','KADAPA','ANNAMAYYA',''):
-        try:
-            vr=session.post(f"{m.core.MEDNEW_BASE}/engkmpl_um.php",data={"yymm":m.token(y,mo),"reg":reg,"dept":DISPLAY},timeout=30)
-            vt=' '.join(BeautifulSoup(vr.text,'html.parser').get_text(' ',strip=True).split()).upper()
-            legacy=[n for n in ('EICHER-BS-III','EURO-3','INDRA NEW','TA-1510','TA-BS-IV','EICHER BS-III LATEST','TATA BS-III NRE SPIN') if n in vt]
-            print('REGION',reg or '<blank>','status=',vr.status_code,'bytes=',len(vr.text),'legacy_names=',legacy)
-        except Exception as e:
-            print('REGION',reg or '<blank>','ERROR=',repr(e))
-    data={"yymm":m.token(y,mo),"reg":REGION,"dept":DISPLAY}
-    for path in candidates:
-        try:
-            rr=session.post(f"{m.core.MEDNEW_BASE}/{path}",data=data,timeout=30)
-            text=' '.join(BeautifulSoup(rr.text,'html.parser').get_text(' ',strip=True).split())
-            names=[n for n in ('EICHER-BS-III','EURO-3','INDRA NEW','TA-1510','TA-BS-IV','EICHER BS-III LATEST','TATA BS-III NRE SPIN') if n in text.upper()]
-            print('CANDIDATE',path,'status=',rr.status_code,'bytes=',len(rr.text),'tables=',len(BeautifulSoup(rr.text,'html.parser').find_all('table')),'legacy_names=',names,'heading=',text[:120])
-        except Exception as e:
-            print('CANDIDATE',path,'ERROR=',repr(e))
 
 def main():
     s=login()
     print_hsd(s,2024,9)
     print_hsd(s,2025,1)
-    print_engine(s,2026,7)
-    print_engine_candidates(s,2026,7)
 
     # Known browser benchmark: PRODDUTUR May-2026 must be Monthly=1993, Upto=1829.
     matches=inspect_lub_contract(s,2026,5)
