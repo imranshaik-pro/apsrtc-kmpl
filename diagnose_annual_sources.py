@@ -168,10 +168,37 @@ def inspect_lub_contract(session,y,mo):
     return exact or successes
 
 
+
+def print_engine(session,y,mo):
+    print(f'\n=== ENGINE {y:04d}-{mo:02d} ===')
+    url=f"{m.core.MEDNEW_BASE}/engkmpl_um.php"
+    data={"yymm":m.token(y,mo),"reg":REGION,"dept":DISPLAY}
+    rr=session.post(url,data=data,timeout=45)
+    rr.raise_for_status()
+    soup=BeautifulSoup(rr.text,'html.parser')
+    print('ENGINE HTTP:',rr.status_code,'bytes=',len(rr.text),'url=',rr.url)
+    tables=0
+    for table in soup.find_all('table'):
+        text=' '.join(table.get_text(' ',strip=True).split())
+        if 'ENGINE TYPE' not in text.upper() and 'FOR THE MONTH' not in text.upper():
+            continue
+        tables += 1
+        print('ENGINE TABLE',tables,'header_indexes=',m._dimension_indexes(table))
+        for tr in table.find_all('tr'):
+            cells=m._expanded_dimension_cells(tr)
+            if len(cells) >= 2 and any(k in cells[1].upper() for k in ('EICHER','EURO-3','INDRA','TA-1510','TA-BS-IV','TATA BS-III NRE')):
+                print('ENGINE ROW:',cells)
+    try:
+        parsed=m.direct_dimension_rows(rr.text,'ENGINE TYPE','ENGINE')
+        print('ENGINE PARSED:',parsed)
+    except Exception as e:
+        print('ENGINE PARSE ERROR:',repr(e))
+
 def main():
     s=login()
     print_hsd(s,2024,9)
     print_hsd(s,2025,1)
+    print_engine(s,2026,7)
 
     # Known browser benchmark: PRODDUTUR May-2026 must be Monthly=1993, Upto=1829.
     matches=inspect_lub_contract(s,2026,5)
