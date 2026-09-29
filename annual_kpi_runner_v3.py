@@ -22,8 +22,11 @@ MONTHS=["Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec","Jan","Feb","Mar"]
 HEADERS=["KPI","Year"]+MONTHS+["","Upto"]
 FIXED=["HSD KMPL INCL AC","HSD KMPL EXCL AC","TOTAL LUB KMPL","B.D RATE","MED CANCL.","SPRING CONS","AVG TYRE LIFE","NEW TYRE LIFE","RC TYRE LIFE","N.T.S RATE","Ist RC S Rate","TTL SCP Rate","RT Factor"]
 TYRE=FIXED[-7:]
+# Website depot codes are deliberately separate from vehicle/PDF codes.
+# The portal route is queried with blank zone and region filters.
 TYRE_SITE={
 "BADVEL":("BDV","KADAPA(KDP ZONE)","DPTO YSR KADAPA"),"JAMMALAMADUGU":("JMD","KADAPA(KDP ZONE)","DPTO YSR KADAPA"),"KADAPA":("KDP","KADAPA(KDP ZONE)","DPTO YSR KADAPA"),"MYDUKUR":("MYD","KADAPA(KDP ZONE)","DPTO YSR KADAPA"),"PRODDUTUR":("PDT","KADAPA(KDP ZONE)","DPTO YSR KADAPA"),"PULIVENDULA":("PVD","KADAPA(KDP ZONE)","DPTO YSR KADAPA"),"RAJAMPET":("RJP","KADAPA(KDP ZONE)","DPTO YSR KADAPA")}
+PDF_DEPOT_CODE={"BADVEL":"BDVL","JAMMALAMADUGU":"JMD","KADAPA":"KDP","MYDUKUR":"MYDK","PRODDUTUR":"PDTR","PULIVENDULA":"PVL","RAJAMPET":"RJPT"}
 REPORTS=Path(__file__).resolve().parent/"reports"; REPORTS.mkdir(exist_ok=True)
 
 def n(v): return core.norm(v)
@@ -157,16 +160,23 @@ def tyre_values(h,row):
     rv=lambda a:core.row_value(h,row,a)
     return {"N.T.S RATE":rv(["NEW TYRE %","NEW %"]),"TTL SCP Rate":rv(["TOTAL %"]),"RC TYRE LIFE":rv(["RC_MILEAGE","RC MILEAGE"]),"AVG TYRE LIFE":rv(["AVG_TOTAL MILEAGE","AVG TOTAL MILEAGE"]),"Ist RC S Rate":rv(["IST RC %"]),"RT Factor":rv(["RT_FACTOR","RT FACTOR"]),"NEW TYRE LIFE":rv(["NEW MILEAGE"])}
 def tyre_site_info(d,y,m):
-    """Return the date-effective tyre portal route for a depot."""
+    """Return a stable tyre portal code for any depot in the central master.
+
+    Known KDP-zone depots use the portal's short website code. For every
+    other depot, derive the portal code from depot_mapping.json rather than
+    failing because a new depot was not added to this table. The request
+    uses blank zone/region filters, so Rajampet's Jan-2026 district change
+    cannot redirect the query to the wrong district.
+    """
     key=n(d)
     info=TYRE_SITE.get(key)
-    if not info: raise RuntimeError(f"No tyre mapping for {d}")
-    # Rajampet was under DPTO ANNAMAYYA through Dec-2025 and moved back to
-    # DPTO YSR KADAPA from Jan-2026. The depot code remains RJP.
-    # Zone/region are retained as metadata only; tyre_page queries All Zones and
-    # All Regions and identifies history solely through the depot code.
-    return info
-
+    if info:
+        return info
+    try:
+        vehicle, _display, _region = core.depot_info(d)
+    except Exception as exc:
+        raise RuntimeError(f"No tyre mapping for {d}") from exc
+    return (vehicle.split("/",1)[0], "", "")
 def tyre_page(s,path,d,y,m):
     """Fetch tyres by depot across All Zones / All Regions.
 
@@ -214,7 +224,10 @@ def tyre_pdf_fallback(s,d,y,m):
     mon=datetime(y,m,1).strftime("%b").lower(); url=f"{core.MED_BASE}/trs_booklet/2024-25/{mon}-{y}.pdf"
     rr=s.get(url,timeout=60); rr.raise_for_status()
     if not rr.content.startswith(b"%PDF"): raise RuntimeError("TRS booklet is not a PDF")
-    code=TYRE_SITE[n(d)][0]; monthly={}; upto={}
+    code=PDF_DEPOT_CODE.get(n(d))
+    if not code:
+        raise RuntimeError(f"No FY2024-25 booklet code for {d}")
+    monthly={}; upto={}
     with pdfplumber.open(io.BytesIO(rr.content)) as pdf:
         for page in pdf.pages:
             ptxt=n(page.extract_text() or "")
