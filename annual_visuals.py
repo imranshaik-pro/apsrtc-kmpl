@@ -103,7 +103,8 @@ def dashboard_model(display, fys, mat, selected):
                 source=data.get(key,{}).get(current,[""]*18)
                 cell(hr+mi+1,j,number(source[4+mi]))
         model["charts"].append(dict(title=f"{title} — FY {current}",unit=unit,
-            source_row=hr,points=count,series=len(keys),row=10+idx*16,col=8,width=630,height=340))
+            source_row=hr,points=count,series=len(keys),labels=labels,
+            row=10+idx*16,col=8,width=630,height=340))
     note=max(r+1,44)
     cell(note,0,"— = missing source value; not zero. Full-year and YTD totals are not like-for-like comparisons.",cs=18,size=10)
     cell(note+1,0,"Tyre life is shown in lakh km. Rate values retain APSRTC source units. Charts stop at the selected month.",cs=18,size=10)
@@ -115,6 +116,7 @@ def render_xlsx_dashboard(wb,title,model,display,selected):
     # Integrates with the repository's established openpyxl report writer.
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     from openpyxl.chart import LineChart, Reference
+    from openpyxl.chart.series import SeriesLabel
     from openpyxl.utils import get_column_letter
     if title in wb.sheetnames: del wb[title]
     ws=wb.create_sheet(title,0); ws.sheet_view.showGridLines=False
@@ -142,8 +144,11 @@ def render_xlsx_dashboard(wb,title,model,display,selected):
         chart.add_data(Reference(ws,min_col=21,max_col=20+spec["series"],min_row=start,max_row=start+spec["points"]),titles_from_data=True)
         chart.set_categories(Reference(ws,min_col=20,min_row=start+1,max_row=start+spec["points"]))
         chart.legend.position="b"
-        for ser,color in zip(chart.series,[BLUE,GREEN,ORANGE]):
+        # Explicit titles keep Excel/LibreOffice and preview renderers from
+        # falling back to generic "Series 1" labels.
+        for ser,color,label in zip(chart.series,[BLUE,GREEN,ORANGE],spec.get("labels",[])):
             ser.smooth=False
+            ser.tx=SeriesLabel(v=label)
             ser.graphicalProperties.line.solidFill=color
             ser.graphicalProperties.line.width=24000
         ws.add_chart(chart,f"I{spec['row']+1}")
@@ -154,11 +159,17 @@ def render_xlsx_dashboard(wb,title,model,display,selected):
 
 def print_setup(ws,display,period,repeat,last_col,last_row,one_page=False):
     from openpyxl.utils import get_column_letter
+    from openpyxl.worksheet.page import PageMargins
+    from openpyxl.worksheet.properties import PageSetupProperties
     ws.print_title_rows=repeat
     ws.print_area=f"A1:{get_column_letter(last_col)}{last_row}"
-    ws.page_setup.orientation="landscape"; ws.page_setup.paperSize=ws.PAPERSIZE_A3
-    ws.page_setup.fitToWidth=1; ws.page_setup.fitToHeight=1 if one_page else 0
-    ws.sheet_properties.pageSetUpPr.fitToPage=True
+    ws.page_setup.orientation="landscape"
+    ws.page_setup.paperSize=ws.PAPERSIZE_A3
+    ws.page_setup.fitToWidth=1
+    ws.page_setup.fitToHeight=1 if one_page else 0
+    ws.page_setup.scale=None
+    ws.sheet_properties.pageSetUpPr=PageSetupProperties(fitToPage=True,autoPageBreaks=False)
+    ws.page_margins=PageMargins(left=0.25,right=0.25,top=0.45,bottom=0.45,header=0.2,footer=0.2)
     ws.oddHeader.center.text=f"APSRTC — {display} DEPOT — {period}"
     ws.oddFooter.left.text=f"{display} DEPOT — {period}"
     ws.oddFooter.right.text="Page &P of &N"
