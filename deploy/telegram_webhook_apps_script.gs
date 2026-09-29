@@ -21,25 +21,36 @@ const BOT_COMMANDS = [
 ];
 
 function doGet() {
-  return ContentService.createTextOutput('APSRTC Telegram webhook is ready.');
+  const status = PropertiesService.getScriptProperties().getProperty('LAST_WEBHOOK_STATUS') || 'No webhook update received yet.';
+  return ContentService.createTextOutput('APSRTC Telegram webhook is ready.\\n' + status);
 }
 
 function doPost(e) {
   const receivedAt = new Date().toISOString();
-  log_('TELEGRAM_WEBHOOK_RECEIVED ' + receivedAt);
+  const received = 'TELEGRAM_WEBHOOK_RECEIVED ' + receivedAt;
+  log_(received);
+  setWebhookStatus_(received);
   try {
     const raw = (e && e.postData && e.postData.contents) || '{}';
     const update = JSON.parse(raw);
-    log_('TELEGRAM_UPDATE_PARSED update_id=' + String(update.update_id || 'none') +
-      ' kind=' + (update.callback_query ? 'callback_query' : (update.message ? 'message' : 'unknown')));
+    const parsed = 'TELEGRAM_UPDATE_PARSED update_id=' + String(update.update_id || 'none') +
+      ' kind=' + (update.callback_query ? 'callback_query' : (update.message ? 'message' : 'unknown'));
+    log_(parsed);
+    setWebhookStatus_(parsed);
     if (update.update_id !== undefined && !claimUpdate_(update.update_id)) {
-      log_('TELEGRAM_UPDATE_IGNORED_DUPLICATE update_id=' + String(update.update_id));
+      const duplicate = 'TELEGRAM_UPDATE_IGNORED_DUPLICATE update_id=' + String(update.update_id);
+      log_(duplicate);
+      setWebhookStatus_(duplicate);
       return ContentService.createTextOutput('ok');
     }
     handleUpdate_(update);
-    log_('TELEGRAM_UPDATE_PROCESSED update_id=' + String(update.update_id || 'none'));
+    const processed = 'TELEGRAM_UPDATE_PROCESSED update_id=' + String(update.update_id || 'none');
+    log_(processed);
+    setWebhookStatus_(processed);
   } catch (err) {
-    log_('WEBHOOK_UPDATE_FAILED: ' + safeError_(err));
+    const failure = 'WEBHOOK_UPDATE_FAILED: ' + safeError_(err);
+    log_(failure);
+    setWebhookStatus_(failure);
   }
   return ContentService.createTextOutput('ok');
 }
@@ -639,9 +650,15 @@ function safeError_(err) {
 }
 
 function log_(message) {
-  // Write to both logging APIs so the message is visible in Apps Script
-  // execution details across both the V8 and legacy log viewers.
+  // Write to both logging APIs and persist the latest result for direct diagnosis.
   console.log(message);
   Logger.log(message);
+}
+
+function setWebhookStatus_(message) {
+  PropertiesService.getScriptProperties().setProperty(
+    'LAST_WEBHOOK_STATUS',
+    Utilities.formatDate(new Date(), IST_TZ, 'yyyy-MM-dd HH:mm:ss') + ' IST — ' + message
+  );
 }
 
