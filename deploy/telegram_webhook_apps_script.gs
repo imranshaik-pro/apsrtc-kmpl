@@ -25,14 +25,21 @@ function doGet() {
 }
 
 function doPost(e) {
+  const receivedAt = new Date().toISOString();
+  log_('TELEGRAM_WEBHOOK_RECEIVED ' + receivedAt);
   try {
-    const update = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    const raw = (e && e.postData && e.postData.contents) || '{}';
+    const update = JSON.parse(raw);
+    log_('TELEGRAM_UPDATE_PARSED update_id=' + String(update.update_id || 'none') +
+      ' kind=' + (update.callback_query ? 'callback_query' : (update.message ? 'message' : 'unknown')));
     if (update.update_id !== undefined && !claimUpdate_(update.update_id)) {
+      log_('TELEGRAM_UPDATE_IGNORED_DUPLICATE update_id=' + String(update.update_id));
       return ContentService.createTextOutput('ok');
     }
     handleUpdate_(update);
+    log_('TELEGRAM_UPDATE_PROCESSED update_id=' + String(update.update_id || 'none'));
   } catch (err) {
-    console.error('WEBHOOK_UPDATE_FAILED: ' + safeError_(err));
+    log_('WEBHOOK_UPDATE_FAILED: ' + safeError_(err));
   }
   return ContentService.createTextOutput('ok');
 }
@@ -629,5 +636,12 @@ function financialYear_(month) {
 
 function safeError_(err) {
   return String(err && err.message ? err.message : err).replace(/bot[0-9]+:[A-Za-z0-9_-]+/g, 'bot<redacted>');
+}
+
+function log_(message) {
+  // Write to both logging APIs so the message is visible in Apps Script
+  // execution details across both the V8 and legacy log viewers.
+  console.log(message);
+  Logger.log(message);
 }
 
