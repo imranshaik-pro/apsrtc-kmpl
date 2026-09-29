@@ -93,9 +93,11 @@ def _dimension_indexes(table):
             continue
         for i,cell in enumerate(cells):
             text=n(cell)
-            if month_i is None and "FOR THE MONTH" in text and "CY" in text:
+            # APSRTC sometimes places the CY/LY/VAR subheader on the next
+            # header row, so do not require CY to be in the same cell.
+            if month_i is None and "FOR THE MONTH" in text and "UP TO THE MONTH" not in text and "UPTO THE MONTH" not in text:
                 month_i=i
-            if upto_i is None and ("UP TO THE MONTH" in text or "UPTO THE MONTH" in text) and "CY" in text:
+            if upto_i is None and ("UP TO THE MONTH" in text or "UPTO THE MONTH" in text):
                 upto_i=i
         if month_i is not None and upto_i is not None:
             break
@@ -384,5 +386,3 @@ def main():
     format_sheet(sid,mat,fys); ensure_hidden_sheet(sid,META_TITLE); write_values(sid,f"'{META_TITLE}'!A1",[["KEY","VALUE"],["DEPOT",display],["FYS",','.join(fys)],["LAST_SELECTED_MONTH",a.selected_month],["LAYOUT_VERSION","3"]])
     print(f"ANNUAL_KPI_DASHBOARD_SUCCESS: {link}"); print(f"GOOGLE_SHEET_ID: {sid}"); return 0
 if __name__=="__main__":
-    try: sys.exit(main())
-    except Exception as exc: print(f"ANNUAL_KPI_FAILURE: {exc}"); raise
