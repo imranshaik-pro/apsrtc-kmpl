@@ -114,12 +114,14 @@ class HistoryTests(unittest.TestCase):
         for broken in (rows[:-1],[[h.SCHEMA,'OTHER',1,'bad']],[]):
             with self.assertRaises(ValueError): h.decode(broken,'RAJAMPET')
 
-    def test_known_fy24_unavailable_sources_not_requested(self):
+    def test_fy24_tyres_backfill_from_exact_source_adapter(self):
         fetch=Mock(side_effect=source)
         h.update(self.cache,['2024-25'],'2025-03',fetch)
         self.assertFalse(any(c.args[0] in ('LUB','SPRING') for c in fetch.call_args_list))
-        self.assertEqual([c.args[1] for c in fetch.call_args_list if c.args[0]=='TYRE'],['2024-04'])
-        self.assertEqual(self.cache['months']['2025-03']['TYRE']['AVG TYRE LIFE']['month'],h.MANUAL)
+        self.assertEqual(
+            [c.args[1] for c in fetch.call_args_list if c.args[0]=='TYRE'],
+            [f'2024-{m:02d}' for m in range(4,13)] + ['2025-01','2025-02','2025-03'])
+        self.assertEqual(self.cache['months']['2025-03']['TYRE']['AVG TYRE LIFE']['month'],3)
 
     def test_cache_save_failure_stops_processing(self):
         with self.assertRaises(OSError):
