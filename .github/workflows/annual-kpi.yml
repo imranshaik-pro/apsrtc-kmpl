@@ -48,7 +48,7 @@ jobs:
 
       - name: Validate Annual Python syntax
         run: |
-          python -m py_compile annual_kpi_runner_v7.py annual_kpi_runner_v10.py annual_kpi_runner_v11.py annual_history.py
+          python -m py_compile annual_kpi_runner_v3.py annual_kpi_runner_v7.py annual_kpi_runner_v10.py annual_kpi_runner_v11.py annual_history.py annual_visuals.py
           python -m unittest discover -s tests -p 'test_annual_history.py' -v
 
       - name: Show annual KPI request
