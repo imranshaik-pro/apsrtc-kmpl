@@ -127,9 +127,6 @@ def update(cache, fys, selected, fetch, checkpoint=lambda:None):
                     continue
                 if force_refresh and not fetched:
                     repair_ok = False
-                if group == 'ENGINE':
-                    engine_trace = [(str(name), pair.get('month'), pair.get('upto')) for name, pair in (fetched or {}).items()]
-                    print(f"ENGINE FETCH TRACE {period}: rows={len(engine_trace)} values={engine_trace}")
                 for name,pair in (fetched or {}).items():
                     if group_for(name)!=group: continue
                     old=data.setdefault(name,{})
