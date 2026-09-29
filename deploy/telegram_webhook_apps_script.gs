@@ -108,7 +108,7 @@ function handleUpdate_(update) {
       return;
     }
     answerCallback_(cq.id, '');
-    handleCallback_(chatId, String(cq.data || ''));
+    handleCallback_(chatId, String(cq.data || ''), String((cq.message || {}).message_id || ''));
     return;
   }
 
@@ -167,18 +167,20 @@ function handleMessage_(chatId, text) {
   send_(chatId, 'Use /menu to open the APSRTC menu.', mainMenu_());
 }
 
-function handleCallback_(chatId, data) {
+function handleCallback_(chatId, data, sourceMessageId) {
   const parts = data.split('|');
   const depots = depots_();
 
   if (data === 'menu|depots') {
+    deleteMessage_(chatId, sourceMessageId);
     clearState_();
     send_(chatId, 'Select depot:', mainMenu_());
     return;
   }
   if (parts.length === 2 && parts[0] === 'depot' && depots.indexOf(parts[1]) !== -1) {
+    deleteMessage_(chatId, sourceMessageId);
     clearState_();
-    send_(chatId, 'Depot: ' + parts[1] + '\nChoose an action:', depotActions_(parts[1]));
+    send_(chatId, '✅ Selected depot: ' + parts[1] + '\nNow choose a report or action:', depotActions_(parts[1]));
     return;
   }
   if (parts.length === 2 && parts[0] === 'vehicle' && depots.indexOf(parts[1]) !== -1) {
@@ -186,11 +188,13 @@ function handleCallback_(chatId, data) {
     return;
   }
   if (parts.length === 2 && parts[0] === 'daily' && depots.indexOf(parts[1]) !== -1) {
+    deleteMessage_(chatId, sourceMessageId);
     setState_({ step: 'daily_date', depot: parts[1] });
-    send_(chatId, 'Daily Report — ' + parts[1] + '\nChoose completed report date (IST):', dailyDateKeyboard_(parts[1]));
+    send_(chatId, parts[1] + ' — DAILY REPORT\nEnter date as YYYY-MM-DD or select a completed date (IST):', dailyDateKeyboard_(parts[1]));
     return;
   }
   if (parts.length === 3 && parts[0] === 'dailyrun' && depots.indexOf(parts[1]) !== -1) {
+    deleteMessage_(chatId, sourceMessageId);
     if (!isCompletedDate_(parts[2])) {
       send_(chatId, 'Select a completed date before today.', mainMenu_());
       return;
@@ -201,11 +205,13 @@ function handleCallback_(chatId, data) {
     return;
   }
   if (parts.length === 2 && parts[0] === 'monthly' && depots.indexOf(parts[1]) !== -1) {
+    deleteMessage_(chatId, sourceMessageId);
     setState_({ step: 'monthly_month', depot: parts[1] });
-    send_(chatId, 'Monthly Report — ' + parts[1] + '\nSelect month:', monthKeyboard_(parts[1], 'monthlyrun'));
+    send_(chatId, parts[1] + ' — MONTHLY REPORT\nEnter month as YYYY-MM or select a month:', monthKeyboard_(parts[1], 'monthlyrun'));
     return;
   }
   if (parts.length === 3 && parts[0] === 'monthlyrun' && depots.indexOf(parts[1]) !== -1) {
+    deleteMessage_(chatId, sourceMessageId);
     if (!isAllowedMonth_(parts[2])) {
       send_(chatId, 'Invalid or future month.', mainMenu_());
       return;
@@ -216,11 +222,13 @@ function handleCallback_(chatId, data) {
     return;
   }
   if (parts.length === 2 && parts[0] === 'annual' && depots.indexOf(parts[1]) !== -1) {
+    deleteMessage_(chatId, sourceMessageId);
     setState_({ step: 'annual_month', depot: parts[1] });
-    send_(chatId, 'Annual KPI — ' + parts[1] + '\nSelect reporting month:', monthKeyboard_(parts[1], 'annualrun'));
+    send_(chatId, parts[1] + ' — ANNUAL KPI\nEnter month as YYYY-MM or select a reporting month:', monthKeyboard_(parts[1], 'annualrun'));
     return;
   }
   if (parts.length === 3 && parts[0] === 'annualrun' && depots.indexOf(parts[1]) !== -1) {
+    deleteMessage_(chatId, sourceMessageId);
     if (!isAllowedMonth_(parts[2])) {
       send_(chatId, 'Invalid or future month.', mainMenu_());
       return;
@@ -235,6 +243,7 @@ function handleCallback_(chatId, data) {
     return;
   }
   if (parts.length === 2 && parts[0] === 'event' && depots.indexOf(parts[1]) !== -1) {
+    deleteMessage_(chatId, sourceMessageId);
     setState_({ step: 'vehicle', depot: parts[1] });
     send_(chatId, 'Depot: ' + parts[1] + '\nReply with the vehicle number:');
     return;
@@ -532,6 +541,15 @@ function notifyUpdateFailure_(update, message) {
     }
   } catch (notifyErr) {
     log_('FAILURE_NOTIFICATION_FAILED: ' + safeError_(notifyErr));
+  }
+}
+
+function deleteMessage_(chatId, messageId) {
+  if (!chatId || !messageId) return;
+  try {
+    telegram_('deleteMessage', { chat_id: chatId, message_id: messageId });
+  } catch (err) {
+    log_('DELETE_MENU_FAILED: ' + safeError_(err));
   }
 }
 
