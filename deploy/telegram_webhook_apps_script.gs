@@ -185,6 +185,12 @@ function handleMessage_(chatId, text) {
 
   // Fast one-line report path:
   // /report PRODDUTUR DAILY 2026-09-28 SUBMIT
+  if (incomingCmd === '/report' && parts.length === 1) {
+    setState_({ step: 'report_prefix' });
+    send_(chatId, 'REPORT REQUEST\\nEnter depot prefix or depot code.\\nExample: K or PRODDUTUR');
+    return;
+  }
+
   if (incomingCmd === '/report') {
     if (parts.length < 5 || String(parts[4]).toUpperCase() !== 'SUBMIT') {
       send_(chatId, 'Use one line exactly:\\n/report PRODDUTUR DAILY 2026-09-28 SUBMIT\\n\\nMonthly example:\\n/report PRODDUTUR MONTHLY 2026-08 SUBMIT\\nAnnual example:\\n/report PRODDUTUR ANNUAL 2026-06 SUBMIT');
@@ -279,6 +285,30 @@ function handleCallback_(chatId, data, sourceMessageId) {
     send_(chatId, 'Select depot:', mainMenu_());
     return;
   }
+  if (parts.length === 2 && parts[0] === 'reportdepot' && depots.indexOf(parts[1]) !== -1) {
+    deleteMessage_(chatId, sourceMessageId);
+    setState_({ step: 'report_type', depot: parts[1] });
+    send_(chatId, '✅ Selected depot: ' + parts[1] + '\\nChoose report type:', reportTypeKeyboard_(parts[1]));
+    return;
+  }
+  if (parts.length === 2 && parts[0] === 'reportdaily' && depots.indexOf(parts[1]) !== -1) {
+    deleteMessage_(chatId, sourceMessageId);
+    setState_({ step: 'daily_date', depot: parts[1] });
+    send_(chatId, parts[1] + ' — DAILY REPORT\\nDate format: YYYY-MM-DD\\nExample: 2026-09-28\\nSelect a completed date:', dailyDateKeyboard_(parts[1]));
+    return;
+  }
+  if (parts.length === 2 && parts[0] === 'reportmonthly' && depots.indexOf(parts[1]) !== -1) {
+    deleteMessage_(chatId, sourceMessageId);
+    setState_({ step: 'monthly_month', depot: parts[1] });
+    send_(chatId, parts[1] + ' — MONTHLY REPORT\\nMonth format: YYYY-MM\\nExample: 2026-08\\nSelect a month:', monthKeyboard_(parts[1], 'monthlyrun'));
+    return;
+  }
+  if (parts.length === 2 && parts[0] === 'reportannual' && depots.indexOf(parts[1]) !== -1) {
+    deleteMessage_(chatId, sourceMessageId);
+    setState_({ step: 'annual_month', depot: parts[1] });
+    send_(chatId, parts[1] + ' — ANNUAL KPI\\nMonth format: YYYY-MM\\nExample: 2026-06\\nSelect a reporting month:', monthKeyboard_(parts[1], 'annualrun'));
+    return;
+  }
   if (parts.length === 2 && parts[0] === 'depot' && depots.indexOf(parts[1]) !== -1) {
     deleteMessage_(chatId, sourceMessageId);
     clearState_();
@@ -369,6 +399,21 @@ function handleCallback_(chatId, data, sourceMessageId) {
 }
 
 function handleStateMessage_(chatId, text, state) {
+  if (state.step === 'report_prefix') {
+    const prefix = String(text || '').trim().toUpperCase();
+    const matches = depots_().filter(d => d.indexOf(prefix) === 0);
+    if (!matches.length) {
+      send_(chatId, 'No matching depot found. Enter another prefix, for example K.');
+      return;
+    }
+    setState_({ step: 'report_depot' });
+    const keyboard = [];
+    for (let i = 0; i < matches.length; i += 2) {
+      keyboard.push(matches.slice(i, i + 2).map(d => ({ text: d, callback_data: 'reportdepot|' + d })));
+    }
+    send_(chatId, 'Matching depots — select one:', keyboard);
+    return;
+  }
   if (state.step === 'daily_date') {
     const requested = text;
     const reportDate = requested === todayIso_() ? addDaysIso_(todayIso_(), -1) : requested;
@@ -467,6 +512,14 @@ function depotKeyboard_(action) {
     rows.push(depots.slice(i, i + 2).map(d => ({ text: d, callback_data: action + '|' + d })));
   }
   return rows;
+}
+
+function reportTypeKeyboard_(depot) {
+  return [
+    [{ text: 'Daily Report', callback_data: 'reportdaily|' + depot }],
+    [{ text: 'Monthly Report', callback_data: 'reportmonthly|' + depot }],
+    [{ text: 'Annual KPI', callback_data: 'reportannual|' + depot }],
+  ];
 }
 
 function depotActions_(depot) {
