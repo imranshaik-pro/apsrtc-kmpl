@@ -51,6 +51,7 @@ function doPost(e) {
     const failure = 'WEBHOOK_UPDATE_FAILED: ' + safeError_(err);
     log_(failure);
     setWebhookStatus_(failure);
+    notifyUpdateFailure_(update, safeError_(err));
   }
   return ContentService.createTextOutput('ok');
 }
@@ -494,7 +495,8 @@ function dispatch_(workflow, inputs) {
     muteHttpExceptions: true,
   });
   if (response.getResponseCode() !== 204) {
-    throw new Error('GitHub dispatch failed for ' + workflow + ': HTTP ' + response.getResponseCode());
+    const body = response.getContentText() || 'no response body';
+    throw new Error('GitHub dispatch failed for ' + workflow + ': HTTP ' + response.getResponseCode() + ' — ' + body.slice(0, 500));
   }
 }
 
@@ -516,6 +518,21 @@ function send_(chatId, text, keyboard) {
   const params = { chat_id: chatId, text, disable_web_page_preview: 'true' };
   if (keyboard) params.reply_markup = JSON.stringify({ inline_keyboard: keyboard });
   return telegram_('sendMessage', params);
+}
+
+function notifyUpdateFailure_(update, message) {
+  try {
+    const chatId = String(
+      (((update || {}).message || {}).chat || {}).id ||
+      ((((update || {}).callback_query || {}).message || {}).chat || {}).id ||
+      ''
+    );
+    if (chatId && message) {
+      send_(chatId, '❌ APSRTC request failed.\\n\\n' + message + '\\n\\nPlease retry after the configuration is corrected.');
+    }
+  } catch (notifyErr) {
+    log_('FAILURE_NOTIFICATION_FAILED: ' + safeError_(notifyErr));
+  }
 }
 
 function answerCallback_(callbackId, text) {
