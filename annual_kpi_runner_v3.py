@@ -88,9 +88,9 @@ def _dimension_indexes(table):
     month_i=upto_i=None
     for tr in table.find_all("tr"):
         cells=_expanded_dimension_cells(tr)
-        joined=n(" ".join(cells))
-        if "FOR THE MONTH" not in joined and "UP TO THE MONTH" not in joined and "UPTO THE MONTH" not in joined:
-            continue
+        # The portal may put FOR THE MONTH and UP TO THE MONTH on different
+        # header rows. Inspect every row independently; requiring both labels
+        # in one row caused Proddatur to fall back to the wrong fixed indexes.
         for i,cell in enumerate(cells):
             text=n(cell)
             # APSRTC sometimes places the CY/LY/VAR subheader on the next
