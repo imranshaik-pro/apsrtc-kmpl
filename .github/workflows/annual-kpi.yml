@@ -163,6 +163,15 @@ jobs:
           print("TELEGRAM_ANNUAL_KPI_FAILURE_SENT")
           PY
 
+      - name: Upload Annual diagnostic log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: annual-kpi-diagnostic-${{ inputs.depot }}-${{ inputs.selected_month }}
+          path: annual-kpi.log
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Upload XLSX backup
         if: always()
         uses: actions/upload-artifact@v4
