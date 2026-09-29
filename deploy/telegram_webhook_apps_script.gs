@@ -180,7 +180,7 @@ function handleUpdate_(update) {
 }
 
 function handleMessage_(chatId, text) {
-  const parts = String(text || '').trim().split(/\\s+/);
+  const parts = String(text || '').trim().split(/\s+/);
   const incomingCmd = String((parts[0] || '').split('@')[0]).toLowerCase();
 
   // Fast one-line report path:
