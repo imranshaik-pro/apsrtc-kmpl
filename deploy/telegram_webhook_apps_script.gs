@@ -27,6 +27,9 @@ function doGet() {
 function doPost(e) {
   try {
     const update = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    if (update.update_id !== undefined && !claimUpdate_(update.update_id)) {
+      return ContentService.createTextOutput('ok');
+    }
     handleUpdate_(update);
   } catch (err) {
     console.error('WEBHOOK_UPDATE_FAILED: ' + safeError_(err));
@@ -164,6 +167,7 @@ function handleCallback_(chatId, data) {
     return;
   }
   if (parts.length === 2 && parts[0] === 'daily' && depots.indexOf(parts[1]) !== -1) {
+    setState_({ step: 'daily_date', depot: parts[1] });
     send_(chatId, 'Daily Report — ' + parts[1] + '\nChoose completed report date (IST):', dailyDateKeyboard_(parts[1]));
     return;
   }
@@ -173,10 +177,12 @@ function handleCallback_(chatId, data) {
       return;
     }
     dispatch_('daily-report.yml', { depot: parts[1], report_date: parts[2] });
+    clearState_();
     send_(chatId, 'Daily report requested\nDepot: ' + parts[1] + '\nReport date: ' + displayIsoDate_(parts[2]) + '\nThe report will be delivered when generation finishes.', depotActions_(parts[1]));
     return;
   }
   if (parts.length === 2 && parts[0] === 'monthly' && depots.indexOf(parts[1]) !== -1) {
+    setState_({ step: 'monthly_month', depot: parts[1] });
     send_(chatId, 'Monthly Report — ' + parts[1] + '\nSelect month:', monthKeyboard_(parts[1], 'monthlyrun'));
     return;
   }
@@ -186,10 +192,12 @@ function handleCallback_(chatId, data) {
       return;
     }
     dispatch_('monthly-report.yml', { depot: parts[1], month: parts[2] });
+    clearState_();
     send_(chatId, '⏳ Monthly report requested for ' + parts[1] + ' — ' + parts[2] + '.', mainMenu_());
     return;
   }
   if (parts.length === 2 && parts[0] === 'annual' && depots.indexOf(parts[1]) !== -1) {
+    setState_({ step: 'annual_month', depot: parts[1] });
     send_(chatId, 'Annual KPI — ' + parts[1] + '\nSelect reporting month:', monthKeyboard_(parts[1], 'annualrun'));
     return;
   }
@@ -203,6 +211,7 @@ function handleCallback_(chatId, data) {
       selected_month: parts[2],
       financial_years: financialYear_(parts[2]),
     });
+    clearState_();
     send_(chatId, 'Annual KPI requested for ' + parts[1] + ' — ' + parts[2] + '. The report link will be sent when complete.', mainMenu_());
     return;
   }
@@ -230,6 +239,36 @@ function handleCallback_(chatId, data) {
 }
 
 function handleStateMessage_(chatId, text, state) {
+  if (state.step === 'daily_date') {
+    if (!isCompletedDate_(text)) {
+      send_(chatId, 'Invalid date. Enter a completed date as YYYY-MM-DD, for example 2026-09-28.');
+      return;
+    }
+    dispatch_('daily-report.yml', { depot: state.depot, report_date: text });
+    clearState_();
+    send_(chatId, 'Daily report requested\nDepot: ' + state.depot + '\nReport date: ' + displayIsoDate_(text) + '\nThe report will be delivered when generation finishes.', depotActions_(state.depot));
+    return;
+  }
+  if (state.step === 'monthly_month') {
+    if (!isAllowedMonth_(text)) {
+      send_(chatId, 'Invalid month. Enter it as YYYY-MM, for example 2026-06.');
+      return;
+    }
+    dispatch_('monthly-report.yml', { depot: state.depot, month: text });
+    clearState_();
+    send_(chatId, 'Monthly report requested for ' + state.depot + ' — ' + text + '.', depotActions_(state.depot));
+    return;
+  }
+  if (state.step === 'annual_month') {
+    if (!isAllowedMonth_(text)) {
+      send_(chatId, 'Invalid month. Enter it as YYYY-MM, for example 2026-06.');
+      return;
+    }
+    dispatch_('annual-kpi.yml', { depot: state.depot, selected_month: text, financial_years: financialYear_(text) });
+    clearState_();
+    send_(chatId, 'Annual KPI requested for ' + state.depot + ' — ' + text + '.', depotActions_(state.depot));
+    return;
+  }
   if (state.step === 'vehicle') {
     const vehicle = normalizeVehicle_(text);
     if (!vehicle) {
@@ -511,6 +550,21 @@ function setState_(state) {
 
 function clearState_() {
   PropertiesService.getScriptProperties().deleteProperty('CHAT_STATE');
+}
+
+function claimUpdate_(updateId) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(5000);
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const last = Number(props.getProperty('LAST_UPDATE_ID') || '-1');
+    const current = Number(updateId);
+    if (!isFinite(current) || current <= last) return false;
+    props.setProperty('LAST_UPDATE_ID', String(current));
+    return true;
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function normalizeVehicle_(value) {
