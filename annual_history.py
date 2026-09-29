@@ -86,7 +86,11 @@ def migrate(cache, values, selected=''):
     cache['target_attempts']=sorted({str(r[2]) for r in values[header+1:] if len(r)>2 and re.fullmatch(r'\d{4}-\d{2}',str(r[2]))})
 
 def known_unavailable(period, group):
-    return fy_of(period)=='2024-25' and (group in ('LUB','SPRING') or (group=='TYRE' and period!='2024-04'))
+    # FY2024-25 LUB and Spring pages are not available from the APSRTC
+    # source. Tyre history is intentionally not blanket-blocked: the v6
+    # source adapter can use the official monthly TRS booklet and retain
+    # exact depot rows where present, leaving only unsupported cells manual.
+    return fy_of(period)=='2024-25' and group in ('LUB','SPRING')
 
 def complete(data, group, field):
     names=GROUPS[group] or list(data)
