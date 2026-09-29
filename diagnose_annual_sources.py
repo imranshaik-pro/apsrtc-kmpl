@@ -194,11 +194,26 @@ def print_engine(session,y,mo):
     except Exception as e:
         print('ENGINE PARSE ERROR:',repr(e))
 
+
+def print_engine_candidates(session,y,mo):
+    print(f'\n=== ENGINE CANDIDATE ENDPOINTS {y:04d}-{mo:02d} ===')
+    candidates=['engkmpl.php','engkmpl_dpt.php','engkmpl_rpt.php','enginekmpl_um.php','enginekmpl.php']
+    data={"yymm":m.token(y,mo),"reg":REGION,"dept":DISPLAY}
+    for path in candidates:
+        try:
+            rr=session.post(f"{m.core.MEDNEW_BASE}/{path}",data=data,timeout=30)
+            text=' '.join(BeautifulSoup(rr.text,'html.parser').get_text(' ',strip=True).split())
+            names=[n for n in ('EICHER-BS-III','EURO-3','INDRA NEW','TA-1510','TA-BS-IV','EICHER BS-III LATEST','TATA BS-III NRE SPIN') if n in text.upper()]
+            print('CANDIDATE',path,'status=',rr.status_code,'bytes=',len(rr.text),'tables=',len(BeautifulSoup(rr.text,'html.parser').find_all('table')),'legacy_names=',names,'heading=',text[:120])
+        except Exception as e:
+            print('CANDIDATE',path,'ERROR=',repr(e))
+
 def main():
     s=login()
     print_hsd(s,2024,9)
     print_hsd(s,2025,1)
     print_engine(s,2026,7)
+    print_engine_candidates(s,2026,7)
 
     # Known browser benchmark: PRODDUTUR May-2026 must be Monthly=1993, Upto=1829.
     matches=inspect_lub_contract(s,2026,5)
