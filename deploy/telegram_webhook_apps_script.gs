@@ -268,33 +268,42 @@ function handleCallback_(chatId, data, sourceMessageId) {
 
 function handleStateMessage_(chatId, text, state) {
   if (state.step === 'daily_date') {
-    if (!isCompletedDate_(text)) {
-      send_(chatId, 'Invalid date. Enter a completed date as YYYY-MM-DD, for example 2026-09-28.');
+    const requested = text;
+    const reportDate = requested === todayIso_() ? addDaysIso_(todayIso_(), -1) : requested;
+    if (!isCompletedDate_(reportDate)) {
+      send_(chatId, 'Invalid date. Enter YYYY-MM-DD. Today automatically means yesterday (' + addDaysIso_(todayIso_(), -1) + ').');
       return;
     }
-    dispatch_('daily-report.yml', { depot: state.depot, report_date: text });
+    dispatch_('daily-report.yml', { depot: state.depot, report_date: reportDate });
     clearState_();
-    send_(chatId, 'Daily report requested\nDepot: ' + state.depot + '\nReport date: ' + displayIsoDate_(text) + '\nThe report will be delivered when generation finishes.', depotActions_(state.depot));
+    const note = requested === todayIso_() ? '\\n(Input today received; processing yesterday.)' : '';
+    send_(chatId, '⏳ DAILY REPORT UNDER PROCESSING\\nDepot: ' + state.depot + '\\nReport date: ' + displayIsoDate_(reportDate) + note, depotActions_(state.depot));
     return;
   }
   if (state.step === 'monthly_month') {
-    if (!isAllowedMonth_(text)) {
-      send_(chatId, 'Invalid month. Enter it as YYYY-MM, for example 2026-06.');
+    const requested = text;
+    const reportMonth = requested === currentMonth_() ? previousMonth_(currentMonth_()) : requested;
+    if (!isAllowedMonth_(reportMonth)) {
+      send_(chatId, 'Invalid month. Enter YYYY-MM. Current month automatically means last month (' + previousMonth_(currentMonth_()) + ').');
       return;
     }
-    dispatch_('monthly-report.yml', { depot: state.depot, month: text });
+    dispatch_('monthly-report.yml', { depot: state.depot, month: reportMonth });
     clearState_();
-    send_(chatId, 'Monthly report requested for ' + state.depot + ' — ' + text + '.', depotActions_(state.depot));
+    const note = requested === currentMonth_() ? '\\n(Input current month received; processing last month.)' : '';
+    send_(chatId, '⏳ MONTHLY REPORT UNDER PROCESSING\\nDepot: ' + state.depot + '\\nMonth: ' + reportMonth + note, depotActions_(state.depot));
     return;
   }
   if (state.step === 'annual_month') {
-    if (!isAllowedMonth_(text)) {
-      send_(chatId, 'Invalid month. Enter it as YYYY-MM, for example 2026-06.');
+    const requested = text;
+    const reportMonth = requested === currentMonth_() ? previousMonth_(currentMonth_()) : requested;
+    if (!isAllowedMonth_(reportMonth)) {
+      send_(chatId, 'Invalid month. Enter YYYY-MM. Current month automatically means last month (' + previousMonth_(currentMonth_) + ').');
       return;
     }
-    dispatch_('annual-kpi.yml', { depot: state.depot, selected_month: text, financial_years: financialYear_(text) });
+    dispatch_('annual-kpi.yml', { depot: state.depot, selected_month: reportMonth, financial_years: financialYear_(reportMonth) });
     clearState_();
-    send_(chatId, 'Annual KPI requested for ' + state.depot + ' — ' + text + '.', depotActions_(state.depot));
+    const note = requested === currentMonth_() ? '\\n(Input current month received; processing last month.)' : '';
+    send_(chatId, '⏳ ANNUAL KPI UNDER PROCESSING\\nDepot: ' + state.depot + '\\nMonth: ' + reportMonth + note, depotActions_(state.depot));
     return;
   }
   if (state.step === 'vehicle') {
@@ -670,8 +679,20 @@ function isValidEventDate_(iso) {
   return /^\d{4}-\d{2}-\d{2}$/.test(iso) && iso <= todayIso_() && iso >= addDaysIso_(todayIso_(), -6);
 }
 
+function currentMonth_() {
+  return Utilities.formatDate(new Date(), IST_TZ, 'yyyy-MM');
+}
+
+function previousMonth_(month) {
+  const parts = month.split('-').map(Number);
+  let year = parts[0];
+  let m = parts[1] - 1;
+  if (m === 0) { m = 12; year -= 1; }
+  return year + '-' + pad2_(m);
+}
+
 function isAllowedMonth_(month) {
-  return /^\d{4}-\d{2}$/.test(month) && month <= Utilities.formatDate(new Date(), IST_TZ, 'yyyy-MM');
+  return /^\d{4}-\d{2}$/.test(month) && month <= currentMonth_();
 }
 
 function financialYear_(month) {
