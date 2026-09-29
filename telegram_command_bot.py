@@ -18,7 +18,8 @@ REPO=os.getenv("GITHUB_REPOSITORY","imranshaik-pro/apsrtc-kmpl")
 REF=os.getenv("GITHUB_REF_NAME","master")
 # Depot choices are supplied centrally through the DEPOT_MASTER GitHub variable.
 # This avoids maintaining separate hard-coded lists in Telegram.
-DEPOTS=tuple(d.strip().upper() for d in os.getenv("DEPOT_MASTER","").split("|") if d.strip())
+DEFAULT_DEPOTS=("BADVEL","JAMMALAMADUGU","KADAPA","MYDUKUR","PRODDUTUR","PULIVENDULA","RAJAMPET")
+DEPOTS=tuple(d.strip().upper() for d in os.getenv("DEPOT_MASTER","").split("|") if d.strip()) or DEFAULT_DEPOTS
 
 def _request(url, *, data=None, headers=None, timeout=25):
     req=urllib.request.Request(url,data=data,headers=headers or {})
