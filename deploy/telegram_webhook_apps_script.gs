@@ -181,11 +181,11 @@ function handleUpdate_(update) {
 
 function handleMessage_(chatId, text) {
   const parts = String(text || '').trim().split(/\\s+/);
-  const cmd = String((parts[0] || '').split('@')[0]).toLowerCase();
+  const incomingCmd = String((parts[0] || '').split('@')[0]).toLowerCase();
 
   // Fast one-line report path:
   // /report PRODDUTUR DAILY 2026-09-28 SUBMIT
-  if (cmd === '/report') {
+  if (incomingCmd === '/report') {
     if (parts.length < 5 || String(parts[4]).toUpperCase() !== 'SUBMIT') {
       send_(chatId, 'Use one line exactly:\\n/report PRODDUTUR DAILY 2026-09-28 SUBMIT\\n\\nMonthly example:\\n/report PRODDUTUR MONTHLY 2026-08 SUBMIT\\nAnnual example:\\n/report PRODDUTUR ANNUAL 2026-06 SUBMIT');
       return;
