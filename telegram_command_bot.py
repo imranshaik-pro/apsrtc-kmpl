@@ -418,13 +418,22 @@ def main(payload=None):
             "timeout":0,"limit":100,
             "allowed_updates":json.dumps(["message","callback_query"])})
     updates=payload.get("result",[])
-    max_update=0
+    max_update=max((int(update.get("update_id",0))+1 for update in updates), default=0)
+    # Acknowledge the entire fetched batch before processing it. If a later
+    # message or callback fails, the same old updates cannot replay on the
+    # next five-minute run and produce duplicate menus.
+    if max_update:
+        telegram(token,"getUpdates",{"offset":max_update,"timeout":0,"limit":1})
+    seen_actions=set()
     for update in updates:
-        uid=int(update.get("update_id",0)); max_update=max(max_update,uid+1)
         cq=update.get("callback_query")
         if cq:
             msg=cq.get("message") or {}
             incoming=str((msg.get("chat") or {}).get("id",""))
+            action_key="callback:" + incoming + ":" + str(cq.get("data") or "")
+            if action_key in seen_actions:
+                continue
+            seen_actions.add(action_key)
             if incoming==authorized: handle_callback(token,authorized,cq)
             elif incoming: answer_callback(token,str(cq.get("id") or ""),"Unauthorized")
             continue
@@ -462,10 +471,6 @@ def main(payload=None):
             result=post_event(payload)
             send(token,authorized,f"✅ VEHICLE EVENT RECORDED\nEvent ID: {result.get('event_id')}\nDepot: {payload['depot']}\nVehicle: {payload['vehicle_no']}\nType: {payload['event_type']}",main_menu())
             continue
-    # Acknowledge all processed updates on Telegram itself so the next scheduled
-    # run cannot replay commands and dispatch duplicate reports.
-    if max_update:
-        telegram(token,"getUpdates",{"offset":max_update,"timeout":0,"limit":1})
     print(f"TELEGRAM_COMMANDS_OK: {len(updates)} update(s); acknowledged_through={max_update-1 if max_update else 'none'}")
 
 if __name__=="__main__":
