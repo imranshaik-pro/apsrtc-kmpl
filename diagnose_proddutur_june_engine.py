@@ -40,15 +40,11 @@ def inspect(url, method='GET', data=None):
     except Exception as exc:
         print('SOURCE_ERROR',type(exc).__name__,str(exc))
         return []
-candidates=inspect('http://103.44.14.20/rindex.php')
-for base in [m.core.MEDNEW_BASE,m.core.MED_BASE]:
-    inspect(base+'/engkmpl_um.php','POST',params)
-    candidates += inspect(base+'/')
-    candidates += inspect(base+'/index.php')
-for url in list(dict.fromkeys(candidates))[:12]:
-    children=inspect(url)
-    if 'eng' in url.lower(): inspect(url,'POST',params)
-    for child in children[:12]:
-        if 'eng' in child.lower():
-            inspect(child)
-            inspect(child,'POST',params)
+
+url='http://103.44.14.20/med/wftprodengkmpl.php'
+rr=session.get(url,timeout=30); print('WFT_FORM_HTML',rr.text)
+for start,end in [('01/04/2026','30/06/2026'),('01/06/2026','30/06/2026')]:
+    payload={'fdate':start,'tdate':end,'zone':'','regn':'YSRKADAPA','dept':'PRODDUTUR'}
+    inspect('http://103.44.14.20/med/wftprodengkmpl1.php','POST',payload)
+for url in ['http://103.44.14.20/mednew/engprodum.php','http://103.44.14.20/mednew/engkmplum.php']:
+    rr=session.get(url,timeout=30);print('ENGINE_FORM_HTML',url,rr.text)
