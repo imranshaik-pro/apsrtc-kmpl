@@ -41,10 +41,7 @@ def inspect(url, method='GET', data=None):
         print('SOURCE_ERROR',type(exc).__name__,str(exc))
         return []
 
-url='http://103.44.14.20/med/wftprodengkmpl.php'
-rr=session.get(url,timeout=30); print('WFT_FORM_HTML',rr.text)
-for start,end in [('01/04/2026','30/06/2026'),('01/06/2026','30/06/2026')]:
-    payload={'fdate':start,'tdate':end,'zone':'','regn':'YSRKADAPA','dept':'PRODDUTUR'}
-    inspect('http://103.44.14.20/med/wftprodengkmpl1.php','POST',payload)
-for url in ['http://103.44.14.20/mednew/engprodum.php','http://103.44.14.20/mednew/engkmplum.php']:
-    rr=session.get(url,timeout=30);print('ENGINE_FORM_HTML',url,rr.text)
+
+for mode in ['UM','UD']:
+    payload={'fdate':'30/06/2026','reg':'YSRKADAPA','dept':'PRODDUTUR','fupto':mode}
+    inspect('http://103.44.14.20/mednew/eng_prod_um.php','POST',payload)
