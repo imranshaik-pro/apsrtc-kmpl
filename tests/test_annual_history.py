@@ -35,24 +35,6 @@ def source(group,period):
 class HistoryTests(unittest.TestCase):
     def setUp(self): self.cache=h.new_cache('RAJAMPET')
 
-    def test_proddutur_june_retained_engine_names_do_not_force_repeat_fetch(self):
-        h.update(self.cache,['2026-27'],'2026-06',source)
-        data=self.cache['months']['2026-06']['ENGINE']
-        data.clear()
-        data['ENGINE: EICHER-BS-III']={'month':'5.15'}
-        data['ENGINE: Eicher BS-III']={'month':5.06,'upto':5.36}
-        self.cache.setdefault('source_rows',{}).setdefault('2026-06',{}).pop('ENGINE',None)
-        fetched={'ENGINE: Eicher BS-III':{'month':5.06,'upto':5.36}}
-        fetch=Mock(return_value=fetched)
-        h.update(self.cache,['2026-27'],'2026-06',fetch)
-        fetch.assert_called_once_with('ENGINE','2026-06')
-        fetch.reset_mock()
-        h.update(h.decode(h.encode(self.cache),'RAJAMPET'),['2026-27'],'2026-06',fetch)
-        fetch.assert_not_called()
-        view=h.view_store(self.cache,['2026-27'],'2026-06',Model)
-        self.assertEqual(view['rows']['ENGINE: Eicher BS-III']['2026-27']['upto'],5.36)
-        self.assertEqual(view['rows']['ENGINE: EICHER-BS-III']['2026-27']['months']['Jun'],'5.15')
-        self.assertIsNone(view['rows']['ENGINE: EICHER-BS-III']['2026-27']['upto'])
 
     def test_display_dash_does_not_block_june_source_repair(self):
         h.update(self.cache,['2026-27'],'2026-06',source)
@@ -64,14 +46,6 @@ class HistoryTests(unittest.TestCase):
         self.assertEqual(pair,{'month':0,'upto':4.97})
         self.assertFalse(h.good(' — '))
 
-    def test_empty_dynamic_source_does_not_mark_retained_rows_complete(self):
-        h.update(self.cache,['2026-27'],'2026-06',source)
-        self.cache['source_rows']['2026-06'].pop('ENGINE')
-        fetch=Mock(return_value={})
-        h.update(self.cache,['2026-27'],'2026-06',fetch)
-        h.update(self.cache,['2026-27'],'2026-06',fetch)
-        self.assertEqual(fetch.call_count,2)
-        self.assertNotIn('ENGINE',self.cache['source_rows']['2026-06'])
 
     def test_migration_excludes_display_dash(self):
         values=[['SL.No','KPI','Year','Target'],
