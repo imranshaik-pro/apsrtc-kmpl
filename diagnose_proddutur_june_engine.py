@@ -42,6 +42,17 @@ def inspect(url, method='GET', data=None):
         return []
 
 
-for mode in ['UM','UD']:
-    payload={'fdate':'30/06/2026','reg':'YSRKADAPA','dept':'PRODDUTUR','fupto':mode}
-    inspect('http://103.44.14.20/mednew/eng_prod_um.php','POST',payload)
+
+import io
+import pdfplumber
+url='http://103.44.14.20/med/booklet/jun-2026.pdf'
+rr=session.get(url,timeout=45);rr.raise_for_status()
+print('BOOKLET',url,'BYTES',len(rr.content))
+with pdfplumber.open(io.BytesIO(rr.content)) as pdf:
+    for index,page in enumerate(pdf.pages):
+        text=page.extract_text() or ''
+        if 'ENGINE' in text.upper() and ('PRODD' in text.upper() or any(k in text.upper() for k in ['EICHER-BS-III','NRE SPIN','1512TC'])):
+            print('BOOKLET_ENGINE_PAGE',index+1,text)
+            for table in page.extract_tables():
+                if any('PRODD' in str(row).upper() for row in table):
+                    print('BOOKLET_ENGINE_TABLE',index+1,json.dumps(table))
