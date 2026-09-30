@@ -27,14 +27,14 @@ def periods(fy):
     return [f'{y}-{mo:02}' for mo in range(4,13)]+[f'{y+1}-{mo:02}' for mo in range(1,4)]
 
 def good(value):
-    return value is not None and str(value).strip() not in ('', MANUAL, 'MANUAL')
+    return value is not None and str(value).strip() not in ('', MANUAL, 'MANUAL', '—')
 
 def new_cache(depot):
     # A newly created cache does not need the one-time legacy row-set repair.
     # Existing caches without this marker are repaired on their next run.
     return dict(schema=SCHEMA, depot=depot, months={}, targets={},
                 target_attempts=[], legacy=[],
-                dynamic_repairs={'ENGINE': ENGINE_REPAIR_VERSION})
+                dynamic_repairs={'ENGINE': ENGINE_REPAIR_VERSION}, source_rows={})
 
 def encode(cache):
     raw = json.dumps(cache, ensure_ascii=True, separators=(',',':'), allow_nan=False)
@@ -51,6 +51,7 @@ def decode(rows, depot):
     if cache.get('schema')!=SCHEMA or cache.get('depot')!=depot:
         raise ValueError('History identity mismatch')
     cache.setdefault('dynamic_repairs', {})
+    cache.setdefault('source_rows', {})
     return cache
 
 def group_for(name):
@@ -92,14 +93,15 @@ def known_unavailable(period, group):
     # exact depot rows where present, leaving only unsupported cells manual.
     return fy_of(period)=='2024-25' and group in ('LUB','SPRING')
 
-def complete(data, group, field):
-    names=GROUPS[group] or list(data)
+def complete(data, group, field, source_names=None):
+    names=GROUPS[group] or (list(data) if source_names is None else source_names)
     return bool(names) and all(good(data.get(name,{}).get(field)) for name in names)
 
 def update(cache, fys, selected, fetch, checkpoint=lambda:None):
     """Fetch only missing groups; never replace saved numbers with failed fetches."""
     calls=0
     repairs=cache.setdefault('dynamic_repairs', {})
+    source_rows=cache.setdefault('source_rows', {})
     # Older caches were built before engine row identities were stable. Force a
     # one-time source refresh so newly observed historical engine rows are added
     # without merging them into another engine type.
@@ -114,10 +116,14 @@ def update(cache, fys, selected, fetch, checkpoint=lambda:None):
                 if known_unavailable(period,group):
                     for name in names: data[name]={'month':MANUAL,'upto':MANUAL}
                     continue
-                missing_month=not complete(data,group,'month')
-                missing_upto=need_upto and not complete(data,group,'upto')
+                # Retained historical engine/product names are not proof that
+                # the same rows still exist on this month's source page.
+                names_at_source=source_rows.get(period,{}).get(group)
+                missing_month=not complete(data,group,'month',names_at_source)
+                missing_upto=need_upto and not complete(data,group,'upto',names_at_source)
+                unknown_rows=need_upto and group in ('ENGINE','PRODUCT') and names_at_source is None
                 force_refresh = group == 'ENGINE' and engine_repair
-                if not (force_refresh or missing_month or missing_upto): continue
+                if not (force_refresh or missing_month or missing_upto or unknown_rows): continue
                 calls+=1
                 print(f'HISTORY FETCH {period} {group}: missing source values')
                 try: fetched=fetch(group,period)
@@ -132,6 +138,12 @@ def update(cache, fys, selected, fetch, checkpoint=lambda:None):
                     old=data.setdefault(name,{})
                     for field in ('month','upto'):
                         if not good(old.get(field)) and good(pair.get(field)): old[field]=pair[field]
+                if group in ('ENGINE','PRODUCT'):
+                    observed=[name for name,pair in (fetched or {}).items()
+                              if group_for(name)==group and
+                              any(good(pair.get(field)) for field in ('month','upto'))]
+                    # An empty/failed page must never declare history complete.
+                    if observed: source_rows.setdefault(period,{})[group]=observed
             checkpoint()
     if engine_repair and repair_ok:
         repairs['ENGINE'] = ENGINE_REPAIR_VERSION
