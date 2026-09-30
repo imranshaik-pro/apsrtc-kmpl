@@ -33,15 +33,22 @@ def inspect(url, method='GET', data=None):
                   [(x.get('name'),[(o.get('value'),o.get_text(' ',strip=True)) for o in x.find_all('option')][:8]) for x in form.find_all('select')])
         urls=[urljoin(url,a['href']) for a in soup.find_all('a',href=True)]
         urls += [urljoin(url,x) for x in re.findall(r"""['"]([^'"]*eng[^'"]*\.php)['"]""",response.text,re.I)]
-        return [u for u in urls if urlsplit(u).hostname=='103.44.14.20' and 'eng' in u.lower() and '.php' in u]
+        urls += [urljoin(url,x.get('src','')) for x in soup.find_all(['frame','iframe'])]
+        relevant=[u for u in urls if urlsplit(u).hostname=='103.44.14.20' and any(k in u.lower() for k in ('eng','med','rindex'))]
+        print('REPORT_LINKS',json.dumps(list(dict.fromkeys(relevant))))
+        return relevant
     except Exception as exc:
         print('SOURCE_ERROR',type(exc).__name__,str(exc))
         return []
-candidates=[]
+candidates=inspect('http://103.44.14.20/rindex.php')
 for base in [m.core.MEDNEW_BASE,m.core.MED_BASE]:
     inspect(base+'/engkmpl_um.php','POST',params)
     candidates += inspect(base+'/')
     candidates += inspect(base+'/index.php')
-for url in list(dict.fromkeys(candidates))[:8]:
-    inspect(url)
-    inspect(url,'POST',params)
+for url in list(dict.fromkeys(candidates))[:12]:
+    children=inspect(url)
+    if 'eng' in url.lower(): inspect(url,'POST',params)
+    for child in children[:12]:
+        if 'eng' in child.lower():
+            inspect(child)
+            inspect(child,'POST',params)
