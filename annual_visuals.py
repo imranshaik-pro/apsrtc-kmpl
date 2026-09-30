@@ -4,6 +4,7 @@ No source calculations live here. Blank and MANUAL values stay unavailable.
 Completed-year Upto and selected-year YTD are labelled as different periods.
 """
 from datetime import datetime
+from report_branding import LOGO_URL, add_logo
 
 NAVY = "12345B"
 BLUE = "1976B9"
@@ -56,8 +57,8 @@ def dashboard_model(display, fys, mat, selected):
     period = period_label(selected)
     current = fys[-1]
     endmon = datetime.strptime(selected, "%Y-%m").strftime("%b")
-    cell(0,0,"APSRTC  ANNUAL KPI",cs=18,fill=NAVY,color="FFFFFF",size=20,bold=True)
-    cell(1,0,f"{display} DEPOT    Reporting through {period}",cs=18,size=14,bold=True)
+    cell(0,0,"APSRTC  ANNUAL KPI",cs=13,fill=NAVY,color="FFFFFF",size=20,bold=True)
+    cell(1,0,f"{display} DEPOT    Reporting through {period}",cs=13,size=14,bold=True)
     cell(2,0,f"FY {fys[0]} and {fys[1]}: full-year Upto     FY {current}: April–{endmon} YTD",cs=18,size=10)
     # Keep both HSD measures visible: they are separate source KPIs and must
     # never be merged into a single card. Four equal cards fit the 18-column
@@ -86,7 +87,14 @@ def dashboard_model(display, fys, mat, selected):
         cell(r,0,label,cs=4,fill=PALE if r%2==0 else "FFFFFF")
         for j,fy in enumerate(fys):
             val=number(years.get(fy,[""]*18)[17])
-            cell(r,4+j,val if val is not None else "—",fill=FY_COLORS[j],bold=(j==2),align="right")
+            target=number(years.get(fy,[""]*18)[3])
+            fill=FY_COLORS[j]
+            if val is None: fill="FFF2CC"
+            elif target is not None and (name.startswith("HSD") or name == "TOTAL LUB KMPL" or name in {"B.D RATE", "MED CANCL."}):
+                lower=name in {"B.D RATE", "MED CANCL."}
+                good=val <= target if lower else val >= target
+                fill="E2F0D9" if good else "F4CCCC"
+            cell(r,4+j,val if val is not None else "—",fill=fill,bold=(j==2),align="right")
         r+=1
     # Same-unit time series; no fleet availability or depot-vs-APSRTC comparison.
     sy,sm=map(int,selected.split("-")); count=(sm-4)%12+1
@@ -108,7 +116,8 @@ def dashboard_model(display, fys, mat, selected):
     note=max(r+1,44)
     cell(note,0,"— = missing source value; not zero. Full-year and YTD totals are not like-for-like comparisons.",cs=18,size=10)
     cell(note+1,0,"Tyre life is shown in lakh km. Rate values retain APSRTC source units. Charts stop at the selected month.",cs=18,size=10)
-    model["last_row"]=note+2
+    cell(note+2,0,"Fuel and lubricant KMPL: higher is better. BD / MED rates: lower is better. Colours use source targets only.",cs=18,size=10)
+    model["last_row"]=note+3
     return model
 
 
@@ -153,6 +162,7 @@ def render_xlsx_dashboard(wb,title,model,display,selected):
             ser.graphicalProperties.line.width=24000
         ws.add_chart(chart,f"I{spec['row']+1}")
     for col in range(20,24): ws.column_dimensions[get_column_letter(col)].hidden=True
+    add_logo(ws, "N1", width=280)
     print_setup(ws,display,period_label(selected),"1:3",18,model["last_row"],one_page=True)
     return ws
 
@@ -197,6 +207,8 @@ def google_dashboard_requests(sid,model):
         req.append({"repeatCell":{"range":area,"cell":{"userEnteredFormat":fmt},"fields":"userEnteredFormat"}})
         v=s['text']; value={} if v is None else {"numberValue":v} if isinstance(v,(float,int)) else {"stringValue":v}
         req.append({"updateCells":{"start":{"sheetId":sid,"rowIndex":s['r'],"columnIndex":s['c']},"rows":[{"values":[{"userEnteredValue":value}]}],"fields":"userEnteredValue"}})
+    req.append({"mergeCells":{"range":region(0,13,2,5),"mergeType":"MERGE_ALL"}})
+    req.append({"updateCells":{"start":{"sheetId":sid,"rowIndex":0,"columnIndex":13},"rows":[{"values":[{"userEnteredValue":{"formulaValue":f'=IMAGE("{LOGO_URL}",1)'}}]}],"fields":"userEnteredValue"}})
     for s in model["charts"]:
         r=s['source_row']; count=s['points']+1
         source=lambda c:{"sourceRange":{"sources":[region(r,c,count)]}}
