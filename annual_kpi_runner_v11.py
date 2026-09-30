@@ -127,6 +127,8 @@ def make_xlsx_v11(display, mat, fys):
     ws.column_dimensions["Q"].width=2
     ws.column_dimensions["Q"].hidden=True
     print_setup(ws,display,period_label(REPORT_MONTH),"1:5",18,ws.max_row)
+    from report_branding import add_logo
+    add_logo(ws)
     _build_dashboard_xlsx(wb, display, fys, mat)
     if "_META" in wb.sheetnames:
         del wb["_META"]

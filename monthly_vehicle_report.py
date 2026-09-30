@@ -347,6 +347,8 @@ def main():
         )
         print(f"VEHICLE_360: {len(report_events)} Vehicle Event records through {cutoff}")
 
+    from report_branding import style_monthly_workbook
+    style_monthly_workbook(workbook)
     workbook.save(xlsx_path)
     target_sheet_name = f"{display_name}_{args.month}"
     uploaded = upload_xlsx_as_google_sheet(xlsx_path, folder_id=folder_id, sheet_name=target_sheet_name)
