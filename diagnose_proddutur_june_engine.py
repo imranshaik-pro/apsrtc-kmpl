@@ -43,16 +43,13 @@ def inspect(url, method='GET', data=None):
 
 
 
-import io
-import pdfplumber
-url='http://103.44.14.20/med/booklet/jun-2026.pdf'
-rr=session.get(url,timeout=45);rr.raise_for_status()
-print('BOOKLET',url,'BYTES',len(rr.content))
-with pdfplumber.open(io.BytesIO(rr.content)) as pdf:
-    for index,page in enumerate(pdf.pages):
-        text=page.extract_text() or ''
-        if 'ENGINE' in text.upper() and ('PRODD' in text.upper() or any(k in text.upper() for k in ['EICHER-BS-III','NRE SPIN','1512TC'])):
-            print('BOOKLET_ENGINE_PAGE',index+1,text)
-            for table in page.extract_tables():
-                if any('PRODD' in str(row).upper() for row in table):
-                    print('BOOKLET_ENGINE_TABLE',index+1,json.dumps(table))
+
+for month in [4,5,6]:
+    data={'yymm':f'2026{month:02d}','regn':'YSRKADAPA','depot':'PDTR/PRODDUTUR','stype':'','eng':'','kms':'','kmsl':'','kmpl':'','kmpll':'','fstatus':'0','veh':''}
+    rr=session.post('http://103.44.14.20/med/edeengine.php',data=data,timeout=30)
+    print('MTD_SOURCE',month,rr.status_code)
+    soup=BeautifulSoup(rr.text,'html.parser')
+    print('MTD_HEADING',soup.get_text(' ',strip=True)[:250])
+    for table in soup.find_all('table'):
+        if 'ENG' in table.get_text(' ',strip=True).upper():
+            print('MTD_TABLE',month,json.dumps([m._expanded_dimension_cells(tr) for tr in table.find_all('tr')]))
