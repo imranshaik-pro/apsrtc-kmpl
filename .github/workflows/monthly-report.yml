@@ -10,6 +10,10 @@ on:
       month:
         description: Report month (YYYY-MM)
         required: true
+      hub_row:
+        description: Automation Hub response row for report-link callback
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -42,16 +46,49 @@ jobs:
           VEHICLE_EVENTS_API_URL: ${{ secrets.VEHICLE_EVENTS_API_URL }}
           VEHICLE_EVENTS_API_KEY: ${{ secrets.VEHICLE_EVENTS_API_KEY }}
           MONTHLY_DRIVE_FOLDER_ID: 1O6rKH39INogYxsNI9IepEO9UJq1MMnPj
+        shell: bash
         run: |
+          set -o pipefail
           python monthly_vehicle_report.py \
             --depot "${{ inputs.depot }}" \
             --month "${{ inputs.month }}" | tee monthly-report.log
-          REPORT_URL="$(grep -Eo 'https://drive.google.com/[^[:space:]]+' monthly-report.log | tail -1)"
+          REPORT_URL="$(grep -Eo 'https://(docs|drive)\.google\.com/[^[:space:]]+' monthly-report.log | tail -1)"
           if [ -z "$REPORT_URL" ]; then
             echo "Monthly Google Sheet link was not emitted by the report generator."
             exit 1
           fi
           echo "REPORT_URL=$REPORT_URL" >> "$GITHUB_ENV"
+
+      - name: Write Monthly report link back to Automation Hub
+        if: success() && inputs.hub_row != ''
+        env:
+          HUB_CALLBACK_URL: ${{ secrets.HUB_CALLBACK_URL }}
+          HUB_CALLBACK_TOKEN: ${{ secrets.HUB_CALLBACK_TOKEN }}
+          HUB_ROW: ${{ inputs.hub_row }}
+          REPORT_URL: ${{ env.REPORT_URL }}
+          DEPOT: ${{ inputs.depot }}
+          REPORT_MONTH: ${{ inputs.month }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          url=os.environ.get("HUB_CALLBACK_URL","").strip()
+          token=os.environ.get("HUB_CALLBACK_TOKEN","").strip()
+          if not url or not token:
+              print("HUB_CALLBACK_SKIPPED: callback secrets are not configured")
+              raise SystemExit(0)
+          payload=json.dumps({
+              "token":token,
+              "row":int(os.environ["HUB_ROW"]),
+              "url":os.environ["REPORT_URL"],
+              "status":f"COMPLETED | MONTHLY | {os.environ['DEPOT']} | {os.environ['REPORT_MONTH']}"
+          }).encode()
+          req=urllib.request.Request(url,data=payload,headers={"Content-Type":"application/json"},method="POST")
+          with urllib.request.urlopen(req,timeout=30) as resp:
+              result=json.loads(resp.read().decode())
+          if not result.get("ok"):
+              raise SystemExit("Automation Hub callback failed: "+str(result))
+          print("AUTOMATION_HUB_LINK_UPDATED")
+          PY
 
       - name: Send Monthly report status to Telegram
         if: success()
@@ -125,3 +162,4 @@ jobs:
           path: reports/*.xlsx
           if-no-files-found: ignore
           retention-days: 7
+
