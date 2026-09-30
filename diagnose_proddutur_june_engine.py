@@ -45,7 +45,7 @@ def inspect(url, method='GET', data=None):
 
 
 for month in [4,5,6]:
-    data={'yymm':f'2026{month:02d}','regn':'YSRKADAPA','depot':'PDTR/PRODDUTUR','stype':'','eng':'','kms':'','kmsl':'','kmpl':'','kmpll':'','fstatus':'0','veh':''}
+    data={'yymm':f'2026{month:02d}','regn':'YSRKADAPA','depot':'PRODDUTUR','stype':'','eng':'','kms':'','kmsl':'','kmpl':'','kmpll':'','fstatus':'0','veh':''}
     rr=session.post('http://103.44.14.20/med/edeengine.php',data=data,timeout=30)
     print('MTD_SOURCE',month,rr.status_code)
     soup=BeautifulSoup(rr.text,'html.parser')
