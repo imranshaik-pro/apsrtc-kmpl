@@ -64,7 +64,7 @@ def test_even_date_makes_no_extra_requests():
 def test_odd_date_depot_counts_and_exact_payload():
     s = Session()
     text, complete = build_tyre_checks(s, "2026-09-01", "RAJAMPET", "YSRKADAPA")
-    assert complete and COMPLETE_MARKER in text
+    assert complete
     assert "ముందు స్థానాల్లో RC టైర్లు\nవాహనాలు: 1 | టైర్ల నమోదులు: 2" in text
     assert "ఒకే రకం టైర్లు అమర్చని వాహనాలు\nవాహనాలు: 1 | టైర్ల నమోదులు: 1" in text
     assert "BUS001" in text and "BUS002" in text and "9999999" not in text
@@ -138,51 +138,54 @@ def test_date_resolution_before_odd_day_check():
             runner.resolve_report_date("2026-10-03", False)
 
 
-def test_odd_day_application_keeps_base_when_auxiliary_fails():
-    class OddSession(DailySession):
+
+
+def test_zero_results_preserve_daily_exactly():
+    class EmptySession(Session):
         def post(self, url, data, timeout):
-            if not url.endswith("vehkmpl.php"):
-                raise requests.Timeout()
-            return super().post(url, data, timeout)
-    text = build_daily_report(OddSession(), "2026-08-19", "PRODDUTUR", "PDTR/PRODDUTUR", "YSRKADAPA")
-    assert "DAILY HSD KMPL" in text and "4.84" in text and "టైర్ల వివరాలు అందుబాటులో లేవు" in text
+            return Response(popup())
+    original = "Daily HSD\n"
+    assert append_tyre_checks(original, EmptySession(), "2026-09-01", "RAJAMPET", "YSRKADAPA") == (original, True)
 
 
-@pytest.mark.parametrize("cached,expect_fetch,expect_update", [
-    ("Original HSD report", True, True),
-    ("Original HSD report\n" + SECTION_MARKER + "\n" + COMPLETE_MARKER, False, False),
-])
-def test_cached_odd_report_keeps_hsd_and_file_id(tmp_path, monkeypatch, cached, expect_fetch, expect_update):
-    session = Session()
+def test_zero_mismatch_hidden_with_positive_rc():
+    class OnlyRC(Session):
+        def post(self, url, data, timeout):
+            return Response(popup() if url.endswith("samepopup.php") else RC_HTML)
+    text, complete = build_tyre_checks(OnlyRC(), "2026-09-01", "RAJAMPET", "YSRKADAPA")
+    assert complete and "BUS001" in text
+    assert "ఒకే రకం టైర్లు అమర్చని వాహనాలు" not in text
+
+
+def test_auxiliary_login_failure_preserves_daily(tmp_path):
+    from src.reporting.tyre_checks import enrich_daily_file
+    path = tmp_path / "daily.txt"
+    path.write_text("Completed HSD\n")
+    def fail():
+        raise RuntimeError("Unavailable")
+    assert not enrich_daily_file(path, "2026-09-01", "RAJAMPET", "YSRKADAPA", fail)
+    assert path.read_text().startswith("Completed HSD\n")
+
+
+def test_even_enrichment_skips_auth(tmp_path):
+    from src.reporting.tyre_checks import enrich_daily_file
+    path = tmp_path / "daily.txt"
+    path.write_text("HSD\n")
+    assert enrich_daily_file(path, "2026-09-02", "RAJAMPET", "YSRKADAPA", lambda: pytest.fail("no login"))
+    assert path.read_text() == "HSD\n"
+
+
+def test_daily_finishes_before_tyres(tmp_path, monkeypatch):
+    from datetime import date
+    from src.reporting import tyre_checks
     monkeypatch.setattr(runner, "ROOT", tmp_path)
-    monkeypatch.setattr(runner, "find_file", lambda **kw: {"id": "same-id", "webViewLink": "existing-link"})
-    def download(file_id, destination):
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_text(cached, encoding="utf-8")
-    monkeypatch.setattr(runner, "download_file", download)
-    monkeypatch.setattr(runner, "login", lambda: session)
-    monkeypatch.setattr(runner, "load_json", lambda path:
-        {"daily": {"default_depot": "RAJAMPET", "drive_folder_id": "folder"}} if path == runner.SETTINGS_PATH else
-        {"rajampet": {"display_name": "RAJAMPET", "vehicle_depot": "RJPT/RAJAMPET", "region_code": "YSRKADAPA"}})
-    updates = []
-    monkeypatch.setattr(runner, "update_text_file", lambda path, file_id: updates.append((path.read_text(), file_id)))
-    monkeypatch.setattr("sys.argv", ["runner", "--depot", "RAJAMPET", "--date", "2026-09-01"])
-    assert runner.main() == 0
-    assert bool(session.calls) == expect_fetch and bool(updates) == expect_update
-    if updates:
-        assert updates[0][0].startswith("Original HSD report") and updates[0][1] == "same-id"
-
-
-def test_existing_even_report_never_authenticates_for_tyres(tmp_path, monkeypatch):
-    monkeypatch.setattr(runner, "ROOT", tmp_path)
-    monkeypatch.setattr(runner, "find_file", lambda **kw: {"id": "same-id"})
-    def download(file_id, destination):
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_text("HSD report", encoding="utf-8")
-    monkeypatch.setattr(runner, "download_file", download)
-    monkeypatch.setattr(runner, "login", lambda: pytest.fail("Even date must not fetch tyre data"))
-    monkeypatch.setattr(runner, "load_json", lambda path:
-        {"daily": {"default_depot": "RAJAMPET", "drive_folder_id": "folder"}} if path == runner.SETTINGS_PATH else
-        {"rajampet": {"display_name": "RAJAMPET", "vehicle_depot": "RJPT/RAJAMPET", "region_code": "YSRKADAPA"}})
-    monkeypatch.setattr("sys.argv", ["runner", "--depot", "RAJAMPET", "--date", "2026-09-02"])
-    assert runner.main() == 0
+    path = tmp_path / "reports" / "RAJAMPET_2026-09-01.txt"
+    def generate(*args, **kwargs):
+        path.parent.mkdir()
+        path.write_text("Completed HSD")
+        return type("Result", (), {"stdout": "", "stderr": "", "returncode": 0})()
+    monkeypatch.setattr(runner.subprocess, "run", generate)
+    calls = []
+    monkeypatch.setattr(tyre_checks, "enrich_daily_file", lambda output, *args: calls.append(output.read_text()))
+    assert runner.run_report("RAJAMPET", {"vehicle_depot": "RJPT/RAJAMPET", "region_code": "YSRKADAPA"}, date(2026, 9, 1)) == path
+    assert calls == ["Completed HSD"]
