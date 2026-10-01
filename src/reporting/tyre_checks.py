@@ -1,4 +1,4 @@
-"""Optional depot tyre checks, fetched only on odd resolved report dates.
+"""Optional depot tyre checks, fetched only for current daily requests.
 
 Endpoints and payload come from the owner's captured rctyre.js. District
 responses are filtered by exact depot identity; no vehicle/tyre aliases inferred.
@@ -21,10 +21,6 @@ REPORTS = (
     ("ఒకే రకం టైర్లు అమర్చని వాహనాలు", "samepopup.php"),
     ("RNSO/RNSI స్థానాల్లో రిపేర్ టైర్లు అమర్చిన వాహనాలు", "repairpopup.php"),
 )
-
-
-def tyre_checks_due(report_date):
-    return date.fromisoformat(report_date).day % 2 == 1
 
 
 def _key(value):
@@ -188,8 +184,6 @@ def build_spare_snapshot(session, depot):
     return "\n".join(lines)
 
 def build_tyre_checks(session, report_date, depot, region_code):
-    if not tyre_checks_due(report_date):
-        return "", True
     dt = date.fromisoformat(report_date)
     source_date = f"{dt.day}/{dt.month}/{dt.year}"
     lines = [f"{SECTION_MARKER} {depot} | {report_date}"]
@@ -245,9 +239,7 @@ def append_tyre_checks(report, session, report_date, depot, region_code):
 
 
 def enrich_daily_file(path, report_date, depot, region_code, session_factory=None):
-    """Optional enrichment after the regular daily generator succeeds."""
-    if not tyre_checks_due(report_date):
-        return True
+    """Enrich a current daily delivery after KMPL succeeds; caller gates intent."""
     original = path.read_text(encoding="utf-8")
     try:
         if session_factory is None:
