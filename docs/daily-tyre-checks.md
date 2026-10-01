@@ -30,3 +30,24 @@ Coverage includes zero/positive category combinations, odd/even dates, source
 validation, source failures, depot isolation and daily-before-tyres ordering.
 The 13 previously observed failures on unchanged master remain unresolved.
 This draft has not been merged or verified through live Hub/Telegram delivery.
+
+## Live verification — 1 October 2026
+
+Draft run 36886050944 at commit a7f59c65506bf9244ae43b16ab9a689d853ea0e6
+passed compile and 21 focused checks, generated RAJAMPET 2026-09-01, uploaded
+Drive file 1T6oM9vt2opr_RAQg4lJGeU_5IhpXl-k4 and received Telegram API success
+for one combined message. The saved file was read through Drive: HSD day/Upto
+5.14; RC-front vehicle 26Z0286, positions FNS/FOS, one vehicle/two records;
+zero mismatched category omitted.
+
+A real Hub form request for the same depot/date created register row 20.
+Hub-triggered master run 36886550663 reused that combined file, completed the
+callback and received Telegram success for one message. Row 20 status is
+COMPLETED | DAILY | RAJAMPET | 2026-09-01, linking the same Drive file.
+This proves draft generation and production Hub cached delivery separately;
+Hub still dispatches master and fresh tyre enrichment is not active there.
+PR remains unmerged. Telegram API acceptance is verified, not a recipient read.
+
+Observed existing workflow limitation: fresh-generation logs contain multiple
+Report date lines; tail-based extraction takes the formatted display date,
+while cached runs retain ISO date. No date calculation was changed for this.
