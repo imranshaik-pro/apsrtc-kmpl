@@ -65,10 +65,12 @@ def test_odd_date_depot_counts_and_exact_payload():
     s = Session()
     text, complete = build_tyre_checks(s, "2026-09-01", "RAJAMPET", "YSRKADAPA")
     assert complete and COMPLETE_MARKER in text
-    assert "RC front tyres: 1 vehicle(s), 2 tyre record(s)" in text
-    assert "Mismatched tyres: 1 vehicle(s), 1 tyre record(s)" in text
+    assert "ముందు స్థానాల్లో RC టైర్లు\nవాహనాలు: 1 | టైర్ల నమోదులు: 2" in text
+    assert "ఒకే రకం టైర్లు అమర్చని వాహనాలు\nవాహనాలు: 1 | టైర్ల నమోదులు: 1" in text
     assert "BUS001" in text and "BUS002" in text and "9999999" not in text
     assert "FNS" in text and "FOS" in text
+    assert "వాహనం BUS001 — టైర్ పొజిషన్లు: FNS, FOS" in text
+    assert "RTC No." not in text and "APOLLO" not in text
     assert s.calls == [
         (BASE + "rc_tyres_front1.php", {"fyymm": "1/9/2026"}, 30),
         (BASE + "rcpopup.php", {"dt": "1/9/2026", "regn": "YSRKADAPA", "dept": ""}, 30),
@@ -105,15 +107,15 @@ def test_valid_empty_table_is_zero():
 def test_one_failed_section_keeps_other_section():
     text, complete = append_tyre_checks("KMPL preserved", Session("rcpopup.php"), "2026-09-01", "RAJAMPET", "YSRKADAPA")
     assert text.startswith("KMPL preserved") and not complete
-    assert "RC front tyres: unavailable" in text
-    assert "Mismatched tyres: 1 vehicle" in text
+    assert "ముందు స్థానాల్లో RC టైర్లు: వివరాలు అందుబాటులో లేవు." in text
+    assert "ఒకే రకం టైర్లు అమర్చని వాహనాలు\nవాహనాలు: 1" in text
     assert COMPLETE_MARKER not in text
 
 
 def test_summary_failure_stops_popup_requests():
     s = Session("rc_tyres_front1.php")
     text, complete = build_tyre_checks(s, "2026-09-01", "RAJAMPET", "YSRKADAPA")
-    assert not complete and "unavailable" in text and len(s.calls) == 1
+    assert not complete and "అందుబాటులో లేవు" in text and len(s.calls) == 1
 
 
 def test_existing_section_replaced_once():
@@ -143,7 +145,7 @@ def test_odd_day_application_keeps_base_when_auxiliary_fails():
                 raise requests.Timeout()
             return super().post(url, data, timeout)
     text = build_daily_report(OddSession(), "2026-08-19", "PRODDUTUR", "PDTR/PRODDUTUR", "YSRKADAPA")
-    assert "DAILY HSD KMPL" in text and "4.84" in text and "Tyre checks unavailable" in text
+    assert "DAILY HSD KMPL" in text and "4.84" in text and "టైర్ల వివరాలు అందుబాటులో లేవు" in text
 
 
 @pytest.mark.parametrize("cached,expect_fetch,expect_update", [
