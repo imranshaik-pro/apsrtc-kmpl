@@ -111,6 +111,14 @@ def download_latest_prior_monthly_sheet(folder_id: str, depot_name: str, selecte
     return prior
 
 
+def update_text_file(file_path: str | Path, file_id: str) -> dict:
+    """Refresh an existing daily text file while retaining its ID/link."""
+    media = MediaFileUpload(str(file_path), mimetype="text/plain", resumable=False)
+    return drive_service().files().update(
+        fileId=file_id, media_body=media, fields="id,name,mimeType,webViewLink"
+    ).execute()
+
+
 def upload_file(file_path: str | Path, folder_id: str) -> dict:
     path = Path(file_path)
     if not path.exists():
