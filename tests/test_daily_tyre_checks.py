@@ -9,7 +9,7 @@ import run_automated_daily as runner
 from src.reporting.tyre_checks import (
     SPARE_URL, SPARE_TITLE, spare_depot_id, parse_spare_tyres, build_spare_snapshot,
     BASE, SECTION_MARKER, COMPLETE_MARKER, append_tyre_checks,
-    build_tyre_checks, parse_tyre_popup, tyre_checks_due,
+    build_tyre_checks, parse_tyre_popup,
 )
 from test_application import FakeSession as DailySession
 from src.reporting.application import build_daily_report
@@ -65,13 +65,7 @@ class Session:
                         REPAIR_HTML if url.endswith("repairpopup.php") else "summary")
 
 
-def test_even_date_makes_no_extra_requests():
-    s = Session()
-    assert append_tyre_checks("Original KMPL", s, "2026-09-02", "RAJAMPET", "YSRKADAPA") == ("Original KMPL", True)
-    assert s.calls == []
-
-
-def test_odd_date_depot_counts_and_exact_payload():
+def test_current_request_depot_counts_and_exact_payload():
     s = Session()
     text, complete = build_tyre_checks(s, "2026-09-01", "RAJAMPET", "YSRKADAPA")
     assert complete
@@ -139,23 +133,6 @@ def test_existing_section_replaced_once():
     assert text.count(SECTION_MARKER) == 1 and " old" not in text
 
 
-def test_date_resolution_before_odd_day_check():
-    class Clock:
-        @classmethod
-        def now(cls, timezone):
-            return datetime(2026, 10, 2, 5, 7, tzinfo=timezone)
-    with patch.object(runner, "datetime", Clock):
-        for selected, scheduled in [("2026-10-02", False), (None, True)]:
-            resolved = runner.resolve_report_date(selected, scheduled)
-            assert resolved.isoformat() == "2026-10-01" and tyre_checks_due(resolved.isoformat())
-        assert not tyre_checks_due(runner.resolve_report_date("2026-09-30", False).isoformat())
-        assert tyre_checks_due(runner.resolve_report_date("2026-09-15", False).isoformat())
-        with pytest.raises(ValueError):
-            runner.resolve_report_date("2026-10-03", False)
-
-
-
-
 def test_zero_results_preserve_daily_exactly():
     class EmptySession(Session):
         def post(self, url, data, timeout):
@@ -187,14 +164,6 @@ def test_auxiliary_login_failure_preserves_daily(tmp_path):
     assert path.read_text().startswith("Completed HSD\n")
 
 
-def test_even_enrichment_skips_auth(tmp_path):
-    from src.reporting.tyre_checks import enrich_daily_file
-    path = tmp_path / "daily.txt"
-    path.write_text("HSD\n")
-    assert enrich_daily_file(path, "2026-09-02", "RAJAMPET", "YSRKADAPA", lambda: pytest.fail("no login"))
-    assert path.read_text() == "HSD\n"
-
-
 def test_daily_finishes_before_tyres(tmp_path, monkeypatch):
     from datetime import date
     from src.reporting import tyre_checks
@@ -207,7 +176,7 @@ def test_daily_finishes_before_tyres(tmp_path, monkeypatch):
     monkeypatch.setattr(runner.subprocess, "run", generate)
     calls = []
     monkeypatch.setattr(tyre_checks, "enrich_daily_file", lambda output, *args: calls.append(output.read_text()))
-    assert runner.run_report("RAJAMPET", {"vehicle_depot": "RJPT/RAJAMPET", "region_code": "YSRKADAPA"}, date(2026, 9, 1)) == path
+    assert runner.run_report("RAJAMPET", {"vehicle_depot": "RJPT/RAJAMPET", "region_code": "YSRKADAPA"}, date(2026, 9, 1), include_tyres=True) == path
     assert calls == ["Completed HSD"]
 
 
