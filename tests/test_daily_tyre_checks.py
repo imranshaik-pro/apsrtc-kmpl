@@ -1,3 +1,4 @@
+from pathlib import Path
 from datetime import datetime
 from unittest.mock import patch
 
@@ -6,6 +7,7 @@ import requests
 
 import run_automated_daily as runner
 from src.reporting.tyre_checks import (
+    SPARE_URL, SPARE_TITLE, spare_depot_id, parse_spare_tyres, build_spare_snapshot,
     BASE, SECTION_MARKER, COMPLETE_MARKER, append_tyre_checks,
     build_tyre_checks, parse_tyre_popup, tyre_checks_due,
 )
@@ -36,6 +38,9 @@ REPAIR_HTML = popup(row(1, "RAJAMPET", "BUS003", "RNSO", "REP1") +
                     row(2, "PRODDUTUR", "OTHER_DEPOT", "RNSI", "REP2"))
 
 
+SPARE_HTML = (Path(__file__).parent / "fixtures" / "spare-tyres-proddutur.html").read_text()
+
+
 class Response:
     def __init__(self, text):
         self.text = text
@@ -53,6 +58,8 @@ class Session:
         self.calls.append((url, data, timeout))
         if url.endswith(self.broken or "NEVER"):
             raise requests.Timeout()
+        if url == SPARE_URL:
+            return Response(SPARE_HTML)
         return Response(RC_HTML if url.endswith("rcpopup.php") else
                         MISMATCH_HTML if url.endswith("samepopup.php") else
                         REPAIR_HTML if url.endswith("repairpopup.php") else "summary")
@@ -80,6 +87,8 @@ def test_odd_date_depot_counts_and_exact_payload():
         (BASE + "samepopup.php", {"dt": "1/9/2026", "regn": "YSRKADAPA", "dept": ""}, 30),
         (BASE + "fitted_repair1.php", {"fyymm": "1/9/2026"}, 30),
         (BASE + "repairpopup.php", {"dt": "1/9/2026", "regn": "YSRKADAPA", "dept": ""}, 30),
+        (SPARE_URL, {"depot_id": ""}, 30),
+        (SPARE_URL, {"depot_id": "115"}, 30),
     ]
 
 
@@ -117,10 +126,12 @@ def test_one_failed_section_keeps_other_section():
     assert COMPLETE_MARKER not in text
 
 
-def test_summary_failure_stops_popup_requests():
+def test_front_failure_keeps_independent_repair_and_spare():
     s = Session("rc_tyres_front1.php")
     text, complete = build_tyre_checks(s, "2026-09-01", "RAJAMPET", "YSRKADAPA")
-    assert not complete and "అందుబాటులో లేవు" in text and len(s.calls) == 1
+    assert not complete and "అందుబాటులో లేవు" in text
+    assert not any(url.endswith(("rcpopup.php", "samepopup.php")) for url, _, _ in s.calls)
+    assert "BUS003" in text and any(url == SPARE_URL for url, _, _ in s.calls)
 
 
 def test_existing_section_replaced_once():
@@ -148,6 +159,8 @@ def test_date_resolution_before_odd_day_check():
 def test_zero_results_preserve_daily_exactly():
     class EmptySession(Session):
         def post(self, url, data, timeout):
+            if url == SPARE_URL:
+                return super().post(url, data, timeout)
             return Response(popup())
     original = "Daily HSD\n"
     assert append_tyre_checks(original, EmptySession(), "2026-09-01", "RAJAMPET", "YSRKADAPA") == (original, True)
@@ -156,6 +169,8 @@ def test_zero_results_preserve_daily_exactly():
 def test_zero_mismatch_hidden_with_positive_rc():
     class OnlyRC(Session):
         def post(self, url, data, timeout):
+            if url == SPARE_URL:
+                return super().post(url, data, timeout)
             return Response(popup() if url.endswith(("samepopup.php", "repairpopup.php")) else RC_HTML)
     text, complete = build_tyre_checks(OnlyRC(), "2026-09-01", "RAJAMPET", "YSRKADAPA")
     assert complete and "BUS001" in text
@@ -233,3 +248,75 @@ def test_zero_repair_category_is_hidden():
             return super().post(url, data, timeout)
     text, complete = build_tyre_checks(NoRepair(), "2026-09-01", "RAJAMPET", "YSRKADAPA")
     assert complete and "రిపేర్ టైర్లు" not in text and "BUS001" in text
+
+
+def test_owner_spare_source_nine_proddutur_records_and_ids():
+    assert spare_depot_id(SPARE_HTML, "PRODDUTUR") == "114"
+    assert spare_depot_id(SPARE_HTML, "RAJAMPET") == "115"
+    rows, run_date = parse_spare_tyres(SPARE_HTML, "PRODDUTUR")
+    assert len(rows) == 9 and run_date == "2026-10-01"
+    assert rows[0]["vehiclenum"] == "39Z0321"
+    assert rows[0]["position"] == "SPARE1" and rows[0]["numofdaysinuse"] == "182"
+    assert parse_spare_tyres(SPARE_HTML, "RAJAMPET") == ([], None)
+
+
+def test_snapshot_date_is_independent_of_historical_daily_date():
+    session = Session()
+    text, complete = build_tyre_checks(session, "2026-09-01", "PRODDUTUR", "YSRKADAPA")
+    assert complete
+    assert "మూల నివేదిక తేదీ: 2026-10-01" in text
+    assert "వాహనాలు: 9 | టైర్ల నమోదులు: 9" in text
+    assert "39Z0321" in text and "SPARE1" in text and "182" in text
+    assert session.calls[-1] == (SPARE_URL, {"depot_id": "114"}, 30)
+
+
+@pytest.mark.parametrize("html", ["<form>Login</form>", SPARE_HTML.replace("01-10-2026", "99-10-2026"),
+    SPARE_HTML.replace("<th>Position</th>", "<th>Absent</th>"),
+    SPARE_HTML.replace("182</td>", "unknown</td>")])
+def test_invalid_spare_sources_are_not_zero(html):
+    with pytest.raises(ValueError):
+        parse_spare_tyres(html, "PRODDUTUR")
+
+
+def test_spare_failure_keeps_other_categories_and_daily():
+    text, complete = append_tyre_checks("Completed HSD", Session("spare_tyre.php"), "2026-09-01", "RAJAMPET", "YSRKADAPA")
+    assert not complete and text.startswith("Completed HSD")
+    assert "BUS001" in text and "BUS003" in text
+    assert SPARE_TITLE + ": వివరాలు అందుబాటులో లేవు." in text
+
+
+def test_unknown_spare_depot_does_not_send_unverified_id():
+    session = Session()
+    with pytest.raises(ValueError):
+        build_spare_snapshot(session, "UNKNOWN")
+    assert len(session.calls) == 1
+
+
+def test_mixed_spare_run_dates_rejected():
+    with pytest.raises(ValueError):
+        parse_spare_tyres(SPARE_HTML.replace("01-10-2026", "02-10-2026", 1), "PRODDUTUR")
+
+
+def test_spare_duplicate_rows_keep_one_tyre():
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(SPARE_HTML, "html.parser")
+    table = soup.find("table")
+    first = table.find_all("tr")[1]
+    duplicate = BeautifulSoup(str(first), "html.parser").find("tr")
+    duplicate.find("td").string = "10"
+    table.append(duplicate)
+    rows, _ = parse_spare_tyres(str(soup), "PRODDUTUR")
+    assert len(rows) == 9
+
+
+def test_empty_spare_table_is_zero_and_hidden():
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(SPARE_HTML, "html.parser")
+    for tr in soup.find("table").find_all("tr")[1:]:
+        tr.decompose()
+    class EmptySpare(Session):
+        def post(self, url, data, timeout):
+            if url == SPARE_URL:
+                return Response(str(soup))
+            return super().post(url, data, timeout)
+    assert build_spare_snapshot(EmptySpare(), "PRODDUTUR") == ""
