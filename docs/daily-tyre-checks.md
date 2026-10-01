@@ -8,7 +8,7 @@ file; no separate tyre message is introduced.
 Scheduled requests and manual today resolve to yesterday in Asia/Kolkata.
 Earlier selected dates remain unchanged. Check the resolved date: odd dates
 fetch RC front tyres, mismatched tyres and fitted repair tyres in RNSO/RNSI
-positions; even dates make no tyre requests.
+positions, plus a separately dated spare-tyre snapshot; even dates make no tyre requests.
 
 POST rc_tyres_front1.php with fyymm=D/M/YYYY, then rcpopup.php and
 samepopup.php with dt=D/M/YYYY, regn=mapped district, dept blank. For repair
@@ -27,7 +27,7 @@ content. Replace the local combined file atomically.
 Existing cached Drive reports keep the original reuse behavior. This change
 does not refresh previously uploaded reports or modify the Drive integration.
 
-Validation: 26 focused tests passed and changed Python modules compiled.
+Validation: 37 focused tests passed and changed Python modules compiled.
 Coverage includes zero/positive category combinations, odd/even dates, source
 validation, source failures, depot isolation and daily-before-tyres ordering.
 The 13 prior daily regression failures are corrected separately in draft PR #6.
@@ -64,13 +64,38 @@ heading dates, failures and other depots cannot become matching vehicle data.
 The new repair category has compile and fixture test coverage, not a live
 source/delivery validation. Regular daily calculations and delivery are unchanged.
 
-## Spare tyres over two months — source verification pending
+## Spare tyres over two months — implemented 1 October 2026
 
-Owner supplied POST /tyres/spare_tyre.php with depot_id=115. Screenshot shows
-Run Date, Depot, Vehicle Num, Vehicle type, RTC Tyre No and Make; this is a
-separate report from fitted repair tyres. No selected-date parameter was supplied.
-Do not label a current snapshot as the selected historical day's data. Verify the
-depot dropdown option for 115, full response HTML (including remaining columns),
-and whether historical Run Dates are supported before enabling this category.
-Source inspection returned 502 Bad Gateway; no spare category fetch is enabled.
-The favicon request is unrelated to report data.
+The owner's uploaded source HTML confirms PRODDUTUR=114 and RAJAMPET=115.
+The supplied form has only depot_id; no date selector. The nine Proddatur
+records have Run Date 01-10-2026, with vehicle, tyre number, position and days
+in use. Preserve the supplied source as tests/fixtures/spare-tyres-proddutur.html.
+
+On an odd resolved daily date, POST /tyres/spare_tyre.php with blank depot_id
+to obtain the source dropdown. Resolve the exact normalized selected depot,
+then POST its verified option value. Do not hardcode a depot ID globally.
+Filter returned rows by exact depot and validate the required table columns,
+vehicle/tyre/position, numeric days and a single valid Run Date. Empty valid
+tables are omitted; unavailable or malformed reports receive an unavailable
+note, rather than being counted as zero. Deduplicate repeated tyre identity
+(vehicle, tyre number, position); reject conflicting duplicates.
+
+Render Telugu counts and each vehicle/position/tyre number/days-in-use.
+Always label the source Run Date separately, explicitly independent of the
+daily report date. This is the source's available snapshot, including when
+requested alongside a historical daily report; it is not historical spare
+data. No invented date parameter or historical reconstruction is used.
+The source defines the over-two-month selection; do not replace it with an
+assumed fixed sixty-day threshold.
+
+An RC parent-page failure now leaves independent fitted-repair and spare
+requests available. Failure in the spare source preserves the completed HSD
+report and other successful tyre sections. Odd/even gating and regular HSD
+calculations, upload and delivery remain unchanged.
+
+37 focused checks and Python compile pass locally. The exact supplied nine
+records, both verified IDs, snapshot date labeling, malformed/mixed dates,
+empty results, duplicate rows and failure isolation are covered. Live spare
+fetch/Hub/Telegram validation remains unverified: direct source browser
+inspection returned 502. Existing cached Drive reports still reuse their
+saved contents. This change is committed to the draft PR, not production.
