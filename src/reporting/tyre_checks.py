@@ -17,6 +17,7 @@ COMPLETE_MARKER = "టైర్ల వివరాల స్థితి: పూ
 REPORTS = (
     ("ముందు స్థానాల్లో RC టైర్లు", "rcpopup.php"),
     ("ఒకే రకం టైర్లు అమర్చని వాహనాలు", "samepopup.php"),
+    ("RNSO/RNSI స్థానాల్లో రిపేర్ టైర్లు అమర్చిన వాహనాలు", "repairpopup.php"),
 )
 
 
@@ -117,6 +118,10 @@ def build_tyre_checks(session, report_date, depot, region_code):
         return "\n".join(lines + ["టైర్ల వివరాలు అందుబాటులో లేవు: మూల నివేదిక పొందలేకపోయాము."]), False
     for title, endpoint in REPORTS:
         try:
+            if endpoint == "repairpopup.php":
+                # This report has its own date-selection parent page.
+                response = session.post(BASE + "fitted_repair1.php", data={"fyymm": source_date}, timeout=30)
+                response.raise_for_status()
             response = session.post(BASE + endpoint, data={"dt": source_date, "regn": region_code, "dept": ""}, timeout=30)
             response.raise_for_status()
             rows, vehicle_header = parse_tyre_popup(response.text, depot, report_date)
