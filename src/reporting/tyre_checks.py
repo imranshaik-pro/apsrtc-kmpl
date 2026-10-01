@@ -179,7 +179,7 @@ def build_spare_snapshot(session, depot):
     lines = [SPARE_TITLE, f"మూల నివేదిక తేదీ: {run_date} (రోజువారీ నివేదిక తేదీకి స్వతంత్రంగా)",
              f"వాహనాలు: {len(vehicles)} | టైర్ల నమోదులు: {len(rows)}"]
     for row in rows:
-        lines.append(f"వాహనం {row['vehiclenum']} — టైర్ పొజిషన్: {row['position']} | "
+        lines.append(f"వాహనం {row['vehiclenum']} — {row['position']} | "
                      f"టైర్ నం.: {row['rtctyreno']} | ఉపయోగంలో రోజులు: {row['numofdaysinuse']}")
     return "\n".join(lines)
 
@@ -214,7 +214,7 @@ def build_tyre_checks(session, report_date, depot, region_code):
                     value for row in rows if row[vehicle_header] == vehicle
                     for key, value in row.items() if _key(key) == "tyreposition"
                 ))
-                lines.append(f"వాహనం {vehicle} — టైర్ పొజిషన్లు: {', '.join(positions)}")
+                lines.append(f"వాహనం {vehicle} — {', '.join(positions)}")
         except (RequestException, ValueError):
             complete = False
             lines.append(f"\n{title}: వివరాలు అందుబాటులో లేవు.")
