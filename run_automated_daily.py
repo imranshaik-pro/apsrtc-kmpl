@@ -14,13 +14,8 @@ import sys
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
-from requests import RequestException
 
-from src.integrations.google_drive import download_file, find_file, upload_file, update_text_file
-from src.auth.client import login
-from src.reporting.tyre_checks import (
-    SECTION_MARKER, COMPLETE_MARKER, append_tyre_checks, tyre_checks_due,
-)
+from src.integrations.google_drive import download_file, find_file, upload_file
 
 
 ROOT = Path(__file__).resolve().parent
@@ -82,6 +77,8 @@ def run_report(display_name: str, info: dict, report_date: date) -> Path:
     output = ROOT / "reports" / f"{display_name}_{report_date.isoformat()}.txt"
     if not output.exists():
         raise RuntimeError(f"Expected report file was not created: {output}")
+    from src.reporting.tyre_checks import enrich_daily_file
+    enrich_daily_file(output, report_date.isoformat(), display_name, info["region_code"])
     return output
 
 
@@ -114,22 +111,6 @@ def main() -> int:
         if existing:
             existing_path = ROOT / "reports" / filename
             download_file(existing["id"], existing_path)
-            cached = existing_path.read_text(encoding="utf-8")
-            if tyre_checks_due(report_date.isoformat()) and COMPLETE_MARKER not in cached:
-                try:
-                    refreshed, complete = append_tyre_checks(
-                        cached, login(), report_date.isoformat(), display_name, info["region_code"]
-                    )
-                except (RequestException, RuntimeError):
-                    # Auxiliary authentication failure must not block delivery
-                    # of the already generated HSD report.
-                    refreshed, complete = cached, False
-                # Retry incomplete checks without replacing previously collected
-                # partial detail with another failed attempt.
-                if refreshed != cached and (complete or SECTION_MARKER not in cached):
-                    existing_path.write_text(refreshed + "\n", encoding="utf-8")
-                    update_text_file(existing_path, existing["id"])
-                print("TYRE_CHECKS_CACHE_REFRESH: " + ("complete" if complete else "unavailable"))
             print(f"EXISTING_REPORT_FILE: {existing_path}")
             print(f"ALREADY_DELIVERED: {existing.get('webViewLink', existing['id'])}")
             return 0
