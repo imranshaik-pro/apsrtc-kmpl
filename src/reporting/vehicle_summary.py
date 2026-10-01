@@ -7,6 +7,7 @@ import json
 import logging
 from decimal import Decimal
 from typing import List, Dict, Any, Tuple
+from src.calculations.slabs import classify_kmpl
 
 THRESHOLD = Decimal("5.00")
 MAPPING_FILE = "vehicle_type_mapping.json"
@@ -41,10 +42,9 @@ def _get_vehicle_code(op_type: str) -> str:
     return op_type.strip().split()[0] if op_type.strip() else ""
 
 def get_slab(kmpl: Decimal) -> str:
-    for label, low, high in SLABS:
-        if low <= kmpl <= high:
-            return label
-    return ">5.30"
+    slab = classify_kmpl(kmpl)
+    return SLABS[slab - 1][0] if slab is not None else None
+
 
 def build_slab_operation_table(
     for_day_results: List[Dict[str, Any]],
@@ -103,6 +103,15 @@ def build_vehicle_summary(
     depot: str = None,
     report_date: str = None,
 ) -> Dict[str, Any]:
+    for name, results in (("For-Day", for_day_results), ("Up-To-Day", up_to_day_results)):
+        if results is None:
+            raise ValueError(f"{name} results cannot be None")
+        seen = set()
+        for result in results:
+            vehicle = result["vehicle_number"]
+            if vehicle in seen:
+                raise ValueError(f"Duplicate vehicle in {name} results: {vehicle}")
+            seen.add(vehicle)
     mapping = load_type_mapping()
     nac_vehicles = set()
     unknown_vehicles = []   # will store {"vehicle": ..., "op_type": raw}
@@ -166,3 +175,4 @@ def build_vehicle_summary(
         "low_day_vehicles": low_vehicles,
         "unknown_vehicles": unique_unknown,
     }
+
