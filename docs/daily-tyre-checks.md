@@ -27,7 +27,7 @@ Reuse the daily authenticated session. The blank depot parameter returns a
 district list: filter rows by the selected depot's exact normalized name. Do
 not infer tyre aliases or transfer another depot's rows. Preserve vehicle
 numbers and tyre identifiers as text. Group by unique vehicle, retain distinct
-positions, and display all source detail columns. Mismatched vehicles come
+positions. Display only Telugu category summaries, unique vehicle counts, tyre-record counts, vehicle numbers and tyre positions. Do not add RTC numbers, make, size or other detailed columns to the daily text. Mismatched vehicles come
 from the source report; do not invent a new mismatch rule based only on make.
 
 Validate the source heading date and recognized Depot/Vehicle columns. A valid
