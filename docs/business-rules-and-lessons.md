@@ -127,8 +127,8 @@ Telegram long polling, scheduled checks and Apps Script webhook are alternative 
 | Repository and deployed Apps Script differed | Located actual installable trigger project; empty bound project was not production engine. | Active Vehicle Event Engine project identified and version 6 updated. |
 | Conflicting doPost handlers | Route unkeyed Hub callbacks from existing vehicle handler; preserve keyed vehicle-event route. | Committed in PR #4 and deployed version 6. |
 | Callback token missing | Last safe diagnostic reported token absent; matching Apps Script/GitHub settings are required. | Owner credential entry and live validation pending. |
-| Daily callback URL type differs from annual | Daily returns Drive file links; initial annual callback validator accepts only spreadsheet links and opens reports as spreadsheets. | Bounded correction committed: accept Drive file links without opening them as spreadsheets; require a spreadsheet for annual branding. Tests passed; deployment/live validation pending. |
-| Signed-in browser session reset; Google connection failed | Existing deployment/commits remain saved; do not confuse connection failure with lost code. | 1 October recheck: sign-in 502 / Connection refused; live final test blocked. |
+| Daily callback URL type differs from annual | Daily returns Drive file links; initial annual callback validator accepts only spreadsheet links and opens reports as spreadsheets. | Bounded correction committed: accept Drive file links without opening them as spreadsheets; require a spreadsheet for annual branding. Tests passed; Apps Script version 7 deployed on 1 October 2026. Live callback validation awaits matching credentials. |
+| Signed-in browser session reset; Google connection failed | Existing deployment/commits remain saved; do not confuse connection failure with lost code. | 1 October: initial 502 / Connection refused recovered after owner sign-in; project access verified. Final test now blocked by missing callback token. |
 | Static settings lag behind later workflow features | Record differences explicitly: old FY defaults, Telegram disabled flag and retry array do not certify current workflow behavior. | Documentation warning; no unrelated settings silently changed. |
 
 ## Evidence and change status
@@ -136,7 +136,7 @@ Telegram long polling, scheduled checks and Apps Script webhook are alternative 
 - [PR #2](https://github.com/imranshaik-pro/apsrtc-kmpl/pull/2) and [PR #3](https://github.com/imranshaik-pro/apsrtc-kmpl/pull/3) were previously merged.
 - [PR #4](https://github.com/imranshaik-pro/apsrtc-kmpl/pull/4) contains callback/over-cell logo code and this documentation; it remains unmerged unless separately approved.
 - [Rajampet June Hub run 36734569179](https://github.com/imranshaik-pro/apsrtc-kmpl/actions/runs/36734569179): report generation and Telegram succeeded; callback skipped because live dispatch lacked hub_row.
-- Apps Script web-app version 6 deployed with existing URL/access settings retained; not proof that callback secrets or final end-to-end delivery are ready.
+- Apps Script web-app version 7 deployed on 1 October 2026 with existing URL/access settings retained, including the daily Drive-link correction. Safe diagnostic still reported HUB_CALLBACK_TOKEN absent; deployment is not proof of end-to-end callback delivery.
 - Local JavaScript syntax, callback authentication, row bounds, URL rejection and repeat-safe logo tests passed. Additional daily Drive-link and monthly spreadsheet-link success tests, annual Drive-link rejection and malformed-link rejection also passed.
 - Proddatur data issue is explicitly outside the callback/logo fix.
 
