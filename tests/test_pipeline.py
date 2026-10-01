@@ -1,3 +1,4 @@
+from decimal import Decimal
 from src.calculations.kmpl import calculate_kmpl
 from src.calculations.normalization import (
     normalize_for_day_record,
@@ -18,9 +19,9 @@ def test_zero_hsd():
 
 
 def test_rounding():
-    assert round_kmpl(4.625) == 4.63
-    assert round_kmpl(5.125) == 5.13
-    assert round_kmpl(4.624) == 4.62
+    assert round_kmpl(4.625) == Decimal("4.63")
+    assert round_kmpl(5.125) == Decimal("5.13")
+    assert round_kmpl(4.624) == Decimal("4.62")
 
 
 def test_slab_boundaries():
@@ -170,12 +171,12 @@ def test_integrated_calculation_pipeline():
 
     assert for_day[0]["vehicle_number"] == "04Z0070"
     assert for_day[0]["kmpl"] == 145.0 / 41.0
-    assert for_day[0]["rounded_kmpl"] == 3.54
+    assert for_day[0]["rounded_kmpl"] == Decimal("3.54")
     assert for_day[0]["slab"] == 1
 
     assert up_to_day[0]["vehicle_number"] == "04Z0070"
     assert up_to_day[0]["kmpl"] == 1041.0 / 223.0
-    assert up_to_day[0]["rounded_kmpl"] == 4.67
+    assert up_to_day[0]["rounded_kmpl"] == Decimal("4.67")
     assert up_to_day[0]["slab"] == 1
 
 
