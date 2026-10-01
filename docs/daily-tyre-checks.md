@@ -56,8 +56,9 @@ resolution on both odd/even dates, both depots, fresh/cached delivery, exact
 payloads, source date and depot filtering, supplied spare records, empty
 results, duplicates and isolated failures. Workflow includes this test gate.
 The 13 earlier daily regression failures are fixed separately in draft PR #6.
-This draft remains unmerged. Current-only gating and new repair/spare fetching
-have not been verified through a fresh live Hub/Telegram run.
+This draft remains unmerged. Current-only cached delivery and live repair/spare
+fetching are verified in run 36900410412 below. Fresh KMPL generation plus these
+new categories, and a new Hub callback with this revision, remain unverified.
 
 ## Earlier live evidence — prior RC/mismatch implementation
 
@@ -77,3 +78,27 @@ not verified. Direct source browser inspection previously returned 502.
 Existing workflow limitation: fresh generation emits multiple Report date
 lines and tail-based extraction can select a formatted display date. This
 change does not alter that extraction or delivery scheduling.
+
+## Current-request live validation — 1 October 2026
+
+Draft run 36900410412 (#133), job 110497868552, tested commit
+e8bd937cf33a99c9c89d23a2cc5c86e55ec4b1a8 with PRODDUTUR and selected
+2026-10-01. It resolved KMPL to 2026-09-30, reused the existing saved KMPL
+file and performed live tyre fetches on the local delivery copy. Compile and
+45 focused checks passed in GitHub Python 3.11. The run succeeded; Telegram
+API accepted one combined message at 17:35:23 UTC. Hub callback was skipped
+because this manual draft test did not supply a Hub response row.
+
+Artifact 11181398003 was downloaded and read. It contains mismatch counts
+6 vehicles/40 records; repair counts 2 vehicles/2 records, 02Z0129 RNSO and
+39Z0842 RNSI; spare counts 9 vehicles/9 records with source date 2026-10-01.
+The RC-front category is omitted after validated zero rows. No unavailable
+source notes appear. All nine spare vehicle/position/tyre-number/days values
+match the supplied source fixture. Both repair vehicle positions match the
+owner's supplied modal data, with the MYDUKUR vehicle excluded.
+
+The saved Drive file 17HG-Fp_rw7y1SnAg_CTuQCzYLVtBDb_i was not overwritten;
+its existing link can retain the old contents. Telegram used the local enriched
+artifact. This is draft cached-KMPL enrichment/delivery proof, not a production
+merge, recipient-read proof or new Hub callback test. Historical exclusion
+remains covered by the focused tests rather than an additional live send.
