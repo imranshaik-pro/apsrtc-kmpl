@@ -12,11 +12,11 @@ from requests import RequestException
 
 
 BASE = "http://103.44.14.20/med/"
-SECTION_MARKER = "DEPOT TYRE CHECKS —"
-COMPLETE_MARKER = "Tyre data status: COMPLETE"
+SECTION_MARKER = "టైర్ల వివరాలు —"
+COMPLETE_MARKER = "టైర్ల వివరాల స్థితి: పూర్తయింది"
 REPORTS = (
-    ("RC front tyres", "rcpopup.php"),
-    ("Mismatched tyres", "samepopup.php"),
+    ("ముందు స్థానాల్లో RC టైర్లు", "rcpopup.php"),
+    ("ఒకే రకం టైర్లు అమర్చని వాహనాలు", "samepopup.php"),
 )
 
 
@@ -75,8 +75,11 @@ def parse_tyre_popup(html, depot, report_date):
             depot_columns = [i for i, k in enumerate(keys) if k == "depot"]
             vehicle_columns = [i for i, k in enumerate(keys) if k in {"vehno", "vehicleno", "vehiclenumber"}]
             if depot_columns and vehicle_columns:
+                if "tyreposition" not in keys:
+                    raise ValueError("Tyre position column is missing")
                 headers = values
                 depot_column, vehicle_column = depot_columns[0], vehicle_columns[0]
+                position_column = keys.index("tyreposition")
                 continue
             if headers is None:
                 continue
@@ -90,6 +93,8 @@ def parse_tyre_popup(html, depot, report_date):
                 continue
             if not values[vehicle_column]:
                 raise ValueError("Tyre row has no vehicle number")
+            if not values[position_column]:
+                raise ValueError("Tyre row has no position")
             rows.append(dict(zip(headers, values)))
         if headers is not None:
             # Preserve distinct tyre positions, even on the same vehicle.
@@ -109,26 +114,25 @@ def build_tyre_checks(session, report_date, depot, region_code):
         response = session.post(BASE + "rc_tyres_front1.php", data={"fyymm": source_date}, timeout=30)
         response.raise_for_status()
     except RequestException:
-        return "\n".join(lines + ["Tyre checks unavailable: source request failed."]), False
+        return "\n".join(lines + ["టైర్ల వివరాలు అందుబాటులో లేవు: మూల నివేదిక పొందలేకపోయాము."]), False
     for title, endpoint in REPORTS:
         try:
             response = session.post(BASE + endpoint, data={"dt": source_date, "regn": region_code, "dept": ""}, timeout=30)
             response.raise_for_status()
             rows, vehicle_header = parse_tyre_popup(response.text, depot, report_date)
             vehicles = list(dict.fromkeys(row[vehicle_header] for row in rows))
-            lines.append(f"\n{title}: {len(vehicles)} vehicle(s), {len(rows)} tyre record(s)")
+            lines.append(f"\n{title}\nవాహనాలు: {len(vehicles)} | టైర్ల నమోదులు: {len(rows)}")
             if not rows:
-                lines.append("No matching depot vehicles in the source report.")
+                lines.append("ఈ డిపోకు సంబంధించిన వాహనాలు లేవు.")
             for vehicle in vehicles:
-                lines.append(f"Vehicle {vehicle}")
-                for row in rows:
-                    if row[vehicle_header] == vehicle:
-                        details = [f"{key}: {value}" for key, value in row.items()
-                                   if _key(key) not in {"sno", "slno", "district", "depot", _key(vehicle_header)}]
-                        lines.append("  " + "; ".join(details))
+                positions = list(dict.fromkeys(
+                    value for row in rows if row[vehicle_header] == vehicle
+                    for key, value in row.items() if _key(key) == "tyreposition"
+                ))
+                lines.append(f"వాహనం {vehicle} — టైర్ పొజిషన్లు: {', '.join(positions)}")
         except (RequestException, ValueError):
             complete = False
-            lines.append(f"\n{title}: unavailable — source request or validation failed.")
+            lines.append(f"\n{title}: వివరాలు అందుబాటులో లేవు.")
     if complete:
         lines.append(COMPLETE_MARKER)
     return "\n".join(lines), complete
