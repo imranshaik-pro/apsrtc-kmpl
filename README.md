@@ -222,3 +222,9 @@ The project follows:
 
 Established APSRTC endpoints, business rules, calculation rules, rounding rules, slab rules, reporting structure, and Telugu report design must not be changed silently.
 
+
+## Current Business Rules and Validation Status
+
+See [Business rules, decisions and lessons](docs/business-rules-and-lessons.md) for the consolidated daily/monthly/annual rules, historical preservation, source constraints, Hub contract, visual requirements, challenges and verified resolutions. See [Annual KPI known issues](docs/annual-kpi-known-issues.md) for the deferred Proddatur historical engine Upto issue.
+
+The original phase labels above describe the earlier daily-report milestones. They do not certify completion of later Hub callbacks, all depot/FY source rows, or every requested chart/bot feature. The consolidated record distinguishes implementation, live validation and pending work.
