@@ -8,7 +8,6 @@ from src.parser.region_parser import parse_region_html
 from src.reporting.region_summary import build_region_reporting_data
 from src.reporting.telugu_report import build_telugu_daily_report
 from src.reporting.vehicle_summary import build_vehicle_summary
-from src.reporting.tyre_checks import append_tyre_checks
 
 
 VEHICLE_REPORT_URL = (
@@ -104,7 +103,7 @@ def build_daily_report(session, report_date, depot, vehicle_depot, region_code):
     region_reporting_data = build_region_reporting_data(depot_region_records)
 
     # Pass raw records and calculation results to build the slab table
-    report = build_telugu_daily_report(
+    return build_telugu_daily_report(
         depot=depot,
         report_date=report_date,
         region_reporting_data=region_reporting_data,
@@ -113,8 +112,6 @@ def build_daily_report(session, report_date, depot, vehicle_depot, region_code):
         for_day_results=for_day_results,
         up_to_day_results=up_to_day_results,
     )
-    report, _ = append_tyre_checks(report, session, report_date, depot, region_code)
-    return report
 
 
 def run_daily_report(report_date, depot, vehicle_depot, region_code):
