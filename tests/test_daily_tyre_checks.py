@@ -32,6 +32,8 @@ RC_HTML = popup(row(1, "RAJAMPET", "BUS001", "FNS", "R25/1330") +
                 row(2, "RAJAMPET", "BUS001", "FOS", "R25/093") +
                 row(3, "PRODDUTUR", "9999999", "FNS", "OTHER"))
 MISMATCH_HTML = popup(row(1, "RAJAMPET", "BUS002", "RNS", "M1"))
+REPAIR_HTML = popup(row(1, "RAJAMPET", "BUS003", "RNSO", "REP1") +
+                    row(2, "PRODDUTUR", "OTHER_DEPOT", "RNSI", "REP2"))
 
 
 class Response:
@@ -52,7 +54,8 @@ class Session:
         if url.endswith(self.broken or "NEVER"):
             raise requests.Timeout()
         return Response(RC_HTML if url.endswith("rcpopup.php") else
-                        MISMATCH_HTML if url.endswith("samepopup.php") else "summary")
+                        MISMATCH_HTML if url.endswith("samepopup.php") else
+                        REPAIR_HTML if url.endswith("repairpopup.php") else "summary")
 
 
 def test_even_date_makes_no_extra_requests():
@@ -75,6 +78,8 @@ def test_odd_date_depot_counts_and_exact_payload():
         (BASE + "rc_tyres_front1.php", {"fyymm": "1/9/2026"}, 30),
         (BASE + "rcpopup.php", {"dt": "1/9/2026", "regn": "YSRKADAPA", "dept": ""}, 30),
         (BASE + "samepopup.php", {"dt": "1/9/2026", "regn": "YSRKADAPA", "dept": ""}, 30),
+        (BASE + "fitted_repair1.php", {"fyymm": "1/9/2026"}, 30),
+        (BASE + "repairpopup.php", {"dt": "1/9/2026", "regn": "YSRKADAPA", "dept": ""}, 30),
     ]
 
 
@@ -151,7 +156,7 @@ def test_zero_results_preserve_daily_exactly():
 def test_zero_mismatch_hidden_with_positive_rc():
     class OnlyRC(Session):
         def post(self, url, data, timeout):
-            return Response(popup() if url.endswith("samepopup.php") else RC_HTML)
+            return Response(popup() if url.endswith(("samepopup.php", "repairpopup.php")) else RC_HTML)
     text, complete = build_tyre_checks(OnlyRC(), "2026-09-01", "RAJAMPET", "YSRKADAPA")
     assert complete and "BUS001" in text
     assert "ఒకే రకం టైర్లు అమర్చని వాహనాలు" not in text
@@ -189,3 +194,42 @@ def test_daily_finishes_before_tyres(tmp_path, monkeypatch):
     monkeypatch.setattr(tyre_checks, "enrich_daily_file", lambda output, *args: calls.append(output.read_text()))
     assert runner.run_report("RAJAMPET", {"vehicle_depot": "RJPT/RAJAMPET", "region_code": "YSRKADAPA"}, date(2026, 9, 1)) == path
     assert calls == ["Completed HSD"]
+
+
+def test_repair_category_depot_vehicle_position_and_count():
+    text, complete = build_tyre_checks(Session(), "2026-09-01", "RAJAMPET", "YSRKADAPA")
+    assert complete
+    assert "RNSO/RNSI స్థానాల్లో రిపేర్ టైర్లు అమర్చిన వాహనాలు\nవాహనాలు: 1 | టైర్ల నమోదులు: 1" in text
+    assert "వాహనం BUS003 — టైర్ పొజిషన్లు: RNSO" in text
+    assert "OTHER_DEPOT" not in text
+
+
+@pytest.mark.parametrize("endpoint", ["fitted_repair1.php", "repairpopup.php"])
+def test_repair_failure_preserves_daily_and_other_categories(endpoint):
+    session = Session(endpoint)
+    text, complete = append_tyre_checks("Completed HSD", session, "2026-09-01", "RAJAMPET", "YSRKADAPA")
+    assert not complete and text.startswith("Completed HSD")
+    assert "BUS001" in text and "BUS002" in text
+    assert "రిపేర్ టైర్లు అమర్చిన వాహనాలు: వివరాలు అందుబాటులో లేవు." in text
+    if endpoint == "fitted_repair1.php":
+        assert not any(url.endswith("repairpopup.php") for url, _, _ in session.calls)
+
+
+def test_wrong_repair_date_is_unavailable_not_zero():
+    class WrongDate(Session):
+        def post(self, url, data, timeout):
+            if url.endswith("repairpopup.php"):
+                return Response(REPAIR_HTML.replace("1/9/2026", "3/9/2026"))
+            return super().post(url, data, timeout)
+    text, complete = build_tyre_checks(WrongDate(), "2026-09-01", "RAJAMPET", "YSRKADAPA")
+    assert not complete and "BUS003" not in text and "BUS001" in text
+
+
+def test_zero_repair_category_is_hidden():
+    class NoRepair(Session):
+        def post(self, url, data, timeout):
+            if url.endswith("repairpopup.php"):
+                return Response(popup())
+            return super().post(url, data, timeout)
+    text, complete = build_tyre_checks(NoRepair(), "2026-09-01", "RAJAMPET", "YSRKADAPA")
+    assert complete and "రిపేర్ టైర్లు" not in text and "BUS001" in text
