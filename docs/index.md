@@ -24,3 +24,11 @@ For questions about this application or Google account authorization, contact th
 ## Privacy
 
 See the [Privacy Policy](privacy.md).
+
+## Business and operations documentation
+
+- [Business rules, decisions and lessons](business-rules-and-lessons.md)
+- [Annual KPI known issues and regression pattern](annual-kpi-known-issues.md)
+- [Vehicle event register](vehicle-event-register.md)
+- [Telegram operations](telegram-operations.md)
+- [Apps Script Telegram webhook](telegram-google-apps-script-webhook.md)
