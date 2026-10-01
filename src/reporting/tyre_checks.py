@@ -12,6 +12,8 @@ from requests import RequestException
 
 
 BASE = "http://103.44.14.20/med/"
+SPARE_URL = "http://103.44.14.20/tyres/spare_tyre.php"
+SPARE_TITLE = "రెండు నెలలకు పైగా ఉపయోగంలో ఉన్న స్పేర్ టైర్లు"
 SECTION_MARKER = "టైర్ల వివరాలు —"
 COMPLETE_MARKER = "టైర్ల వివరాల స్థితి: పూర్తయింది"
 REPORTS = (
@@ -104,6 +106,87 @@ def parse_tyre_popup(html, depot, report_date):
     raise ValueError("Recognized depot/vehicle tyre table is missing")
 
 
+
+def spare_depot_id(html, depot):
+    select = BeautifulSoup(html, "html.parser").find("select", attrs={"name": "depot_id"})
+    if select is None:
+        raise ValueError("Spare tyre depot selector is missing")
+    matches = [option.get("value", "") for option in select.find_all("option")
+               if _key(option.get_text(" ", strip=True)) == _key(depot)]
+    if len(matches) != 1 or not matches[0].isdigit():
+        raise ValueError("Unique spare tyre depot ID is missing")
+    return matches[0]
+
+
+def parse_spare_tyres(html, depot):
+    """Parse a source snapshot; its Run Date is independent of daily date."""
+    soup = BeautifulSoup(html, "html.parser")
+    required = {"rundate", "depot", "vehiclenum", "rtctyreno", "position", "numofdaysinuse"}
+    for table in soup.find_all("table"):
+        headers = None
+        records = []
+        for tr in table.find_all("tr"):
+            cells = tr.find_all(["th", "td"], recursive=False)
+            if not cells:
+                continue
+            values = [cell.get_text(" ", strip=True) for cell in cells]
+            keys = [_key(value) for value in values]
+            if required.issubset(keys):
+                if len(keys) != len(set(keys)):
+                    raise ValueError("Duplicate spare tyre columns")
+                headers = keys
+                continue
+            if headers is None:
+                continue
+            if len(values) != len(headers):
+                if len(values) == 1 and re.fullmatch(r"no (?:data|records|vehicles)(?: found)?[.!]?", values[0], re.I):
+                    continue
+                raise ValueError("Unexpected spare tyre row shape")
+            record = dict(zip(headers, values))
+            record.pop("slnum", None)
+            if _key(record["depot"]) != _key(depot):
+                continue
+            for field in ("vehiclenum", "rtctyreno", "position"):
+                if not record[field]:
+                    raise ValueError("Missing spare tyre identity/position")
+            if not re.fullmatch(r"\d{2}-\d{2}-\d{4}", record["rundate"]):
+                raise ValueError("Missing or invalid spare tyre Run Date")
+            day, month, year = map(int, record["rundate"].split("-"))
+            record["rundate"] = date(year, month, day).isoformat()
+            if not record["numofdaysinuse"].isdigit():
+                raise ValueError("Missing spare tyre days in use")
+            records.append(record)
+        if headers is not None:
+            dates = {row["rundate"] for row in records}
+            if len(dates) > 1:
+                raise ValueError("Mixed spare tyre snapshot dates")
+            # Source serial numbers are not tyre identity; deduplicate repeated entries.
+            unique = {(row["vehiclenum"], row["rtctyreno"], row["position"]): row for row in records}
+            if len(unique) < len(records):
+                for row in records:
+                    if unique[(row["vehiclenum"], row["rtctyreno"], row["position"])] != row:
+                        raise ValueError("Conflicting duplicate spare tyre entries")
+            return list(unique.values()), next(iter(dates), None)
+    raise ValueError("Recognized spare tyre table is missing")
+
+
+def build_spare_snapshot(session, depot):
+    response = session.post(SPARE_URL, data={"depot_id": ""}, timeout=30)
+    response.raise_for_status()
+    depot_id = spare_depot_id(response.text, depot)
+    response = session.post(SPARE_URL, data={"depot_id": depot_id}, timeout=30)
+    response.raise_for_status()
+    rows, run_date = parse_spare_tyres(response.text, depot)
+    if not rows:
+        return ""
+    vehicles = {row["vehiclenum"] for row in rows}
+    lines = [SPARE_TITLE, f"మూల నివేదిక తేదీ: {run_date} (రోజువారీ నివేదిక తేదీకి స్వతంత్రంగా)",
+             f"వాహనాలు: {len(vehicles)} | టైర్ల నమోదులు: {len(rows)}"]
+    for row in rows:
+        lines.append(f"వాహనం {row['vehiclenum']} — టైర్ పొజిషన్: {row['position']} | "
+                     f"టైర్ నం.: {row['rtctyreno']} | ఉపయోగంలో రోజులు: {row['numofdaysinuse']}")
+    return "\n".join(lines)
+
 def build_tyre_checks(session, report_date, depot, region_code):
     if not tyre_checks_due(report_date):
         return "", True
@@ -111,13 +194,16 @@ def build_tyre_checks(session, report_date, depot, region_code):
     source_date = f"{dt.day}/{dt.month}/{dt.year}"
     lines = [f"{SECTION_MARKER} {depot} | {report_date}"]
     complete = True
+    front_available = True
     try:
         response = session.post(BASE + "rc_tyres_front1.php", data={"fyymm": source_date}, timeout=30)
         response.raise_for_status()
     except RequestException:
-        return "\n".join(lines + ["టైర్ల వివరాలు అందుబాటులో లేవు: మూల నివేదిక పొందలేకపోయాము."]), False
+        front_available = False
     for title, endpoint in REPORTS:
         try:
+            if endpoint != "repairpopup.php" and not front_available:
+                raise ValueError("Front tyre source unavailable")
             if endpoint == "repairpopup.php":
                 # This report has its own date-selection parent page.
                 response = session.post(BASE + "fitted_repair1.php", data={"fyymm": source_date}, timeout=30)
@@ -138,6 +224,13 @@ def build_tyre_checks(session, report_date, depot, region_code):
         except (RequestException, ValueError):
             complete = False
             lines.append(f"\n{title}: వివరాలు అందుబాటులో లేవు.")
+    try:
+        spare = build_spare_snapshot(session, depot)
+        if spare:
+            lines.append("\n" + spare)
+    except (RequestException, ValueError):
+        complete = False
+        lines.append(f"\n{SPARE_TITLE}: వివరాలు అందుబాటులో లేవు.")
     if complete and len(lines) == 1:
         return "", True
     return "\n".join(lines), complete
