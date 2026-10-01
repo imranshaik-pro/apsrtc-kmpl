@@ -92,7 +92,7 @@ See [Vehicle event register](vehicle-event-register.md), [Telegram operations](t
 - Annual red/green target colouring requires a numeric source target; missing values use an unavailable treatment. Do not invent thresholds.
 - Monthly daily cells use the established KMPL slab colours.
 - Full-year and YTD are different periods: label them clearly and avoid misleading like-for-like comparisons.
-- Requested fleet-availability trends and depot-versus-APSRTC comparisons are not implemented by the current annual chart model; they require verified comparable source data.
+- Fleet-availability trends and depot-versus-APSRTC comparisons are closed/out of current scope by owner decision on 1 October 2026 because accessible source data is unavailable. Do not list them as pending implementation. Reconsider only if source availability changes and the owner requests it.
 - XLSX logos are embedded image assets. Owner requested native Google Sheets logos over cells, not an IMAGE cell formula. Rajampet June 2026 dashboard/detail floating logos were installed and visually verified.
 - Use clear operational captions and legends; avoid decorative claims that imply unsupported performance.
 
@@ -121,7 +121,7 @@ Telegram long polling, scheduled checks and Apps Script webhook are alternative 
 | Suspected old Proddatur-only parser | Both depots traced through shared annual runners/parsers; suspicion is not a proven cause. | No speculative depot parser replacement approved. |
 | Annual Python indentation failure reported during earlier work | Compile gate added before build; recorded real Rajampet Hub run passed the compile step. | Gate implemented; not evidence of universal source completeness. |
 | Google Sheets merge/frozen-boundary errors | v11 clears conflicting freeze boundaries during legacy formatting and restores safe header freeze. | Implemented in current runner. |
-| Weak visual identity, missing legends and confusing periods | Shared presentation model, named units/series, target-based colours, grouped KPIs and depot/period headers. | Implemented; some requested charts remain open. |
+| Weak visual identity, missing legends and confusing periods | Shared presentation model, named units/series, target-based colours, grouped KPIs and depot/period headers. | Implemented; fleet-availability and depot-versus-APSRTC charts are closed/out of current scope because accessible sources are unavailable. |
 | External IMAGE formula showed #REF! | Floating native images replace formula dependency for annual Hub callback/repair. | Rajampet June live repair and automatic Hub callback branding visually verified on 1 October 2026. |
 | Live Hub omitted hub_row despite repository code having it | Corrected all three live dispatch inputs after observing callback step skipped. | Live dispatcher corrected. |
 | Repository and deployed Apps Script differed | Located actual installable trigger project; empty bound project was not production engine. | Active Vehicle Event Engine project identified and version 6 updated. |
