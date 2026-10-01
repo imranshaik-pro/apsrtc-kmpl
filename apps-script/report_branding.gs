@@ -9,10 +9,13 @@ function hubReportCallback_(e) {
     const hub=SpreadsheetApp.openById(p.getProperty('AUTOMATION_HUB_V2_RESPONSE_SHEET_ID'));
     const sheet=hub.getSheetByName('Automation Requests');
     if(!sheet||!Number.isInteger(row)||row<2||row>sheet.getLastRow()) throw new Error('Invalid Hub row.');
-    const match=String(b.url||'').match(/^https:\/\/docs\.google\.com\/spreadsheets\/d\/([A-Za-z0-9_-]+)(?:\/[^\s]*)?$/);
-    if(!match) throw new Error('Invalid report URL.');
-    const report=SpreadsheetApp.openById(match[1]);
-    if(String(b.status||'').includes('ANNUAL KPI')) hubBrandAnnual_(report);
+    const url=String(b.url||'');
+    const sheetMatch=url.match(/^https:\/\/docs\.google\.com\/spreadsheets\/d\/([A-Za-z0-9_-]+)(?:\/(?:edit|view)(?:\?[A-Za-z0-9_=&%.-]*)?(?:#[A-Za-z0-9_=&%.-]*)?)?$/);
+    const driveMatch=url.match(/^https:\/\/drive\.google\.com\/file\/d\/([A-Za-z0-9_-]+)\/view(?:\?[A-Za-z0-9_=&%.-]*)?$/);
+    const annual=String(b.status||'').includes('ANNUAL KPI');
+    if(!sheetMatch&&!driveMatch) throw new Error('Invalid report URL.');
+    if(annual&&!sheetMatch) throw new Error('Annual report must be a spreadsheet.');
+    if(annual) hubBrandAnnual_(SpreadsheetApp.openById(sheetMatch[1]));
     const headers=sheet.getRange(1,1,1,sheet.getLastColumn()).getDisplayValues()[0];
     let col=headers.indexOf('Drive Report Link')+1;
     if(!col){col=sheet.getLastColumn()+1;sheet.getRange(1,col).setValue('Drive Report Link');}
