@@ -121,9 +121,9 @@ def build_tyre_checks(session, report_date, depot, region_code):
             response.raise_for_status()
             rows, vehicle_header = parse_tyre_popup(response.text, depot, report_date)
             vehicles = list(dict.fromkeys(row[vehicle_header] for row in rows))
-            lines.append(f"\n{title}\nవాహనాలు: {len(vehicles)} | టైర్ల నమోదులు: {len(rows)}")
             if not rows:
-                lines.append("ఈ డిపోకు సంబంధించిన వాహనాలు లేవు.")
+                continue
+            lines.append(f"\n{title}\nవాహనాలు: {len(vehicles)} | టైర్ల నమోదులు: {len(rows)}")
             for vehicle in vehicles:
                 positions = list(dict.fromkeys(
                     value for row in rows if row[vehicle_header] == vehicle
@@ -133,12 +133,39 @@ def build_tyre_checks(session, report_date, depot, region_code):
         except (RequestException, ValueError):
             complete = False
             lines.append(f"\n{title}: వివరాలు అందుబాటులో లేవు.")
-    if complete:
-        lines.append(COMPLETE_MARKER)
+    if complete and len(lines) == 1:
+        return "", True
     return "\n".join(lines), complete
 
 
 def append_tyre_checks(report, session, report_date, depot, region_code):
     section, complete = build_tyre_checks(session, report_date, depot, region_code)
+    if not section:
+        return report, complete
     base = report.split(SECTION_MARKER, 1)[0].rstrip()
     return (base + "\n\n" + section if section else base), complete
+
+
+def enrich_daily_file(path, report_date, depot, region_code, session_factory=None):
+    """Optional enrichment after the regular daily generator succeeds."""
+    if not tyre_checks_due(report_date):
+        return True
+    original = path.read_text(encoding="utf-8")
+    try:
+        if session_factory is None:
+            from src.auth.client import login
+            session_factory = login
+        combined, complete = append_tyre_checks(original, session_factory(), report_date, depot, region_code)
+    except Exception:
+        combined = original.rstrip() + "\n\n" + SECTION_MARKER + " వివరాలు అందుబాటులో లేవు."
+        complete = False
+    if combined != original:
+        # Atomic replacement leaves the complete daily file intact on write failure.
+        temporary = path.with_suffix(path.suffix + ".tyres.tmp")
+        try:
+            temporary.write_text(combined + "\n", encoding="utf-8")
+            temporary.replace(path)
+        except OSError:
+            temporary.unlink(missing_ok=True)
+            return False
+    return complete
