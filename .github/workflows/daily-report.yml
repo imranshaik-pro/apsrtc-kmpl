@@ -64,7 +64,7 @@ jobs:
           APSRTC_PASSWORD: test-fixture
         run: |
           python -m py_compile run_automated_daily.py src/reporting/application.py src/reporting/tyre_checks.py src/integrations/google_drive.py
-          python -m pytest -q tests/test_daily_tyre_checks.py tests/test_daily_workflow.py
+          python -m pytest -q tests/test_daily_tyre_checks.py tests/test_current_daily_tyres.py tests/test_daily_workflow.py
 
       - name: Generate and upload daily report
         id: daily_report
