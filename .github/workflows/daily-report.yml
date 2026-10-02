@@ -92,7 +92,7 @@ jobs:
             depot="${{ inputs.depot }}"
           fi
 
-          report_date=$(sed -n 's/^Report date: //p' /tmp/daily.log | tail -1)
+          report_date=$(sed -nE 's/^Report date: ([0-9]{4}-[0-9]{2}-[0-9]{2})$/\1/p' /tmp/daily.log | head -1)
           drive_link=$(sed -n 's/^DRIVE_LINK: //p' /tmp/daily.log | tail -1)
           already_link=$(sed -n 's/^ALREADY_DELIVERED: //p' /tmp/daily.log | tail -1)
           report_file=$(find reports -maxdepth 1 -type f -name '*.txt' -print -quit 2>/dev/null || true)
@@ -220,4 +220,3 @@ jobs:
           path: reports/*.txt
           if-no-files-found: ignore
           retention-days: 7
-
