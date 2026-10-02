@@ -50,8 +50,8 @@ for historical daily requests.
 
 ## Verification
 
-45 focused checks pass locally, with compile checks for runner, tyre module
-and tests. Coverage includes current versus historical intent, yesterday
+54 focused checks pass locally, with compile checks for runner, tyre module,
+Telegram formatter and tests. Coverage includes current versus historical intent, yesterday
 resolution on both odd/even dates, both depots, fresh/cached delivery, exact
 payloads, source date and depot filtering, supplied spare records, empty
 results, duplicates and isolated failures. Workflow includes this test gate.
@@ -75,9 +75,11 @@ not validate the subsequent repair/spare additions or current-only rule.
 Fresh enrichment is not active on master until merge; recipient reading is
 not verified. Direct source browser inspection previously returned 502.
 
-Existing workflow limitation: fresh generation emits multiple Report date
-lines and tail-based extraction can select a formatted display date. This
-change does not alter that extraction or delivery scheduling.
+The workflow now selects the runner's ISO Report date rather than the last
+human-readable header. Fresh run 36886050944 logged both 2026-09-01 and
+01 September 2026; the old tail extraction selected the latter. The bounded
+correction matches only YYYY-MM-DD, with fresh/cached log regression checks.
+It does not change the selected-date or yesterday-resolution business rule.
 
 ## Current-request live validation — 1 October 2026
 
@@ -100,5 +102,53 @@ owner's supplied modal data, with the MYDUKUR vehicle excluded.
 The saved Drive file 17HG-Fp_rw7y1SnAg_CTuQCzYLVtBDb_i was not overwritten;
 its existing link can retain the old contents. Telegram used the local enriched
 artifact. This is draft cached-KMPL enrichment/delivery proof, not a production
-merge, recipient-read proof or new Hub callback test. Historical exclusion
-remains covered by the focused tests rather than an additional live send.
+merge, recipient-read proof or new Hub callback test. This run did not exercise historical exclusion; later live evidence is below.
+
+
+## Telegram presentation and delivery validation — 2 October 2026
+
+Completed daily text is rendered by src/reporting/telegram_daily.py only at
+Telegram delivery. The formatter uses escaped native HTML, one depot/date
+heading, bold business sections, aligned slab columns and monospaced KPI
+values. Repeated tyre position/number labels are removed without deleting
+their values. The mismatch count is explicitly labeled source tyre records,
+not a count of independently diagnosed faulty positions. Technical code-path
+instructions are replaced with a business-readable classification note while
+preserving the vehicle and operation code. Cached-link wording does not claim
+that Drive contains the newly enriched local delivery copy. Every large-message
+fragment closes its HTML tags before splitting.
+
+Draft run https://github.com/imranshaik-pro/apsrtc-kmpl/actions/runs/36955341963
+(#135), job 110676964768, tested commit 011afa89ec44eb0ade46094d7e15d358d3879162
+with PRODDUTUR selected 2026-09-30. Compile and 52 focused checks passed in
+GitHub Python 3.11. The cached KMPL was reused; the downloaded artifact
+11205817667 contains no tyre section. Telegram accepted one HTML message
+at 02:23:03 UTC. Hub callback was skipped because no Hub row was supplied.
+This is historical cached delivery proof, not a fresh current-day generation
+or a new Hub callback test. The subsequent ISO-date extraction correction
+adds two checks: all 54 focused checks pass locally.
+
+Current-request run 36954635807 (#134), tested earlier presentation commit
+f48df2475194aa7ba337e07a536c48e6dc0c1105 with selected 2026-10-02. Compile
+and 50 checks passed, but the source-to-KMPL generation step failed for the
+resolved 2026-10-01 date: Vehicle report returned no valid vehicle records.
+No report-formatting/delivery step ran. This does not establish whether the
+source was empty or its response changed; no speculative parser patch was
+applied. A fresh current request still needs source verification.
+
+The complete offline presentation sample uses verified KMPL from 30 September
+and the tyre capture from 1 October, including the independently dated spare
+source. It fits in one Telegram message (2,906 HTML characters with its Drive
+footer), and the rendered Telugu/table layout was inspected. It is explicitly
+labeled a preview using earlier verified source values, not a new tyre fetch.
+Telegram applies its own theme; preview-card colors are not Telegram styling.
+
+PR #5 at 8f27808e6ecde107dac248553e999ccf996cfb9d and PR #6 at
+20d74ae16e1080c925d7996cd931b46f4228fdfa were overlaid in an isolated local
+daily validation snapshot. All 120 available daily checks passed, including
+slab boundaries, independent Day/Upto conservation, the repaired baseline
+contracts, current/historical tyre behavior and Telegram formatting/date
+extraction. This is combined local verification, not a full-repository test
+claim or a production merge. Normal daily calculations remain outside the
+presentation formatter. The owner requested template review before merging;
+this PR remains draft and unmerged.
