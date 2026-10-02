@@ -11,6 +11,22 @@ def _block(kind, text):
     return escape(text)
 
 
+def _slab_table(lines):
+    """Align the existing counts, preserving empty continuation labels."""
+    rows = [[cell.strip() for cell in line.split('|')] for line in lines]
+    if not rows or any(len(row) != len(rows[0]) for row in rows):
+        return '\n'.join(lines)
+    rows[0] = [cell.replace('Type', 'Period').replace('Total', 'Tot') for cell in rows[0]]
+    for row in rows[1:]:
+        row[1] = row[1].replace('ఈరోజు వరకు', 'Upto').replace('రోజు', 'Day')
+    widths = [max(len(row[column]) for row in rows) for column in range(len(rows[0]))]
+    return '\n'.join(
+        ' | '.join(cell.ljust(widths[column]) if index == 0 or column < 2
+                   else cell.rjust(widths[column]) for column, cell in enumerate(row))
+        for index, row in enumerate(rows)
+    )
+
+
 def format_daily_telegram(report, depot, report_date, drive_link='', cached=False):
     """Return valid, individually bounded HTML messages; do not change KPI data."""
     blocks = [('heading', f'🚌 APSRTC • {depot}'), ('text', f'రోజువారీ నివేదిక | {report_date}')]
@@ -24,7 +40,7 @@ def format_daily_telegram(report, depot, report_date, drive_link='', cached=Fals
         if line.startswith('Metric'):
             blocks.append(('heading', '⛽ HSD KMPL'))
             # All reported TOT/NAC/AC values retained in a short monospaced grid.
-            table = [line.replace('Metric', 'KPI', 1)]
+            table = [line.replace('Metric', 'KPI   ', 1)]
             while i < len(lines) and not lines[i].startswith('━━━━━━━━'):
                 value = lines[i].strip()
                 if value and not set(value) <= {'─', '-'}:
@@ -33,14 +49,14 @@ def format_daily_telegram(report, depot, report_date, drive_link='', cached=Fals
             blocks.append(('table', '\n'.join(table)))
             continue
         if line.startswith('Slab'):
-            table = [line.replace('Type', 'Period').replace('Total', 'Tot')]
+            table = [line]
             while i < len(lines) and not lines[i].startswith('━━━━━━━━'):
                 value = lines[i].strip()
                 if value and not re.fullmatch(r'[-|]+', value):
-                    table.append(value.replace('ఈరోజు వరకు', 'Upto').replace('రోజు', 'Day'))
+                    table.append(value)
                 i += 1
             blocks.append(('text', 'Day = రోజు | Upto = ఈరోజు వరకు'))
-            blocks.append(('table', '\n'.join(table)))
+            blocks.append(('table', _slab_table(table)))
             continue
         if line.startswith('⚠️ *తక్కువ సామర్థ్య'):
             blocks.append(('heading', '⚠️ తక్కువ KMPL • చర్య అవసరం'))
@@ -75,11 +91,16 @@ def format_daily_telegram(report, depot, report_date, drive_link='', cached=Fals
         if line.startswith('వాహనాలు:') and i >= 2 and lines[i-2].strip() == 'ఒకే రకం టైర్లు అమర్చని వాహనాలు':
             line = line.replace('టైర్ల నమోదులు:', 'మూల నివేదికలో టైర్ల నమోదులు:')
         line = line.replace('`', '').replace('(op_type:', '(రకం:')
+        if line.startswith('వాహనం '):
+            for label in ('టైర్ పొజిషన్లు: ', 'టైర్ పొజిషన్: ', 'టైర్ నం.: '):
+                line = line.replace(label, '')
         blocks.append(('text', line))
     if drive_link:
         blocks.append(('heading', '📄 Google Drive'))
         if cached:
-            blocks.append(('text', 'సేవ్ చేసిన KMPL నివేదిక; తాజా టైర్ల వివరాలు ఈ సందేశంలో ఉన్నాయి.'))
+            blocks.append(('text', 'ఇప్పటికే సేవ్ చేసిన నివేదిక లింక్.'))
+            if 'టైర్ల వివరాలు —' in report:
+                blocks.append(('text', 'ఈ సందేశంలోని టైర్ల తనిఖీ వివరాలు విడిగా చేర్చబడ్డాయి.'))
         else:
             blocks.append(('text', 'ఈ నివేదిక Google Driveలో సేవ్ చేయబడింది.'))
         blocks.append(('text', drive_link))
