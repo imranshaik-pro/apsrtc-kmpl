@@ -1,6 +1,7 @@
 from pathlib import Path
 from datetime import datetime
 from unittest.mock import patch
+import re
 
 import pytest
 import requests
@@ -73,7 +74,8 @@ def test_current_request_depot_counts_and_exact_payload():
     assert "ఒకే రకం టైర్లు అమర్చని వాహనాలు\nవాహనాలు: 1 | టైర్ల నమోదులు: 1" in text
     assert "BUS001" in text and "BUS002" in text and "9999999" not in text
     assert "FNS" in text and "FOS" in text
-    assert "వాహనం BUS001 — FNS, FOS" in text
+    assert re.search(r"BUS001\s*\| FNS, FOS", text)
+    assert "స్థానాలు" in text and "వాహనం BUS001" not in text
     assert "RTC No." not in text and "APOLLO" not in text
     assert s.calls == [
         (BASE + "rc_tyres_front1.php", {"fyymm": "1/9/2026"}, 30),
@@ -184,7 +186,7 @@ def test_repair_category_depot_vehicle_position_and_count():
     text, complete = build_tyre_checks(Session(), "2026-09-01", "RAJAMPET", "YSRKADAPA")
     assert complete
     assert "RNSO/RNSI స్థానాల్లో రిపేర్ టైర్లు అమర్చిన వాహనాలు\nవాహనాలు: 1 | టైర్ల నమోదులు: 1" in text
-    assert "వాహనం BUS003 — RNSO" in text
+    assert re.search(r"BUS003\s*\| RNSO", text)
     assert "OTHER_DEPOT" not in text
 
 
