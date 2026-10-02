@@ -63,8 +63,8 @@ jobs:
           APSRTC_USERNAME: test-fixture
           APSRTC_PASSWORD: test-fixture
         run: |
-          python -m py_compile run_automated_daily.py src/reporting/application.py src/reporting/tyre_checks.py src/integrations/google_drive.py
-          python -m pytest -q tests/test_daily_tyre_checks.py tests/test_current_daily_tyres.py tests/test_daily_workflow.py
+          python -m py_compile src/reporting/telegram_daily.py run_automated_daily.py src/reporting/application.py src/reporting/tyre_checks.py src/integrations/google_drive.py
+          python -m pytest -q tests/test_daily_tyre_checks.py tests/test_current_daily_tyres.py tests/test_daily_workflow.py tests/test_telegram_daily_visual.py
 
       - name: Generate and upload daily report
         id: daily_report
@@ -154,6 +154,7 @@ jobs:
           REPORT_DATE: ${{ steps.daily_report.outputs.report_date }}
           DRIVE_LINK: ${{ steps.daily_report.outputs.drive_link }}
           REPORT_FILE: ${{ steps.daily_report.outputs.report_file }}
+          CACHED_REPORT: ${{ steps.daily_report.outputs.already_delivered }}
         run: |
           python - <<'PY'
           import json, os, urllib.parse, urllib.request
@@ -166,23 +167,16 @@ jobs:
           body = ''
           if report_file and Path(report_file).is_file():
               body = Path(report_file).read_text(encoding='utf-8', errors='replace').strip()
-          header = '🚌 APSRTC DAILY REPORT\nDepot: ' + os.environ.get('DEPOT','') + '\nDate: ' + os.environ.get('REPORT_DATE','') + '\n\n'
-          footer = '\n\n✅ Uploaded to Google Drive'
-          link = os.environ.get('DRIVE_LINK', '').strip()
-          if link:
-              footer += '\n📄 Report: ' + link
-          full = header + (body or 'Report generated successfully.') + footer
-          chunks = []
-          while full:
-              if len(full) <= 3800:
-                  chunks.append(full); break
-              cut = full.rfind('\n', 0, 3800)
-              if cut < 1900: cut = 3800
-              chunks.append(full[:cut].rstrip())
-              full = full[cut:].lstrip('\n')
+          from src.reporting.telegram_daily import format_daily_telegram
+          chunks = format_daily_telegram(
+              body or 'Report generated successfully.',
+              os.environ.get('DEPOT', ''), os.environ.get('REPORT_DATE', ''),
+              os.environ.get('DRIVE_LINK', '').strip(),
+              os.environ.get('CACHED_REPORT', '') == 'true',
+          )
           for i, chunk in enumerate(chunks, 1):
               prefix = ('Part %d/%d\n\n' % (i, len(chunks))) if len(chunks) > 1 else ''
-              data = urllib.parse.urlencode({'chat_id': chat_id, 'text': prefix + chunk, 'disable_web_page_preview': 'true'}).encode()
+              data = urllib.parse.urlencode({'chat_id': chat_id, 'text': prefix + chunk, 'disable_web_page_preview': 'true', 'parse_mode': 'HTML'}).encode()
               req = urllib.request.Request('https://api.telegram.org/bot' + token + '/sendMessage', data=data, method='POST')
               with urllib.request.urlopen(req, timeout=20) as response:
                   payload = json.load(response)
