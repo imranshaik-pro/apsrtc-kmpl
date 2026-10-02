@@ -1,6 +1,7 @@
 """Presentation only: render completed daily text as safe Telegram HTML."""
 from html import escape
 import re
+from src.reporting.tyre_checks import format_tyre_table
 
 
 def _block(kind, text):
@@ -25,6 +26,18 @@ def _slab_table(lines):
                    else cell.rjust(widths[column]) for column, cell in enumerate(row))
         for index, row in enumerate(rows)
     )
+
+
+def _legacy_tyre_row(line):
+    """Keep earlier saved/source previews readable with the new table layout."""
+    match = re.fullmatch(r'వాహనం (.+?) — (.+)', line)
+    if not match:
+        return None
+    vehicle, details = match.groups()
+    for label in ('టైర్ పొజిషన్లు: ', 'టైర్ పొజిషన్: ', 'టైర్ నం.: ', 'ఉపయోగంలో రోజులు: '):
+        details = details.replace(label, '')
+    values = tuple(value.strip() for value in details.split('|'))
+    return (vehicle, *values) if len(values) in (1, 3) else None
 
 
 def format_daily_telegram(report, depot, report_date, drive_link='', cached=False):
@@ -90,6 +103,24 @@ def format_daily_telegram(report, depot, report_date, drive_link='', cached=Fals
             continue
         if line.startswith('వాహనాలు:') and i >= 2 and lines[i-2].strip() == 'ఒకే రకం టైర్లు అమర్చని వాహనాలు':
             line = line.replace('టైర్ల నమోదులు:', 'మూల నివేదికలో టైర్ల నమోదులు:')
+        if '|' in line and line.split('|', 1)[0].strip() == 'వాహనం':
+            table = [line]
+            while i < len(lines) and lines[i].strip() and '|' in lines[i]:
+                table.append(lines[i])
+                i += 1
+            blocks.append(('table', '\n'.join(table)))
+            continue
+        legacy_row = _legacy_tyre_row(line)
+        if legacy_row:
+            rows = [legacy_row]
+            while i < len(lines):
+                row = _legacy_tyre_row(lines[i].strip())
+                if row is None or len(row) != len(legacy_row):
+                    break
+                rows.append(row)
+                i += 1
+            blocks.append(('table', format_tyre_table(rows, spare=len(legacy_row) == 4)))
+            continue
         line = line.replace('`', '').replace('(op_type:', '(రకం:')
         if line.startswith('వాహనం '):
             for label in ('టైర్ పొజిషన్లు: ', 'టైర్ పొజిషన్: ', 'టైర్ నం.: '):
