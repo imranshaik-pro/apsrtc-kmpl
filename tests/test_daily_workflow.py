@@ -1,5 +1,8 @@
-﻿import tempfile
+import tempfile
 from pathlib import Path
+import re
+import subprocess
+import pytest
 
 import run_daily_report
 
@@ -44,3 +47,15 @@ def test_build_output_path_with_slash():
 
 
 print("Production daily workflow tests passed.")
+
+
+@pytest.mark.parametrize('runner_log', [
+    'Report date: 2026-09-01\nReport date: 01 September 2026\n',
+    'Report date: 2026-09-01\nALREADY_DELIVERED: https://example.org/report\n',
+])
+def test_workflow_uses_runner_iso_date_for_fresh_and_cached_delivery(runner_log):
+    workflow = Path(__file__).parents[1] / '.github/workflows/daily-report.yml'
+    command = re.search(r'report_date=\$\(([^\n]+)\)', workflow.read_text()).group(1)
+    result = subprocess.run(['bash', '-c', command.replace('/tmp/daily.log', '/dev/stdin')],
+                            input=runner_log, text=True, capture_output=True, check=True)
+    assert result.stdout.strip() == '2026-09-01'
