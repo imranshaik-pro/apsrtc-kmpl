@@ -1,4 +1,5 @@
 from html.parser import HTMLParser
+from html import unescape
 import pytest
 from src.reporting.telegram_daily import format_daily_telegram
 
@@ -42,8 +43,33 @@ RNSO/RNSI స్థానాల్లో రిపేర్ టైర్లు �
 @pytest.mark.parametrize('cached', [True, False])
 def test_drive_footer_describes_saved_copy_honestly(cached):
     output = '\n'.join(format_daily_telegram('Completed HSD', 'DEPOT', '2026-10-01', 'https://example.org/report', cached))
-    assert ('తాజా టైర్ల వివరాలు ఈ సందేశంలో ఉన్నాయి' in output) == cached
+    assert 'టైర్ల' not in output
     assert 'https://example.org/report' in output
+
+
+def test_cached_tyre_footer_and_compact_legacy_vehicle_entries():
+    report = 'టైర్ల వివరాలు — PRODDUTUR\nవాహనం 39Z0321 — టైర్ పొజిషన్: SPARE1 | టైర్ నం.: A23/0110 | ఉపయోగంలో రోజులు: 182'
+    output = '\n'.join(format_daily_telegram(report, 'PRODDUTUR', '2026-09-30', 'https://example.org/report', True))
+    assert 'విడిగా చేర్చబడ్డాయి' in output
+    assert 'వాహనం 39Z0321 — SPARE1 | A23/0110 | ఉపయోగంలో రోజులు: 182' in output
+    assert 'టైర్ నం.' not in output and 'టైర్ పొజిషన్' not in output
+
+
+def test_slab_table_keeps_continuation_counts_in_their_columns():
+    report = '''Slab     |Type      |EX|IH|OR|UD|Total
+---------|----------|--|--|--|--|-----
+<=5.00   |రోజు      | 4| 3| 9| 2|   18
+         |ఈరోజు వరకు|10| 7|10| 2|   29
+━━━━━━━━━━━━━━━━━━'''
+    output = '\n'.join(format_daily_telegram(report, 'PRODDUTUR', '2026-09-30'))
+    table = output.split('<pre>')[1].split('</pre>')[0].splitlines()
+    assert [[cell.strip() for cell in row.split('|')] for row in table] == [
+        ['Slab', 'Period', 'EX', 'IH', 'OR', 'UD', 'Tot'],
+        ['&lt;=5.00', 'Day', '4', '3', '9', '2', '18'],
+        ['', 'Upto', '10', '7', '10', '2', '29'],
+    ]
+    visible = [unescape(row) for row in table]
+    assert all([i for i, value in enumerate(row) if value == '|'] == [i for i, value in enumerate(visible[0]) if value == '|'] for row in visible)
 
 
 def test_large_reports_escape_values_and_each_chunk_has_balanced_tags():
