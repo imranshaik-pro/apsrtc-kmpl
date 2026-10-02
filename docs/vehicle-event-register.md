@@ -18,28 +18,34 @@ Schedule-III / Schedule-IV are not manually duplicated here because the Monthly
 automation already retrieves them from the APSRTC source after the applicable
 month is available.
 
-## Canonical columns
+## Canonical columns — reviewed 3 October 2026
+
+The current Python EVENT_HEADERS contract in [vehicle_events.py](../src/reporting/vehicle_events.py) is:
 
 | Column | Purpose |
-|---|---|
+| --- | --- |
 | Event ID | Stable audit/dedup key |
 | Created At | Entry timestamp |
 | Event Date | Actual event date |
 | Depot | Depot identity |
-| Vehicle No | Vehicle identity / join key |
-| Event Type | Unit Change, Breakdown or Tyre Change |
-| Component / Aggregate | Major component for Unit Change; optional otherwise |
-| Tyre Position | Tyre-specific detail when available |
-| Tyre No | Tyre-specific detail when available |
+| Vehicle No | Normalised vehicle join key |
+| Event Type | Category |
+| Components | Unit/aggregate change details |
+| Spring Positions | Category-specific positions |
+| Tyre History | Position/number history details |
+| Breakdown Location | Breakdown location |
+| KM Cancelled | Source event cancellation detail |
 | Breakdown Details | Breakdown-specific detail |
-| Remarks | Free operational note |
-| Entry Source | FORM / BOT / other future source |
+| Remarks | Operational note |
+| Entry Source | FORM / BOT / AUTOMATION_HUB or other input source |
 
-The optional category-specific fields deliberately stay blank when not relevant.
+Legacy Component / Aggregate and separate Tyre Position / Tyre No inputs are accepted as aliases during normalisation. Irrelevant fields remain blank. The schema accepts Schedule III/IV too, while the owner's normal operating rule is to retrieve schedules from APSRTC rather than duplicate them manually.
+
+Vehicle identity is uppercased, spaces removed and an initial AP prefix stripped for joins. Events remain append-only; Vehicle 360 display filters the selected depot and report cutoff. The current open-month candidate roster considers depot events separately from display filtering; see [business rules](business-rules-and-lessons.md).
 
 ## Vehicle 360 projection
 
-Vehicle 360 will consume this append-only register together with the verified
+The monthly workbook Vehicle 360 projection consumes this append-only register together with the verified
 APSRTC sources:
 
 - KMPL + current roster + commission information: APSRTC source
@@ -61,3 +67,6 @@ front end created the event.
 The Telegram listener/webhook and live Google Sheet connection are intentionally
 separate deployment steps; no bot or Google credential belongs in this file or
 in source control.
+
+
+Standalone Vehicle 360 Hub/bot lookup remains unimplemented; it is separate from the existing monthly workbook projection. See [architecture](architecture-and-flows.md) and [action plan](roadmap-and-known-issues.md).

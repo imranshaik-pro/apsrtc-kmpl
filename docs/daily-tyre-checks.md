@@ -1,5 +1,9 @@
 # Optional current-daily tyre details
 
+## Current status — reviewed 3 October 2026
+
+Current-request gating and the tyre feature were merged in PR #5 on 2 October; the 13 separate daily failures were repaired and merged in PR #6. PR #7 now supplies the approved daily-v1.1 text/HTML model, centred tables, common spare-position caption and safe NAC filtering. The dated validation sections below preserve what was known at each earlier stage. The later successful 1 October source retry and release scope are in [project history](project-history.md). No new live source request is claimed by this documentation review.
+
 ## Business rule — updated 1 October 2026
 
 The owner replaced odd-day gating with current-request gating. Apply to every
@@ -55,7 +59,7 @@ Telegram formatter and tests. Coverage includes current versus historical intent
 resolution on both odd/even dates, both depots, fresh/cached delivery, exact
 payloads, source date and depot filtering, supplied spare records, empty
 results, duplicates and isolated failures. Workflow includes this test gate.
-The 13 earlier daily regression failures are fixed separately in draft PR #6.
+At that validation stage the 13 earlier daily regression failures were fixed separately in draft PR #6; it was subsequently merged on 2 October.
 Current-only cached delivery and live repair/spare
 fetching are verified in run 36900410412 below. Fresh KMPL generation plus these
 new categories, and a new Hub callback with this revision, remain unverified.
@@ -72,7 +76,7 @@ Hub form row 20 triggered master run 36886550663, reused that combined file,
 completed the callback and received Telegram API success. This proves that
 earlier draft generation and production cached delivery separately. It does
 not validate the subsequent repair/spare additions or current-only rule.
-Fresh enrichment is not active on master until merge; recipient reading is
+At that earlier draft stage fresh enrichment was not active on master until merge; recipient reading is
 not verified. Direct source browser inspection previously returned 502.
 
 The workflow now selects the runner's ISO Report date rather than the last
@@ -134,7 +138,7 @@ and 50 checks passed, but the source-to-KMPL generation step failed for the
 resolved 2026-10-01 date: Vehicle report returned no valid vehicle records.
 No report-formatting/delivery step ran. This does not establish whether the
 source was empty or its response changed; no speculative parser patch was
-applied. A fresh current request still needs source verification.
+applied. At that failed-run stage a fresh current request still needed source verification; a later scheduled retry succeeded without a vehicle-parser change, as recorded in project history.
 
 The complete offline presentation sample uses verified KMPL from 30 September
 and the tyre capture from 1 October, including the independently dated spare
@@ -194,10 +198,14 @@ requests still resolve KMPL to yesterday and then fetch tyres; historical
 requests still skip tyres. Scheduled retry/delivery behavior is unchanged.
 
 This merge verification did not submit a new Hub row or claim a successful
-fresh current-day report. The 1 October vehicle-source failure documented
-above still needs source verification. Proddatur historical engine Upto remains
+fresh current-day report. At the initial release-record stage the 1 October vehicle-source failure still needed source verification. A later scheduled retry succeeded; the exact failed-response cause remains unknown because its raw HTML was not retained. Proddatur historical engine Upto remains
 deferred; PR #1 and the separate Hub/logo/documentation PR #4 were not merged.
 
 ## Locked daily presentation
 
 See [Approved daily template v1](daily-template-v1.md) for the shared coloured report and Telegram layout, source-preservation checks and owner-approved visual contract. This changes presentation, while keeping the current-request/historical-date tyre rules above.
+
+
+## Current daily-v1.1 presentation
+
+The spare position is displayed once above a table only when all entries share a recognised position such as SPARE1; mixed/unknown positions keep their column. Source counts, vehicle/position/tyre-number/day associations and the independent snapshot date remain preserved. Zero categories stay omitted and unavailable categories remain explicit. Telegram uses formatted text, not daily image generation. The approved contract and merged version are in [daily template](daily-template-v1.md).
