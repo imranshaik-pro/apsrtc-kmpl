@@ -126,6 +126,28 @@ def upload_file(file_path: str | Path, folder_id: str) -> dict:
     return created
 
 
+def upload_daily_html(file_path: str | Path, folder_id: str) -> dict:
+    """Publish only the named daily-v1 companion; never replace the source TXT."""
+    path = Path(file_path)
+    if path.suffix != '.html' or not path.stem.endswith(('_daily-v1', '_daily-v1_current')):
+        raise ValueError('Expected a daily-v1 HTML companion report.')
+    existing = find_file(folder_id=folder_id, filename=path.name)
+    media = MediaFileUpload(str(path), mimetype='text/html', resumable=False)
+    if existing:
+        updated = drive_service().files().update(
+            fileId=existing['id'], media_body=media,
+            fields='id,name,mimeType,webViewLink',
+        ).execute()
+        updated['already_existed'] = True
+        return updated
+    created = drive_service().files().create(
+        body={'name': path.name, 'parents': [folder_id]}, media_body=media,
+        fields='id,name,mimeType,webViewLink',
+    ).execute()
+    created['already_existed'] = False
+    return created
+
+
 def upload_xlsx_as_google_sheet(file_path: str | Path, folder_id: str, sheet_name: str | None = None) -> dict:
     """Upload/refresh a native Google Sheet by stable depot-month name.
 

@@ -81,7 +81,7 @@ def test_slab_table_keeps_continuation_counts_in_their_columns():
     output = '\n'.join(format_daily_telegram(report, 'PRODDUTUR', '2026-09-30'))
     table = output.split('<pre>')[1].split('</pre>')[0].splitlines()
     assert [[cell.strip() for cell in row.split('|')] for row in table] == [
-        ['Slab', 'Period', 'EX', 'IH', 'OR', 'UD', 'Tot'],
+        ['Slab', 'Period', 'EX', 'IH', 'OR', 'UD', 'Total'],
         ['&lt;=5.00', 'Day', '4', '3', '9', '2', '18'],
         ['', 'Upto', '10', '7', '10', '2', '29'],
     ]
