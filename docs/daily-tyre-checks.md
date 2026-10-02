@@ -50,7 +50,7 @@ for historical daily requests.
 
 ## Verification
 
-54 focused checks pass locally, with compile checks for runner, tyre module,
+55 focused checks pass locally, with compile checks for runner, tyre module,
 Telegram formatter and tests. Coverage includes current versus historical intent, yesterday
 resolution on both odd/even dates, both depots, fresh/cached delivery, exact
 payloads, source date and depot filtering, supplied spare records, empty
@@ -152,3 +152,20 @@ extraction. This is combined local verification, not a full-repository test
 claim or a production merge. Normal daily calculations remain outside the
 presentation formatter. The owner requested template review before merging;
 this PR remains draft and unmerged.
+
+
+## Tyre column presentation — 2 October 2026
+
+All populated tyre categories now use Telugu column headings once. RC-front,
+mismatch and repair tables have vehicle/positions columns. Spare tables have
+vehicle/position/tyre number/days columns. Vehicle-row prefixes and repeated
+position, tyre-number and days-in-use labels are omitted. Counts, depot filters,
+source dates, record ordering, tyre-fetch gating and normal KMPL remain unchanged.
+The plain report and Telegram delivery share the same table presentation;
+earlier saved line entries are converted locally for delivery without rewriting
+Drive files. All 17 earlier Proddatur entries retain their exact vehicle/value
+associations, including all nine spare source records. The updated complete
+preview uses the earlier verified source capture and fits in one message
+(2,797 HTML characters including the Drive footer). Compilation and all 55
+focused checks pass locally. No new live delivery is claimed for this display
+revision, and the PR remains draft and unmerged pending template approval.
