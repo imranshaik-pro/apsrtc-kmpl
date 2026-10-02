@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 def classify_kmpl(kmpl):
     """
     Classify KMPL into exactly one of the five
@@ -9,16 +11,18 @@ def classify_kmpl(kmpl):
     if kmpl is None:
         return None
 
-    if kmpl <= 5.00:
+    kmpl = Decimal(str(kmpl))
+
+    if kmpl <= Decimal("5.00"):
         return 1
 
-    if kmpl <= 5.10:
+    if kmpl <= Decimal("5.10"):
         return 2
 
-    if kmpl <= 5.20:
+    if kmpl <= Decimal("5.20"):
         return 3
 
-    if kmpl <= 5.30:
+    if kmpl <= Decimal("5.30"):
         return 4
 
     return 5

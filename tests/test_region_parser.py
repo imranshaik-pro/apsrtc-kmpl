@@ -179,8 +179,8 @@ def test_region_parser():
     assert mydukur["lmonth_kmpl"] == Decimal("5.35")
 
 
-def test_real_region_response():
-    response_file = Path("region_response.html")
+def test_region_file_contract_fixture():
+    response_file = Path(__file__).parent / "fixtures" / "region-report.html"
 
     assert response_file.exists(), (
         "region_response.html was not found in the project root."
@@ -188,7 +188,7 @@ def test_real_region_response():
 
     records = parse_region_file(response_file)
 
-    assert len(records) == 11
+    assert len(records) == 3
 
     proddutur_records = [
         record
@@ -237,5 +237,5 @@ def test_real_region_response():
 
 if __name__ == "__main__":
     test_region_parser()
-    test_real_region_response()
+    test_region_file_contract_fixture()
     print("Region parser tests passed.")
