@@ -135,7 +135,7 @@ def test_long_telegram_tables_keep_rows_and_headers_within_utf16_limit():
     chunks = render_daily_telegram(source, 'DEPOT', '2026-10-01')
     assert len(chunks)>1
     for chunk in chunks:
-        assert len(chunk.encode('utf-16-le'))//2<=3700
+        assert len(chunk.encode('utf-16-le'))//2<=4000
         parser=BalancedHTML();parser.feed(chunk);parser.close();assert not parser.stack
     combined=unescape('\n'.join(chunks))
     for i in range(180):
@@ -151,3 +151,20 @@ def test_current_and_historical_companions_do_not_overwrite_each_other(tmp_path)
     assert current.name=='PRODDUTUR_2026-09-30_daily-v1_current.html'
     assert historical.name=='PRODDUTUR_2026-09-30_daily-v1.html'
     assert source.read_text()==SAMPLE
+
+
+def test_real_tot_nac_ac_report_keeps_its_footer_in_one_telegram_message():
+    source = (FIXTURES / 'proddutur-daily-2026-10-01.txt').read_text()
+    link = 'https://drive.google.com/file/d/1qMROIj6rDS3ZfYWUJ70rERzC29VtqP9i/view?usp=drivesdk'
+    messages = render_daily_telegram(source, 'PRODDUTUR', '2026-10-01', link, True)
+    assert len(messages) == 1
+    assert len(messages[0].encode('utf-16-le')) // 2 <= 4000
+    soup = BeautifulSoup(messages[0], 'html.parser')
+    tables = soup.select('pre')
+    assert len(tables) == 8
+    assert all(value in tables[0].get_text() for value in ('5.03', '5.37', '+0.34'))
+    assert '5.43' in tables[1].get_text() and '3.44' in tables[2].get_text()
+    assert '70' in tables[4].get_text()
+    assert '39Z0321' in tables[-1].get_text() and '183' in tables[-1].get_text()
+    assert '2026-10-02' in messages[0]
+    assert link in messages[0] and messages[0].endswith('డిపో ప్రగతి • మనందరి బాధ్యత!')

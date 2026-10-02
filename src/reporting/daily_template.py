@@ -16,6 +16,9 @@ import re
 from urllib.parse import urlsplit
 
 VERSION = "daily-v1"
+# sendMessage allows 4096 characters after entity parsing. Counting the complete
+# HTML in UTF-16 and keeping a 96-unit margin also bounds the parsed message.
+TELEGRAM_MAX_UNITS = 4000
 ROOT = Path(__file__).resolve().parents[2]
 ASSETS = ROOT / "assets" / "reporting"
 CSS = Path(__file__).parent / "templates" / "daily_v1.css"
@@ -329,7 +332,7 @@ def _telegram_chunks(blocks):
     for fragment in fragments:
         gap = '\n\n' if fragment.startswith(('<b>','<pre>')) else '\n'
         candidate = current+(gap if current else '')+fragment
-        if _length(candidate)>3700 and current:
+        if _length(candidate)>TELEGRAM_MAX_UNITS and current:
             chunks.append(current)
             current=fragment
         else:

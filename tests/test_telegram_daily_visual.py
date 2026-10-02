@@ -94,7 +94,7 @@ def test_large_reports_escape_values_and_each_chunk_has_balanced_tags():
     chunks = format_daily_telegram(report, 'DEPOT<&>', '2026-10-01')
     assert len(chunks) > 1
     for chunk in chunks:
-        assert len(chunk) <= 3700
+        assert len(chunk.encode('utf-16-le')) // 2 <= 4000
         validator = CheckHTML(); validator.feed(chunk); validator.close()
         assert validator.stack == []
     assert 'DEPOT&lt;&amp;&gt;' in chunks[0]
