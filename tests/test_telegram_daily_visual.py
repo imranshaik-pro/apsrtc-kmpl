@@ -51,8 +51,25 @@ def test_cached_tyre_footer_and_compact_legacy_vehicle_entries():
     report = 'టైర్ల వివరాలు — PRODDUTUR\nవాహనం 39Z0321 — టైర్ పొజిషన్: SPARE1 | టైర్ నం.: A23/0110 | ఉపయోగంలో రోజులు: 182'
     output = '\n'.join(format_daily_telegram(report, 'PRODDUTUR', '2026-09-30', 'https://example.org/report', True))
     assert 'విడిగా చేర్చబడ్డాయి' in output
-    assert 'వాహనం 39Z0321 — SPARE1 | A23/0110 | ఉపయోగంలో రోజులు: 182' in output
-    assert 'టైర్ నం.' not in output and 'టైర్ పొజిషన్' not in output
+    table = output.split('<pre>')[1].split('</pre>')[0].splitlines()
+    assert [[cell.strip() for cell in line.split('|')] for line in table] == [
+        ['వాహనం', 'స్థానం', 'టైర్ నం.', 'రోజులు'], ['39Z0321', 'SPARE1', 'A23/0110', '182']
+    ]
+    assert output.count('టైర్ నం.') == 1
+    assert 'టైర్ పొజిషన్' not in output and 'ఉపయోగంలో రోజులు:' not in output
+
+
+def test_current_spare_table_preserves_all_nine_source_records_in_telegram():
+    from test_daily_tyre_checks import Session, SPARE_HTML
+    from src.reporting.tyre_checks import build_spare_snapshot, parse_spare_tyres
+    report = build_spare_snapshot(Session(), 'PRODDUTUR')
+    output = '\n'.join(format_daily_telegram(report, 'PRODDUTUR', '2026-09-30'))
+    table = output.split('<pre>')[1].split('</pre>')[0].splitlines()
+    displayed = [[cell.strip() for cell in line.split('|')] for line in table[1:]]
+    source, _ = parse_spare_tyres(SPARE_HTML, 'PRODDUTUR')
+    assert displayed == [[row[key] for key in ('vehiclenum', 'position', 'rtctyreno', 'numofdaysinuse')] for row in source]
+    assert len(displayed) == 9
+    assert output.count('టైర్ నం.') == output.count('రోజులు') == 1
 
 
 def test_slab_table_keeps_continuation_counts_in_their_columns():
