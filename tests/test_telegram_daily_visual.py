@@ -53,8 +53,9 @@ def test_cached_tyre_footer_and_compact_legacy_vehicle_entries():
     assert 'విడిగా చేర్చబడ్డాయి' in output
     table = output.split('<pre>')[1].split('</pre>')[0].splitlines()
     assert [[cell.strip() for cell in line.split('|')] for line in table] == [
-        ['వాహనం', 'స్థానం', 'టైర్ నం.', 'రోజులు'], ['39Z0321', 'SPARE1', 'A23/0110', '182']
+        ['వాహనం', 'టైర్ నం.', 'రోజులు'], ['39Z0321', 'A23/0110', '182']
     ]
+    assert output.count('SPARE1') == 1
     assert output.count('టైర్ నం.') == 1
     assert 'టైర్ పొజిషన్' not in output and 'ఉపయోగంలో రోజులు:' not in output
 
@@ -67,7 +68,9 @@ def test_current_spare_table_preserves_all_nine_source_records_in_telegram():
     table = output.split('<pre>')[1].split('</pre>')[0].splitlines()
     displayed = [[cell.strip() for cell in line.split('|')] for line in table[1:]]
     source, _ = parse_spare_tyres(SPARE_HTML, 'PRODDUTUR')
-    assert displayed == [[row[key] for key in ('vehiclenum', 'position', 'rtctyreno', 'numofdaysinuse')] for row in source]
+    assert {row['position'] for row in source} == {'SPARE1'}
+    assert displayed == [[row[key] for key in ('vehiclenum', 'rtctyreno', 'numofdaysinuse')] for row in source]
+    assert output.count('SPARE1') == 1
     assert len(displayed) == 9
     assert output.count('టైర్ నం.') == output.count('రోజులు') == 1
 
@@ -81,7 +84,7 @@ def test_slab_table_keeps_continuation_counts_in_their_columns():
     output = '\n'.join(format_daily_telegram(report, 'PRODDUTUR', '2026-09-30'))
     table = output.split('<pre>')[1].split('</pre>')[0].splitlines()
     assert [[cell.strip() for cell in row.split('|')] for row in table] == [
-        ['Slab', 'Period', 'EX', 'IH', 'OR', 'UD', 'Tot'],
+        ['Slab', 'Period', 'EX', 'IH', 'OR', 'UD', 'Total'],
         ['&lt;=5.00', 'Day', '4', '3', '9', '2', '18'],
         ['', 'Upto', '10', '7', '10', '2', '29'],
     ]
@@ -94,7 +97,7 @@ def test_large_reports_escape_values_and_each_chunk_has_balanced_tags():
     chunks = format_daily_telegram(report, 'DEPOT<&>', '2026-10-01')
     assert len(chunks) > 1
     for chunk in chunks:
-        assert len(chunk) <= 3700
+        assert len(chunk.encode('utf-16-le')) // 2 <= 4000
         validator = CheckHTML(); validator.feed(chunk); validator.close()
         assert validator.stack == []
     assert 'DEPOT&lt;&amp;&gt;' in chunks[0]

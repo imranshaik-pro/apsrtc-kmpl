@@ -197,3 +197,7 @@ This merge verification did not submit a new Hub row or claim a successful
 fresh current-day report. The 1 October vehicle-source failure documented
 above still needs source verification. Proddatur historical engine Upto remains
 deferred; PR #1 and the separate Hub/logo/documentation PR #4 were not merged.
+
+## Locked daily presentation
+
+See [Approved daily template v1](daily-template-v1.md) for the shared coloured report and Telegram layout, source-preservation checks and owner-approved visual contract. This changes presentation, while keeping the current-request/historical-date tyre rules above.

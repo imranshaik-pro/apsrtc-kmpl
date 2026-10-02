@@ -15,7 +15,8 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from src.integrations.google_drive import download_file, find_file, upload_file
+from src.integrations.google_drive import download_file, find_file, upload_file, upload_daily_html
+from src.reporting.daily_template import VERSION, write_daily_html
 
 
 ROOT = Path(__file__).resolve().parent
@@ -101,6 +102,19 @@ def run_report(display_name: str, info: dict, report_date: date, *, include_tyre
     return output
 
 
+def publish_styled_report(source_path, depot, report_date, source_link, folder_id, cached, current):
+    """Render the approved layout from completed daily data only."""
+    html_path = write_daily_html(source_path, depot, report_date.isoformat(), source_link,
+                                 cached=cached, current=current)
+    print(f"DAILY_TEMPLATE: {VERSION}")
+    print(f"STYLED_REPORT_FILE: {html_path}")
+    published = upload_daily_html(html_path, folder_id=folder_id)
+    print(f"SOURCE_DRIVE_LINK: {source_link}")
+    print(f"DRIVE_FILE_ID: {published['id']}")
+    print(f"DRIVE_LINK: {published.get('webViewLink', published['id'])}")
+    return published
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Automate APSRTC daily report generation and Drive upload")
     parser.add_argument("--depot", default=None, help="Depot key/display name; defaults to configured depot")
@@ -133,19 +147,25 @@ def main() -> int:
             download_file(existing["id"], existing_path)
             prepare_delivery_tyres(existing_path, report_date, display_name, info["region_code"], include_tyres)
             print(f"EXISTING_REPORT_FILE: {existing_path}")
+            publish_styled_report(existing_path, display_name, report_date,
+                                  existing.get('webViewLink', existing['id']), folder_id,
+                                  cached=True, current=include_tyres)
             print(f"ALREADY_DELIVERED: {existing.get('webViewLink', existing['id'])}")
             return 0
 
     report_path = run_report(display_name=display_name, info=info, report_date=report_date, include_tyres=include_tyres)
 
     if args.generate_only:
+        html_path = write_daily_html(report_path, display_name, report_date.isoformat(), current=include_tyres)
+        print(f"DAILY_TEMPLATE: {VERSION}")
+        print(f"STYLED_REPORT_FILE: {html_path}")
         print(f"GENERATED_ONLY: {report_path}")
         return 0
 
     uploaded = upload_file(report_path, folder_id=folder_id)
-    print(f"DRIVE_FILE_ID: {uploaded['id']}")
-    if uploaded.get("webViewLink"):
-        print(f"DRIVE_LINK: {uploaded['webViewLink']}")
+    publish_styled_report(report_path, display_name, report_date,
+                          uploaded.get('webViewLink', uploaded['id']), folder_id,
+                          cached=False, current=include_tyres)
     print("DAILY_AUTOMATION_SUCCESS")
     return 0
 

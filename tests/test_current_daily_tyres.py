@@ -59,6 +59,7 @@ def test_main_gates_tyres_for_all_depots_and_cached_delivery(tmp_path, monkeypat
     monkeypatch.setattr(tyre_checks, 'enrich_daily_file', enrich)
     uploads = []
     monkeypatch.setattr(runner, 'upload_file', lambda output, **kwargs: uploads.append(output) or {'id': 'NEW'})
+    monkeypatch.setattr(runner, 'publish_styled_report', lambda *args, **kwargs: None)
     monkeypatch.setattr(runner.sys, 'argv', ['runner', '--depot', depot, '--date', '2026-10-01' if current else '2026-09-30'])
     assert runner.main() == 0
     assert len(tyre_calls) == int(current)
