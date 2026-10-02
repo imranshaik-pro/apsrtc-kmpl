@@ -56,7 +56,7 @@ resolution on both odd/even dates, both depots, fresh/cached delivery, exact
 payloads, source date and depot filtering, supplied spare records, empty
 results, duplicates and isolated failures. Workflow includes this test gate.
 The 13 earlier daily regression failures are fixed separately in draft PR #6.
-This draft remains unmerged. Current-only cached delivery and live repair/spare
+Current-only cached delivery and live repair/spare
 fetching are verified in run 36900410412 below. Fresh KMPL generation plus these
 new categories, and a new Hub callback with this revision, remain unverified.
 
@@ -151,7 +151,7 @@ contracts, current/historical tyre behavior and Telegram formatting/date
 extraction. This is combined local verification, not a full-repository test
 claim or a production merge. Normal daily calculations remain outside the
 presentation formatter. The owner requested template review before merging;
-this PR remains draft and unmerged.
+the owner subsequently approved the production merge recorded below.
 
 
 ## Tyre column presentation — 2 October 2026
@@ -168,4 +168,32 @@ associations, including all nine spare source records. The updated complete
 preview uses the earlier verified source capture and fits in one message
 (2,797 HTML characters including the Drive footer). Compilation and all 55
 focused checks pass locally. No new live delivery is claimed for this display
-revision, and the PR remains draft and unmerged pending template approval.
+revision, and the owner subsequently approved the production merge recorded below.
+
+
+## Production release — 2 October 2026
+
+The owner approved the daily production merge after reviewing the column-based
+template. PR #6 was squash-merged first at
+314f85d04156d0b7a48af8dcb7580cc77c4fbdf4; PR #5 followed at
+df13f60458e56af52845b3222eb9159ee09dae7b. The exact approved PR heads were
+20d74ae16e1080c925d7996cd931b46f4228fdfa and
+a9d0c3988cf0412a0584fec75abe8c61b1effc61 respectively.
+
+Before merging, their latest combined daily snapshot passed 121 checks and
+Python compilation. After merging, all 20 reviewed changed-file blobs matched
+those approved PR versions on master. Production container build and push
+succeeded in https://github.com/imranshaik-pro/apsrtc-kmpl/actions/runs/36958783715
+for df13f60458e56af52845b3222eb9159ee09dae7b. This documentation-only release
+record does not alter that verified application code.
+
+The Hub dispatcher and daily form trigger select master for daily-report.yml;
+subsequent Hub submissions therefore select the merged daily code. No Apps
+Script redeployment was performed for this GitHub release. Current/today
+requests still resolve KMPL to yesterday and then fetch tyres; historical
+requests still skip tyres. Scheduled retry/delivery behavior is unchanged.
+
+This merge verification did not submit a new Hub row or claim a successful
+fresh current-day report. The 1 October vehicle-source failure documented
+above still needs source verification. Proddatur historical engine Upto remains
+deferred; PR #1 and the separate Hub/logo/documentation PR #4 were not merged.
