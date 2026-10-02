@@ -1,0 +1,160 @@
+<body>
+
+    <div style="text-align: center;">
+        <h1 style="margin: 0; font-family: Verdana; font-size: 30px; color: darkviolet;">
+            Spare Tyres in Use for over Two Months
+        </h1>
+    </div>
+
+    <!-- Depot Selection Form -->
+    <form method="POST">
+        <div style="margin-top: 50px;">
+            <label for="depot_id" style="font-family: Verdana; font-size: 20px; color:red">
+                Select Depot:
+            </label>
+            <select name="depot_id" id="depot_id" style="font-family: Verdana; font-size: 20px;">
+                <option value="">All Depots</option>
+                <option value="742">ADDANKI</option><option value="142">ADONI</option><option value="755">ALIPIRI</option><option value="152">ALLAGADDA</option><option value="562">AMALAPURAM</option><option value="512">ANAKAPALLI</option><option value="121">ANANTAPUR</option><option value="712">ATMAKUR</option><option value="153">ATMAKUR(K)</option><option value="465">AUTONAGAR</option><option value="463">AVANIGADDA</option><option value="118">BADVEL</option><option value="154">BANAGANAPALLI</option><option value="427">BAPATLA</option><option value="452">BHIMAVARAM</option><option value="432">CHILAKALURIPET</option><option value="743">CHIRALA</option><option value="731">CHITTOR-I</option><option value="737">CHITTOR-II</option><option value="510">DBSC</option><option value="132">DHARMAVARAM</option><option value="144">DHONE</option><option value="527">ELESWARAM</option><option value="451">ELURU</option><option value="552">GAJUWAKA</option><option value="419">GANNAVARAM</option><option value="745">GIDDALUR</option><option value="563">GOKAVARAM</option><option value="123">GOOTY</option><option value="412">GOVERNERPET-I</option><option value="414">GOVERNERPET-II</option><option value="462">GUDIVADA</option><option value="713">GUDUR</option><option value="124">GUNTAKAL</option><option value="421">GUNTUR-I</option><option value="422">GUNTUR-II</option><option value="131">HINDUPUR</option><option value="418">IBRAHIMPATNAM-V</option><option value="413">JAGGAIAHPET</option><option value="113">JAMMALAMADUGU</option><option value="453">JANGAREDDIGUDEM</option><option value="111">KADAPA</option><option value="133">KADIRI</option><option value="521">KAKINADA</option><option value="127">KALYANDURG</option><option value="747">KANDUKUR</option><option value="744">KANIGIRI</option><option value="714">KAVALI</option><option value="155">KOILKUNTLA</option><option value="454">KOVVUR</option><option value="735">KUPPAM</option><option value="141">KURNOOL-I</option><option value="143">KURNOOL-II</option><option value="433">MACHERLA</option><option value="461">MACHILIPATNAM</option><option value="135">MADAKASIRA</option><option value="732">MADANAPALLI-I</option><option value="738">MADANAPALLI-II</option><option value="555">MADDILAPALEM</option><option value="518">MADHURAWADA</option><option value="426">MANGALAGIRI</option><option value="764">MANGALAM</option><option value="746">MARKAPUR</option><option value="119">MYDUKUR</option><option value="147">NANDIKOTKUR</option><option value="151">NANDYAL</option><option value="455">NARSAPUR</option><option value="431">NARSARAOPET</option><option value="516">NARSIPATNAM</option><option value="711">NELLORE-I</option><option value="718">NELLORE-II</option><option value="456">NIDADAVOLU</option><option value="415">NUZVID</option><option value="741">ONGOLE</option><option value="515">PADERU</option><option value="543">PALAKONDA</option><option value="733">PALAMANERU</option><option value="542">PALASA</option><option value="533">PARVATHIPURAM</option><option value="148">PATHIKONDA</option><option value="136">PENUKONDA</option><option value="436">PIDUGURALLA</option><option value="734">PILERU</option><option value="466">PNBS</option><option value="748">PODILI</option><option value="423">PONNUR</option><option value="114" selected="">PRODDUTUR</option><option value="116">PULIVENDULA</option><option value="739">PUNGANURU</option><option value="134">PUTTAPARTHY</option><option value="752">PUTTUR</option><option value="561">RAJAHMUNDRY</option><option value="115">RAJAMPET</option><option value="525">RAMACHANDRAPURAM</option><option value="715">RAPUR</option><option value="565">RAVULAPALEM</option><option value="117">RAYACHOTI</option><option value="129">RAYADURG</option><option value="564">RAZOLE</option><option value="424">REPALLE</option><option value="532">SALUR</option><option value="434">SATTENAPALLI</option><option value="756">SATYAVEEDU</option><option value="553">SIMHACHALAM</option><option value="541">SRIKAKULAM-I</option><option value="545">SRIKAKULAM-II</option><option value="753">SRIKALAHASTHI</option><option value="534">SRUNGAVARAPUKOTA</option><option value="554">STEELCITY</option><option value="720">SULLURPET</option><option value="457">TADEPALLIGUDEM</option><option value="128">TADIPATRI</option><option value="458">TANUKU</option><option value="546">TEKKALI</option><option value="425">TENALI</option><option value="754">TIRUMALA</option><option value="751">TIRUPATHI</option><option value="416">TIRUVUR</option><option value="526">TUNI</option><option value="719">UDAYAGIRI</option><option value="125">URAVAKONDA</option><option value="716">VENKATAGIRI</option><option value="417">VIDYADHARAPURAM</option><option value="411">VIJAYAWADA-I</option><option value="435">VINUKONDA</option><option value="511">VISAKHAPATNAM</option><option value="531">VIZIANAGARAM</option><option value="464">VUYYURU</option><option value="717">WAKADU</option><option value="551">WALTAIR</option><option value="146">YEMMIGANUR</option>            </select>
+            <button type="submit" class="styled-button">Filter</button>
+        </div>
+    </form>
+
+    <!-- Tyre Data Table -->
+    <table>
+        <tbody><tr>
+            <th>Sl Num</th>
+            <th>Run Date</th>
+            <th>Depot</th>
+            <th>Vehicle Num</th>
+            <th>Vehicle type</th>
+            <th>Rtc Tyre No</th>
+            <th>Make</th>
+            <th>Condition</th>
+            <th>Position</th>
+            <th>Fitted Date</th>
+            <th>Progressive Kms</th>
+            <th>Num. of Days in use</th>
+        </tr>
+
+        <tr>
+                    <td>1</td>
+                    <td style="width: 120px; white-space: nowrap;">01-10-2026</td>
+                    <td>PRODDUTUR</td>
+                    <td>39Z0321</td>
+                    <td>OTHER JEEPS</td>
+                    <td>A23/0110</td>
+                    <td>BRIDGE STONE</td>
+                    <td>NEW</td>
+                    <td>SPARE1</td>
+                    <td style="width: 120px; white-space: nowrap;">02-04-2026</td>
+                    <td>30427</td>
+                    <td>182</td>
+                </tr><tr>
+                    <td>2</td>
+                    <td style="width: 120px; white-space: nowrap;">01-10-2026</td>
+                    <td>PRODDUTUR</td>
+                    <td>39Z0160</td>
+                    <td>INDRA (AC)</td>
+                    <td>R25/2529</td>
+                    <td>CEAT</td>
+                    <td>NEW</td>
+                    <td>SPARE1</td>
+                    <td style="width: 120px; white-space: nowrap;">12-06-2026</td>
+                    <td>30376</td>
+                    <td>111</td>
+                </tr><tr>
+                    <td>3</td>
+                    <td style="width: 120px; white-space: nowrap;">01-10-2026</td>
+                    <td>PRODDUTUR</td>
+                    <td>04Z0238</td>
+                    <td>PALLE VELUGU</td>
+                    <td>R25/4398</td>
+                    <td>JK</td>
+                    <td>NEW</td>
+                    <td>SPARE1</td>
+                    <td style="width: 120px; white-space: nowrap;">08-07-2026</td>
+                    <td>87037</td>
+                    <td>85</td>
+                </tr><tr>
+                    <td>4</td>
+                    <td style="width: 120px; white-space: nowrap;">01-10-2026</td>
+                    <td>PRODDUTUR</td>
+                    <td>04Z0170</td>
+                    <td>PALLE VELUGU</td>
+                    <td>R24/2646</td>
+                    <td>MRF</td>
+                    <td>RC2</td>
+                    <td>SPARE1</td>
+                    <td style="width: 120px; white-space: nowrap;">24-07-2026</td>
+                    <td>185173</td>
+                    <td>69</td>
+                </tr><tr>
+                    <td>5</td>
+                    <td style="width: 120px; white-space: nowrap;">01-10-2026</td>
+                    <td>PRODDUTUR</td>
+                    <td>04Z0224</td>
+                    <td>ULTRA DELUXE</td>
+                    <td>R25/3415</td>
+                    <td>JK</td>
+                    <td>NEW</td>
+                    <td>SPARE1</td>
+                    <td style="width: 120px; white-space: nowrap;">28-07-2026</td>
+                    <td>66076</td>
+                    <td>65</td>
+                </tr><tr>
+                    <td>6</td>
+                    <td style="width: 120px; white-space: nowrap;">01-10-2026</td>
+                    <td>PRODDUTUR</td>
+                    <td>29Z2861</td>
+                    <td>PALLE VELUGU</td>
+                    <td>R25/4672</td>
+                    <td>JK</td>
+                    <td>NEW</td>
+                    <td>SPARE1</td>
+                    <td style="width: 120px; white-space: nowrap;">28-07-2026</td>
+                    <td>93073</td>
+                    <td>65</td>
+                </tr><tr>
+                    <td>7</td>
+                    <td style="width: 120px; white-space: nowrap;">01-10-2026</td>
+                    <td>PRODDUTUR</td>
+                    <td>29Z2909</td>
+                    <td>PALLE VELUGU</td>
+                    <td>R24/3458</td>
+                    <td>MRF</td>
+                    <td>RC1</td>
+                    <td>SPARE1</td>
+                    <td style="width: 120px; white-space: nowrap;">29-07-2026</td>
+                    <td>154790</td>
+                    <td>64</td>
+                </tr><tr>
+                    <td>8</td>
+                    <td style="width: 120px; white-space: nowrap;">01-10-2026</td>
+                    <td>PRODDUTUR</td>
+                    <td>21Z0705</td>
+                    <td>ULTRA DELUXE</td>
+                    <td>R25/1811</td>
+                    <td>APOLLO</td>
+                    <td>RC1</td>
+                    <td>SPARE1</td>
+                    <td style="width: 120px; white-space: nowrap;">30-07-2026</td>
+                    <td>95914</td>
+                    <td>63</td>
+                </tr><tr>
+                    <td>9</td>
+                    <td style="width: 120px; white-space: nowrap;">01-10-2026</td>
+                    <td>PRODDUTUR</td>
+                    <td>21Z0449</td>
+                    <td>PALLE VELUGU</td>
+                    <td>R26/516</td>
+                    <td>MRF</td>
+                    <td>NEW/REP</td>
+                    <td>SPARE1</td>
+                    <td style="width: 120px; white-space: nowrap;">31-07-2026</td>
+                    <td>37016</td>
+                    <td>62</td>
+                </tr>    </tbody></table>
+
+
+
+</body>
