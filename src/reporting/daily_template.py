@@ -6,6 +6,7 @@ date resolution, or tyre eligibility belongs in this module.
 from __future__ import annotations
 
 import base64
+import json
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
@@ -15,7 +16,7 @@ from pathlib import Path
 import re
 from urllib.parse import urlsplit
 
-VERSION = "daily-v1"
+VERSION = "daily-v1.1"
 # sendMessage allows 4096 characters after entity parsing. Counting the complete
 # HTML in UTF-16 and keeping a 96-unit margin also bounds the parsed message.
 TELEGRAM_MAX_UNITS = 4000
@@ -187,10 +188,54 @@ def upto_shares(view):
     return shares
 
 
-def _grid(headers, rows):
+def _nac_duplicates_total(view):
+    """Omit NAC only when classified source vehicles and every KPI agree.
+
+    A blank AC KPI is not evidence of an AC-free depot. The source slab
+    headings cover classified raw vehicle types, including zero-KMPL vehicles.
+    Unknown types, any AC type/value, or a different target/history retain NAC.
+    """
+    if view.unknown or not view.slab_headers or not view.slabs:
+        return False
+    try:
+        mapping = json.loads((ROOT / 'vehicle_type_mapping.json').read_text())
+    except (OSError, ValueError):
+        return False
+    operations = view.slab_headers[2:-1]
+    if not operations or any(mapping.get(op) != 'NAC' for op in operations):
+        return False
+    if not any(row[0] == 'Total' and number(row[-1]) is not None and number(row[-1]) > 0
+               for row in view.slabs):
+        return False
+    if any(number(value) is not None and number(value) != 0
+           for value in view.metrics['AC'].values()):
+        return False
+    total, nac = view.metrics['TOT'], view.metrics['NAC']
+    for key in METRICS:
+        if key not in total or key not in nac:
+            return False
+        a, b = number(total[key]), number(nac[key])
+        if a is not None and b is not None:
+            if a != b:
+                return False
+        elif total[key] not in ('—', '-') or nac[key] not in ('—', '-'):
+            return False
+    return all(number(total[key]) is not None and number(total[key]) > 0
+               for key in METRICS[1:3])
+
+
+def _metric_sections(view):
+    redundant = _nac_duplicates_total(view)
+    return [(category, values) for category, values in view.metrics.items()
+            if values and not (redundant and category in ('NAC', 'AC'))
+            and (category == 'TOT' or any(number(v) is not None for v in values.values()))]
+
+
+def _grid(headers, rows, center=False):
     values = [tuple(map(str, headers)), *(tuple(map(str, row)) for row in rows)]
     widths = [max(len(row[column]) for row in values) for column in range(len(headers))]
-    return '\n'.join(' | '.join(cell.ljust(widths[column]) for column, cell in enumerate(row)) for row in values)
+    return '\n'.join(' | '.join(cell.center(widths[column]) if center else cell.ljust(widths[column])
+                               for column, cell in enumerate(row)) for row in values)
 
 
 def _table(headers, rows, classes=''):
@@ -200,6 +245,16 @@ def _table(headers, rows, classes=''):
 def _tyre_heading(group):
     count = group.vehicles or str(len({row[0] for row in group.rows}))
     return TYRE_LABELS[group.kind] + (' • ' + count + (' వాహనాలు' if group.kind in (2, 3) else '') if group.rows else '')
+
+
+def _tyre_table(group):
+    """Keep a uniform spare position once; retain differing/unknown positions."""
+    if group.kind != 3:
+        return ('వాహనం', 'స్థానాలు'), group.rows, ''
+    positions = {row[1] for row in group.rows}
+    if len(positions) == 1 and re.fullmatch(r'SPARE[1-9]\d*', next(iter(positions))):
+        return ('వాహనం', 'టైర్ నం.', 'రోజులు'), [(r[0], r[2], r[3]) for r in group.rows], next(iter(positions))
+    return ('వాహనం', 'స్థానం', 'టైర్ నం.', 'రోజులు'), group.rows, ''
 
 
 def _actions(view):
@@ -235,9 +290,7 @@ def render_daily_html(report, depot, report_date, drive_link='', cached=False):
     has_tyres = bool(view.tyres or view.tyre_note)
     page = '<!doctype html><html lang="te"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="daily-template" content="'+VERSION+'"><title>APSRTC '+escape(depot)+' '+report_date+'</title><style>'+_style()+'</style></head><body><main>'
     page += '<header class="hero"><div class="brand">🚌 APSRTC • '+escape(depot)+' DEPOT</div><div>DAILY HSD KMPL'+(' &amp; టైర్ల నివేదిక' if has_tyres else '')+'</div><div class="period">'+dt.strftime('%d %B %Y')+' | '+WEEKDAYS[dt.weekday()]+'</div></header>'
-    for category, values in view.metrics.items():
-        if not values or (category != 'TOT' and all(number(value) is None for value in values.values())):
-            continue
+    for category, values in _metric_sections(view):
         rows = kpi_rows(values)
         page += '<section class="section"><h2>⛽ HSD KMPL • పనితీరు ముఖ్యాంశాలు'+(' • '+category if category != 'TOT' else '')+'</h2><div class="cards">'
         for row in rows[:2]:
@@ -246,6 +299,8 @@ def render_daily_html(report, depot, report_date, drive_link='', cached=False):
             arrow = ' ▲' if diff is not None and diff > 0 else ' ▼' if diff is not None and diff < 0 else ''
             page += '<div class="card'+state+'"><div>'+row[0]+'</div><div class="value">'+escape(row[2])+'</div><div class="small">Target '+escape(row[1])+' | '+escape(row[3])+arrow+'</div></div>'
         page += '</div>'+_table(('వివరాలు','Target','వాస్తవం','తేడా'),rows,'num')
+        if category == 'TOT' and _nac_duplicates_total(view):
+            page += '<p class="small">TOT / NAC విలువలు ఒకేలా ఉన్నాయి; మొత్తం పనితీరు ఒకసారి చూపబడింది.</p>'
         if category == 'TOT' and all(number(value) is None for c in ('NAC','AC') for value in view.metrics[c].values()):
             page += '<p class="small">TOT values shown. NAC / AC మూల విలువలు అందుబాటులో లేవు.</p>'
         page += '</section>'
@@ -276,8 +331,10 @@ def render_daily_html(report, depot, report_date, drive_link='', cached=False):
             if group.snapshot_date:
                 page += '<p class="small">మూల నివేదిక తేదీ: '+group.snapshot_date+' (రోజువారీ KMPL తేదీకి స్వతంత్ర స్నాప్‌షాట్)</p>'
             if group.rows:
-                headers = ('వాహనం','స్థానం','టైర్ నం.','రోజులు') if group.kind==3 else ('వాహనం','స్థానాలు')
-                page += _table(headers,group.rows,'tyres')
+                headers, display_rows, position = _tyre_table(group)
+                if position:
+                    page += '<p class="small common-position">అన్ని నమోదుల స్థానం: '+escape(position)+'</p>'
+                page += _table(headers,display_rows,'tyres')
         page += '</section>'
     actions = _actions(view)
     if view.unknown or actions:
@@ -346,11 +403,11 @@ def render_daily_telegram(report, depot, report_date, drive_link='', cached=Fals
     view = read_daily_view(report,depot,report_date)
     dt = date.fromisoformat(report_date)
     blocks = [('heading',f'🚌 APSRTC • {depot} DEPOT'),('text','📊 DAILY HSD KMPL'+(' & టైర్ల నివేదిక' if view.tyres or view.tyre_note else '')),('text',f'🗓️ {dt:%d %B %Y} | {WEEKDAYS[dt.weekday()]}')]
-    for category,values in view.metrics.items():
-        if not values or (category!='TOT' and all(number(value) is None for value in values.values())):
-            continue
+    for category,values in _metric_sections(view):
         rows=kpi_rows(values)
         blocks += [('heading','⛽ HSD KMPL • పనితీరు ముఖ్యాంశాలు'+(' • '+category if category!='TOT' else '')),('table',_grid(('Metric','Target','Actual','Diff'),rows))]
+        if category == 'TOT' and _nac_duplicates_total(view):
+            blocks.append(('text','TOT / NAC విలువలు ఒకేలా ఉన్నాయి; మొత్తం పనితీరు ఒకసారి చూపబడింది.'))
         for row in rows[:2]:
             diff=number(row[3])
             if diff is not None:
@@ -359,7 +416,7 @@ def render_daily_telegram(report, depot, report_date, drive_link='', cached=Fals
                 blocks.append(('text',f'{icon} {row[0]}: {status} ({row[3]})'))
     if view.low or view.low_section:
         blocks += [('heading','⚠️ తక్కువ KMPL వాహనాలు • Top 10 ≤ 5.00'),('text','Day = ఈ రోజు | Upto = ఈ రోజు వరకు')]
-        blocks.append(('table',_grid(('#','Vehicle','Type','Day','Upto'),view.low)) if view.low else ('text','తక్కువ KMPL వాహనాలు నమోదు కాలేదు.'))
+        blocks.append(('table',_grid(('#','Vehicle','Type','Day','Upto'),view.low,center=True)) if view.low else ('text','తక్కువ KMPL వాహనాలు నమోదు కాలేదు.'))
     if view.slabs:
         blocks += [('heading','📊 KMPL రేంజ్ • వాహనాల సంఖ్య'),('table',_grid(('Slab','Period',*view.slab_headers[2:-1],'Total'),[(row[0],'Day' if row[1]=='రోజు' else 'Upto',*row[2:]) for row in view.slabs]))]
         shares=upto_shares(view)
@@ -378,8 +435,10 @@ def render_daily_telegram(report, depot, report_date, drive_link='', cached=Fals
             if group.snapshot_date:
                 blocks.append(('text','మూల నివేదిక తేదీ: '+group.snapshot_date+' (ప్రత్యేక స్నాప్‌షాట్)'))
             if group.rows:
-                headers=('వాహనం','స్థానం','టైర్ నం.','రోజులు') if group.kind==3 else ('వాహనం','స్థానాలు')
-                blocks.append(('table',_grid(headers,group.rows)))
+                headers, display_rows, position = _tyre_table(group)
+                if position:
+                    blocks.append(('text','అన్ని నమోదుల స్థానం: '+position))
+                blocks.append(('table',_grid(headers,display_rows,center=True)))
     if view.unknown:
         blocks += [('heading','ℹ️ సేవా వర్గీకరణ తనిఖీ'),('text','\n'.join(f'{vehicle} ({operation}) • సేవా రకాన్ని నిర్ధారించండి.' for vehicle,operation in view.unknown))]
     actions=_actions(view)

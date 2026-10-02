@@ -11,7 +11,7 @@ from test_daily_template import SAMPLE
 @pytest.mark.parametrize('existing', [False,True])
 def test_html_upload_uses_html_mime_and_only_its_companion_id(tmp_path,monkeypatch,existing):
     source=tmp_path/'PRODDUTUR_2026-09-30.txt';source.write_text(SAMPLE)
-    styled=tmp_path/'PRODDUTUR_2026-09-30_daily-v1.html';styled.write_text('<html>report</html>')
+    styled=tmp_path/'PRODDUTUR_2026-09-30_daily-v1.1.html';styled.write_text('<html>report</html>')
     client=Mock();files=client.files.return_value
     response={'id':'HTML','webViewLink':'https://drive.google.com/file/d/HTML/view'}
     files.create.return_value.execute.return_value=response.copy()
@@ -52,7 +52,7 @@ def test_styled_delivery_emits_the_styled_link_and_preserves_source(tmp_path,mon
     log=capsys.readouterr().out
     assert 'DRIVE_LINK: https://drive.google.com/file/d/HTML/view' in log
     assert 'SOURCE_DRIVE_LINK: https://drive.google.com/file/d/TXT/view' in log
-    assert outputs[0][0].name.endswith('_daily-v1_current.html')
+    assert outputs[0][0].name.endswith('_daily-v1.1_current.html')
     assert source.read_text()==SAMPLE
 
 
@@ -79,4 +79,4 @@ def test_cached_historical_runner_renders_the_locked_template_without_tyres(tmp_
     log=capsys.readouterr().out
     assert 'ALREADY_DELIVERED: https://drive.google.com/file/d/TXT/view' in log
     assert 'DRIVE_LINK: https://drive.google.com/file/d/HTML/view' in log
-    assert 'DAILY_TEMPLATE: daily-v1' in log
+    assert 'DAILY_TEMPLATE: daily-v1.1' in log

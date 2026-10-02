@@ -127,10 +127,10 @@ def upload_file(file_path: str | Path, folder_id: str) -> dict:
 
 
 def upload_daily_html(file_path: str | Path, folder_id: str) -> dict:
-    """Publish only the named daily-v1 companion; never replace the source TXT."""
+    """Publish only supported daily template companions; preserve the source TXT."""
     path = Path(file_path)
-    if path.suffix != '.html' or not path.stem.endswith(('_daily-v1', '_daily-v1_current')):
-        raise ValueError('Expected a daily-v1 HTML companion report.')
+    if path.suffix != '.html' or not path.stem.endswith(('_daily-v1', '_daily-v1_current', '_daily-v1.1', '_daily-v1.1_current')):
+        raise ValueError('Expected a supported daily HTML companion report.')
     existing = find_file(folder_id=folder_id, filename=path.name)
     media = MediaFileUpload(str(path), mimetype='text/html', resumable=False)
     if existing:

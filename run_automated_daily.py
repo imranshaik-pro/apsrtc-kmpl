@@ -16,7 +16,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from src.integrations.google_drive import download_file, find_file, upload_file, upload_daily_html
-from src.reporting.daily_template import write_daily_html
+from src.reporting.daily_template import VERSION, write_daily_html
 
 
 ROOT = Path(__file__).resolve().parent
@@ -106,7 +106,7 @@ def publish_styled_report(source_path, depot, report_date, source_link, folder_i
     """Render the approved layout from completed daily data only."""
     html_path = write_daily_html(source_path, depot, report_date.isoformat(), source_link,
                                  cached=cached, current=current)
-    print(f"DAILY_TEMPLATE: daily-v1")
+    print(f"DAILY_TEMPLATE: {VERSION}")
     print(f"STYLED_REPORT_FILE: {html_path}")
     published = upload_daily_html(html_path, folder_id=folder_id)
     print(f"SOURCE_DRIVE_LINK: {source_link}")
@@ -157,7 +157,7 @@ def main() -> int:
 
     if args.generate_only:
         html_path = write_daily_html(report_path, display_name, report_date.isoformat(), current=include_tyres)
-        print(f"DAILY_TEMPLATE: daily-v1")
+        print(f"DAILY_TEMPLATE: {VERSION}")
         print(f"STYLED_REPORT_FILE: {html_path}")
         print(f"GENERATED_ONLY: {report_path}")
         return 0

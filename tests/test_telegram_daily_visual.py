@@ -53,8 +53,9 @@ def test_cached_tyre_footer_and_compact_legacy_vehicle_entries():
     assert 'విడిగా చేర్చబడ్డాయి' in output
     table = output.split('<pre>')[1].split('</pre>')[0].splitlines()
     assert [[cell.strip() for cell in line.split('|')] for line in table] == [
-        ['వాహనం', 'స్థానం', 'టైర్ నం.', 'రోజులు'], ['39Z0321', 'SPARE1', 'A23/0110', '182']
+        ['వాహనం', 'టైర్ నం.', 'రోజులు'], ['39Z0321', 'A23/0110', '182']
     ]
+    assert output.count('SPARE1') == 1
     assert output.count('టైర్ నం.') == 1
     assert 'టైర్ పొజిషన్' not in output and 'ఉపయోగంలో రోజులు:' not in output
 
@@ -67,7 +68,9 @@ def test_current_spare_table_preserves_all_nine_source_records_in_telegram():
     table = output.split('<pre>')[1].split('</pre>')[0].splitlines()
     displayed = [[cell.strip() for cell in line.split('|')] for line in table[1:]]
     source, _ = parse_spare_tyres(SPARE_HTML, 'PRODDUTUR')
-    assert displayed == [[row[key] for key in ('vehiclenum', 'position', 'rtctyreno', 'numofdaysinuse')] for row in source]
+    assert {row['position'] for row in source} == {'SPARE1'}
+    assert displayed == [[row[key] for key in ('vehiclenum', 'rtctyreno', 'numofdaysinuse')] for row in source]
+    assert output.count('SPARE1') == 1
     assert len(displayed) == 9
     assert output.count('టైర్ నం.') == output.count('రోజులు') == 1
 

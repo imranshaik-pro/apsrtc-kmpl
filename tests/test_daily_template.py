@@ -23,7 +23,7 @@ def rows(table):
 
 
 def test_approved_model_all_tables_values_and_section_order():
-    approved = json.loads((FIXTURES / 'daily-v1-approved-layout.json').read_text())
+    approved = json.loads((FIXTURES / 'daily-v1.1-approved-layout.json').read_text())
     generated = BeautifulSoup(render_daily_html(SAMPLE, 'PRODDUTUR', '2026-09-30', LINK, True), 'html.parser')
     assert [tag.get_text(strip=True) for tag in generated.select('section h2')] == approved['section_headings']
     assert [rows(table) for table in generated.select('section table')] == approved['tables']
@@ -33,7 +33,7 @@ def test_approved_model_all_tables_values_and_section_order():
 
 
 def test_locked_styles_and_exact_embedded_fonts():
-    manifest = json.loads((ASSETS / 'daily-v1.json').read_text())
+    manifest = json.loads((ASSETS / 'daily-v1.1.json').read_text())
     assert hashlib.sha256(CSS.read_bytes()).hexdigest() == manifest['css_sha256']
     for name, digest in manifest['font_sha256'].items():
         assert hashlib.sha256((ASSETS / name).read_bytes()).hexdigest() == digest
@@ -44,7 +44,7 @@ def test_locked_styles_and_exact_embedded_fonts():
 
 
 def test_telegram_preserves_every_vehicle_and_tyre_association():
-    approved = json.loads((FIXTURES / 'daily-v1-approved-layout.json').read_text())
+    approved = json.loads((FIXTURES / 'daily-v1.1-approved-layout.json').read_text())
     messages = render_daily_telegram(SAMPLE, 'PRODDUTUR', '2026-09-30', LINK, True)
     assert len(messages) == 1
     soup = BeautifulSoup(messages[0], 'html.parser')
@@ -148,8 +148,8 @@ def test_current_and_historical_companions_do_not_overwrite_each_other(tmp_path)
     historical=write_daily_html(source,'PRODDUTUR','2026-09-30',current=False)
     current=write_daily_html(source,'PRODDUTUR','2026-09-30',current=True)
     assert current!=historical
-    assert current.name=='PRODDUTUR_2026-09-30_daily-v1_current.html'
-    assert historical.name=='PRODDUTUR_2026-09-30_daily-v1.html'
+    assert current.name=='PRODDUTUR_2026-09-30_daily-v1.1_current.html'
+    assert historical.name=='PRODDUTUR_2026-09-30_daily-v1.1.html'
     assert source.read_text()==SAMPLE
 
 
@@ -168,3 +168,85 @@ def test_real_tot_nac_ac_report_keeps_its_footer_in_one_telegram_message():
     assert '39Z0321' in tables[-1].get_text() and '183' in tables[-1].get_text()
     assert '2026-10-02' in messages[0]
     assert link in messages[0] and messages[0].endswith('డిపో ప్రగతి • మనందరి బాధ్యత!')
+
+
+NAC_ONLY_SOURCE = '''Metric TOT NAC AC
+Target 5.03 5.030 —
+ఈ రోజు 5.17 5.17 —
+ఈ రోజు వరకు 4.98 4.98 —
+గత నెల 4.86 4.86 —
+గత ఇయర్ నెల 5.09 5.09 —
+Slab | Type | EX | OR | Total
+<=5.00 | రోజు | 1 | 0 | 1
+ | ఈరోజు వరకు | 1 | 0 | 1
+Total | రోజు | 1 | 1 | 2
+ | ఈరోజు వరకు | 1 | 1 | 2
+'''
+
+
+@pytest.mark.parametrize('ac_value', ['—', '0.00'])
+def test_confirmed_nac_only_duplicate_uses_one_kpi_block_without_changing_source(ac_value):
+    source = NAC_ONLY_SOURCE.replace(' —', ' '+ac_value)
+    before = read_daily_view(source, 'DEPOT', '2026-10-01')
+    html = BeautifulSoup(render_daily_html(source, 'DEPOT', '2026-10-01'), 'html.parser')
+    assert len(html.select('.cards')) == 1
+    assert 'TOT / NAC విలువలు ఒకేలా ఉన్నాయి' in html.get_text()
+    output = '\n'.join(render_daily_telegram(source, 'DEPOT', '2026-10-01'))
+    assert output.count('HSD KMPL • పనితీరు ముఖ్యాంశాలు') == 1
+    assert 'TOT / NAC విలువలు ఒకేలా ఉన్నాయి' in output
+    assert read_daily_view(source, 'DEPOT', '2026-10-01').metrics == before.metrics
+    assert before.metrics['NAC']['Target'] == '5.030'
+
+
+@pytest.mark.parametrize('source', [
+    NAC_ONLY_SOURCE.replace('5.030', '5.05'),
+    NAC_ONLY_SOURCE.replace('4.86 4.86', '4.86 4.87'),
+    NAC_ONLY_SOURCE.replace('5.09 5.09', '5.09 —'),
+    NAC_ONLY_SOURCE.replace('5.17 5.17', '5.17 5.16'),
+    NAC_ONLY_SOURCE.replace('5.17 5.17', '0.00 0.00'),
+    NAC_ONLY_SOURCE.split('Slab')[0],
+    NAC_ONLY_SOURCE.replace('EX | OR', 'MB | OR'),
+    NAC_ONLY_SOURCE.replace('EX | OR', 'UNKNOWN | OR'),
+    NAC_ONLY_SOURCE + 'వాహనాలు: BUS001 (op_type: CG)\n',
+    NAC_ONLY_SOURCE.replace('4.86 4.86 —', '4.86 4.86 3.79'),
+])
+def test_nac_is_retained_when_data_or_vehicle_mix_is_not_confirmed_duplicate(source):
+    html = BeautifulSoup(render_daily_html(source, 'DEPOT', '2026-10-01'), 'html.parser')
+    assert len(html.select('.cards')) >= 2
+    assert 'TOT / NAC విలువలు ఒకేలా ఉన్నాయి' not in html.get_text()
+    output = '\n'.join(render_daily_telegram(source, 'DEPOT', '2026-10-01'))
+    assert 'పనితీరు ముఖ్యాంశాలు • NAC' in output
+
+
+def test_spare_position_appears_once_and_every_source_association_is_reconstructable():
+    original = json.loads((FIXTURES / 'daily-v1-approved-layout.json').read_text())['tables'][-1]
+    html = BeautifulSoup(render_daily_html(SAMPLE, 'PRODDUTUR', '2026-09-30'), 'html.parser')
+    assert html.select_one('.common-position').get_text().endswith('SPARE1')
+    shown = rows(html.select('table.tyres')[-1])
+    assert shown[0] == ['వాహనం', 'టైర్ నం.', 'రోజులు']
+    assert [[r[0], 'SPARE1', *r[1:]] for r in shown[1:]] == original[1:]
+    text = '\n'.join(render_daily_telegram(SAMPLE, 'PRODDUTUR', '2026-09-30'))
+    assert 'అన్ని నమోదుల స్థానం: SPARE1' in text
+    assert read_daily_view(SAMPLE, 'PRODDUTUR', '2026-09-30').tyres[-1].rows == [tuple(r) for r in original[1:]]
+
+
+@pytest.mark.parametrize('position', ['SPARE2', '—'])
+def test_differing_or_unknown_spare_positions_keep_the_position_column(position):
+    source = SAMPLE.replace('వాహనం 39Z0321 — టైర్ పొజిషన్: SPARE1', 'వాహనం 39Z0321 — టైర్ పొజిషన్: '+position)
+    assert source != SAMPLE
+    html = BeautifulSoup(render_daily_html(source, 'PRODDUTUR', '2026-09-30'), 'html.parser')
+    table = rows(html.select('table.tyres')[-1])
+    assert table[0] == ['వాహనం', 'స్థానం', 'టైర్ నం.', 'రోజులు']
+    assert table[1][1] == position and table[2][1] == 'SPARE1'
+    assert not html.select('.common-position')
+    output = '\n'.join(render_daily_telegram(source, 'PRODDUTUR', '2026-09-30'))
+    assert position in output and 'అన్ని నమోదుల స్థానం:' not in output
+
+
+def test_uniform_unknown_spare_positions_are_not_treated_as_a_known_position():
+    source = SAMPLE.replace('టైర్ పొజిషన్: SPARE1', 'టైర్ పొజిషన్: UNKNOWN')
+    html = BeautifulSoup(render_daily_html(source, 'PRODDUTUR', '2026-09-30'), 'html.parser')
+    table = rows(html.select('table.tyres')[-1])
+    assert table[0] == ['వాహనం', 'స్థానం', 'టైర్ నం.', 'రోజులు']
+    assert all(row[1] == 'UNKNOWN' for row in table[1:])
+    assert not html.select('.common-position')
