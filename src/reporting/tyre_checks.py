@@ -27,6 +27,19 @@ def _key(value):
     return re.sub(r"[^a-z0-9]", "", value.casefold())
 
 
+def format_tyre_table(rows, spare=False):
+    """Present source values under one Telugu column header."""
+    headers = ("వాహనం", "స్థానం", "టైర్ నం.", "రోజులు") if spare else ("వాహనం", "స్థానాలు")
+    widths = [max(len(headers[column]), *(len(row[column]) for row in rows))
+              for column in range(len(headers))]
+    lines = [" | ".join(value.ljust(widths[column]) for column, value in enumerate(headers)).rstrip()]
+    for row in rows:
+        lines.append(" | ".join(value.rjust(widths[column]) if spare and column == 3
+                                else value.ljust(widths[column])
+                                for column, value in enumerate(row)).rstrip())
+    return "\n".join(lines)
+
+
 def parse_tyre_popup(html, depot, report_date):
     soup = BeautifulSoup(html, "html.parser")
     # Validate the report heading, not unrelated fitted-date columns in rows.
@@ -178,9 +191,10 @@ def build_spare_snapshot(session, depot):
     vehicles = {row["vehiclenum"] for row in rows}
     lines = [SPARE_TITLE, f"మూల నివేదిక తేదీ: {run_date} (రోజువారీ నివేదిక తేదీకి స్వతంత్రంగా)",
              f"వాహనాలు: {len(vehicles)} | టైర్ల నమోదులు: {len(rows)}"]
-    for row in rows:
-        lines.append(f"వాహనం {row['vehiclenum']} — {row['position']} | "
-                     f"టైర్ నం.: {row['rtctyreno']} | ఉపయోగంలో రోజులు: {row['numofdaysinuse']}")
+    lines.append(format_tyre_table([
+        (row["vehiclenum"], row["position"], row["rtctyreno"], row["numofdaysinuse"])
+        for row in rows
+    ], spare=True))
     return "\n".join(lines)
 
 def build_tyre_checks(session, report_date, depot, region_code):
@@ -209,12 +223,14 @@ def build_tyre_checks(session, report_date, depot, region_code):
             if not rows:
                 continue
             lines.append(f"\n{title}\nవాహనాలు: {len(vehicles)} | టైర్ల నమోదులు: {len(rows)}")
+            table_rows = []
             for vehicle in vehicles:
                 positions = list(dict.fromkeys(
                     value for row in rows if row[vehicle_header] == vehicle
                     for key, value in row.items() if _key(key) == "tyreposition"
                 ))
-                lines.append(f"వాహనం {vehicle} — {', '.join(positions)}")
+                table_rows.append((vehicle, ', '.join(positions)))
+            lines.append(format_tyre_table(table_rows))
         except (RequestException, ValueError):
             complete = False
             lines.append(f"\n{title}: వివరాలు అందుబాటులో లేవు.")
