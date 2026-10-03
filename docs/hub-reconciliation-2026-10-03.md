@@ -55,3 +55,23 @@ Official references: [GitHub schedule documentation](https://docs.github.com/en/
 - CI workflow runs the three Node checks for changes to Hub scripts/tests.
 
 Proddutur legacy historical Engine Upto remains owner-deferred. This reconciliation does not reopen unavailable fleet/comparison sources, remap CG, change FY data or modify the approved daily report layout.
+
+## Production completion after Google sign-in
+
+Owner approved the production merge on 3 October. PR #4 merged as `7ef3c2bd023946460625940a6a192aecf0eb6389`; [production build 37114740481](https://github.com/imranshaik-pro/apsrtc-kmpl/actions/runs/37114740481) completed successfully.
+
+Google sign-in was subsequently confirmed on the Apps Script dashboard. Inspected the existing APSRTC Vehicle Event Engine project: active version 7, the isolated Hub/vehicle POST router in Code.gs, and authenticated report_branding.gs. The deployed project source is maintained separately and is not claimed to be byte-for-byte identical to all Git files. Applied only the tested `hubStatus_` pending-link cleanup and its missing `hubEnsureColumn_` helper to the existing automation_hub.gs. Editor copy-back exactly matched the intended change; reversing those two insertions reconstructs the prior source. Other project files, credentials, deployment URL and execute-as/access settings were unchanged.
+
+**Version 8 deployed successfully at 15:49 IST on 3 October**, using the same active deployment ID and endpoint. This supersedes the earlier sign-in/deployment blocker in this dated review. Version 7 is retained in project history for rollback.
+
+Post-deployment real HUB form check:
+- PRODDUTUR, current date 2026-10-03, response row **22**.
+- Connected Sheets read while SUBMITTED: **Drive Report Link blank**, proving the inherited-link cleanup.
+- [Production run 37116252788](https://github.com/imranshaik-pro/apsrtc-kmpl/actions/runs/37116252788), master `7ef3c2bd`, completed successfully.
+- Timing diagnostic: workflow_dispatch started 15:53:25.091 IST.
+- Runner resolved report date **2026-10-02**, returning the same correct current-request HTML file.
+- Callback logged `AUTOMATION_HUB_LINK_UPDATED` at 15:53:57.046 IST.
+- Telegram logged `TELEGRAM_DAILY_REPORT_SENT: 1 message(s)` at 15:53:57.883 IST.
+- Independent connected Sheets read: row 22 COMPLETED with the correct [Proddutur HTML link](https://drive.google.com/file/d/1h-Dbs1EBeQ__I_PJ3qHEHz7_azOo8Lmt/view?usp=drivesdk).
+
+The new schedule diagnostic is now live. [Scheduled run 37116074204](https://github.com/imranshaik-pro/apsrtc-kmpl/actions/runs/37116074204) recorded cron `35 10 * * *`, configured in Asia/Kolkata, but execution began **15:50:16.627 IST**, approximately 5h15m after that nominal slot. It found the existing report and correctly skipped Telegram. This directly identifies a late scheduled slot; the GitHub scheduler's internal reason remains unproven. The reviewed change does **not** claim to fix punctual 05:00 delivery. No alternative scheduler or schedule change was made.
