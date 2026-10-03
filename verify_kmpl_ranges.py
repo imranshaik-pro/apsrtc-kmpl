@@ -28,31 +28,28 @@ def main():
         if args.probe_selection:
             from bs4 import BeautifulSoup
             from urllib.parse import urljoin, urlparse
-            pages=[f"{k.d.BASE}/rindex.php",*[f"{k.d.BASE}/med/{p}" for p in k.ENDPOINTS.values()]]
-            seen=set()
-            for url in pages:
-                if url in seen or len(seen)>15:
-                    continue
-                seen.add(url)
+            for entity, endpoint in k.ENDPOINTS.items():
+                selector=endpoint.replace("kmpldepot.php","kmpl1.php")
+                url=f"{k.d.BASE}/med/{selector}"
                 response=session.get(url,timeout=45)
                 soup=BeautifulSoup(response.text,"html.parser")
-                print("RANGE_SELECTOR_PAGE",url,"status",response.status_code)
-                for form in soup.find_all("form"):
-                    fields=[]
-                    for field in form.find_all(["input","select"]):
-                        name=field.get("name","")
-                        if any(word in name.lower() for word in ["pass","user","token","session"]):
-                            continue
-                        fields.append(dict(name=name,type=field.get("type"),value=field.get("value"),options=[(o.get("value"),o.get_text(" ",strip=True)) for o in field.find_all("option")]))
-                    print("RANGE_SELECTOR_FORM",form.get("action"),form.get("method"),json.dumps(fields))
-                for link in soup.find_all(["a","frame","iframe"],href=True)+soup.find_all(["frame","iframe"],src=True):
-                    target=urljoin(url,link.get("href") or link.get("src"))
-                    if urlparse(target).netloc!=urlparse(k.d.BASE).netloc:
-                        continue
-                    if any(word in target.lower() for word in ["kmpl","vehlog","drvlog","menu","main"]):
-                        print("RANGE_SELECTOR_LINK",target,link.get_text(" ",strip=True))
-                        if len(pages)<20:
-                            pages.append(target)
+                forms=soup.find_all("form")
+                for form in forms:
+                    print("RANGE_SELECTOR_FORM",entity,form.get("action"),form.get("method"),[(f.get("name"),f.get("value")) for f in form.find_all(["input","select"])])
+                parent=urljoin(url,forms[0]["action"])
+                response=session.post(parent,data={"yymm":args.month.replace("-","")},timeout=45)
+                response.raise_for_status()
+                soup=BeautifulSoup(response.text,"html.parser")
+                print("RANGE_PARENT_POST",entity,parent,"tables",[len(t.find_all("tr")) for t in soup.find_all("table")])
+                for link in soup.find_all("a",href=True):
+                    if "YSR" in link.get_text() or "YSR" in link["href"]:
+                        print("RANGE_PARENT_LINK",entity,link.get_text(" ",strip=True),urljoin(parent,link["href"]))
+                response=session.get(f"{k.d.BASE}/med/{endpoint}",params=dict(action="",yymm=args.month.replace("-",""),rreg="YSRKADAPA"),timeout=45)
+                try:
+                    result=k.parse_range(response.text,entity,"PRODDUTUR",args.month,"YSRKADAPA")
+                    print("RANGE_PARENT_THEN_GET_VALID",entity,result["counts"])
+                except Exception as exc:
+                    print("RANGE_PARENT_THEN_GET_INVALID",entity,str(exc)[:140])
             payload=dict(action="",yymm=args.month.replace("-",""),rreg="YSRKADAPA")
             for entity,endpoint in k.ENDPOINTS.items():
                 url=f"{k.d.BASE}/med/{endpoint}"
