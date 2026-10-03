@@ -390,14 +390,16 @@ def render_tabs(workbook, cache, selected, annual=False):
     from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
     from openpyxl.utils import get_column_letter
     from openpyxl.worksheet.pagebreak import Break
-    from report_branding import add_logo
+    from report_branding import add_logo, style_kmpl
     result = {}
     for title, blocks in sections(cache, selected, annual).items():
         index = workbook.sheetnames.index(title) if title in workbook.sheetnames else len(workbook.sheetnames)
         if title in workbook.sheetnames:
             del workbook[title]
         ws = workbook.create_sheet(title, index)
-        width = max([len(b["headers"]) for b in blocks] + [10])
+        # Seven columns fit the identity/logo and the smallest verified source
+        # matrix. Do not retain July-only product columns in a May monthly view.
+        width = max([len(b["headers"]) for b in blocks] + [7])
         last = get_column_letter(width)
         ws.sheet_view.showGridLines = False
         ws.sheet_properties.tabColor = BLUE if title == TYRE_TITLE else "287B59"
@@ -414,11 +416,12 @@ def render_tabs(workbook, cache, selected, annual=False):
         ws["D3"].alignment = Alignment(horizontal="center", vertical="center")
         ws.merge_cells(f"A4:{last}4")
         ws["A4"] = ("All Tyre Sizes Total · source counts and percentage points" if title == TYRE_TITLE else
-                    "UD: selected month · UM: April through selected month · blank: no source value")
+                    ("UD: monthly actual · UM: April through selected month · blank: no source value" if annual else
+                     "UD: monthly actual through month end · blank: no source value"))
         ws["A4"].font = Font(name="Arial", size=10, italic=True, color="63758A")
         ws["A4"].alignment = Alignment(horizontal="center", vertical="center")
         ws.row_dimensions[4].height = 22
-        r, first_header = 6, None
+        r, first_header, engine_blocks = 6, None, 0
         for block in blocks:
             columns = max(len(block["headers"]), 3)
             end = get_column_letter(columns)
@@ -459,6 +462,10 @@ def render_tabs(workbook, cache, selected, annual=False):
                         label = block["headers"][c-1]
                         if isinstance(value, (int, float)):
                             cell.number_format = "0.00" if block["kind"] == "engine" and c > 2 or "%" in label else "#,##0"
+                            if block["kind"] == "engine" and c > 2:
+                                style_kmpl(cell)
+                                if total:
+                                    cell.font = Font(name="Arial", size=10, color=cell.font.color, bold=True)
                     if total:
                         ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=2)
                     ws.row_dimensions[r].height = 39 if title == TYRE_TITLE else 23
@@ -478,7 +485,9 @@ def render_tabs(workbook, cache, selected, annual=False):
                 ws.row_dimensions[r].height = 19
                 r += 1
             if block["kind"] == "engine":
-                ws.row_breaks.append(Break(id=r))
+                engine_blocks += 1
+                if annual and engine_blocks % 2 == 0:
+                    ws.row_breaks.append(Break(id=r))
             r += 2
         widths = ([6, 13, 23, 25, 12, 13, 20] if title == TYRE_TITLE else [6, 25])
         for c in range(1, width + 1):

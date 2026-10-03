@@ -5,7 +5,7 @@ import unittest
 from datetime import date
 from io import BytesIO
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from openpyxl import Workbook, load_workbook
 import report_details as d
@@ -277,6 +277,51 @@ class HistoryAndViewTests(unittest.TestCase):
             for kind in ("updateCells", "unmergeCells", "mergeCells"):
                 if kind in request:
                     self.assertEqual(request[kind]["range"]["sheetId"], 77)
+
+    def test_small_depot_matrix_has_no_unused_product_columns_and_preserves_colour_rules(self):
+        cache, wb = d.new_cache("RAJAMPET"), Workbook()
+        cache["months"]["2026-05"] = {"UD": engine("RAJAMPET", "2026-05", "UD")}
+        d.render_tabs(wb, cache, "2026-05")
+        sheet = wb[d.ENGINE_TITLE]
+        self.assertEqual(sheet.max_column, 7)
+        self.assertEqual(sheet["C10"].value, 4.69)
+        self.assertEqual(sheet["C10"].fill.fgColor.rgb[-6:], "F4CCCC")
+        self.assertEqual(sheet["D9"].value, 5.16)
+        self.assertEqual(sheet["D9"].fill.fgColor.rgb[-6:], "FFF2CC")
+        self.assertIsNone(sheet["C9"].value)
+        self.assertEqual(len(sheet._images), 1)
+
+    def test_monthly_attach_reads_only_same_depot_month_cache_and_preserves_core(self):
+        wb = Workbook()
+        wb.active.title = "Monthly KMPL"
+        wb.active["A1"] = "original vehicle report"
+        cache = d.new_cache("PRODDUTUR")
+        d.update(cache, ["2026-05"], fixture)
+        api, source = Mock(), Mock(side_effect=fixture)
+        with patch("src.integrations.google_drive.find_file", return_value={"id": "same-month-id"}) as find, \
+                patch("src.integrations.google_sheets.sheets_service", return_value=api), \
+                patch.object(d, "read_google_cache", return_value=cache) as read, \
+                patch.object(d, "SourceAdapter", return_value=source):
+            d.attach_monthly_tabs(wb, Mock(), "PRODDUTUR", "YSRKADAPA", "2026-05", "monthly-folder")
+        find.assert_called_once_with("monthly-folder", "PRODDUTUR_2026-05")
+        read.assert_called_once_with(api, "same-month-id", "PRODDUTUR")
+        self.assertEqual(source.call_count, 3)
+        self.assertEqual(wb["Monthly KMPL"]["A1"].value, "original vehicle report")
+        self.assertTrue(set(d.TAB_TITLES) <= set(wb.sheetnames))
+        self.assertEqual(wb[d.CACHE_TITLE].sheet_state, "hidden")
+
+    def test_monthly_cache_read_failure_stops_without_replacing_views(self):
+        wb = Workbook()
+        wb.active["A1"] = "keep original"
+        with patch("src.integrations.google_drive.find_file", return_value={"id": "same-month-id"}), \
+                patch("src.integrations.google_sheets.sheets_service"), \
+                patch.object(d, "read_google_cache", side_effect=ValueError("checksum")), \
+                patch.object(d, "SourceAdapter") as adapter:
+            with self.assertRaises(ValueError):
+                d.attach_monthly_tabs(wb, Mock(), "PRODDUTUR", "YSRKADAPA", "2026-05", "monthly-folder")
+        adapter.assert_not_called()
+        self.assertEqual(wb.active["A1"].value, "keep original")
+        self.assertFalse(set(d.TAB_TITLES) & set(wb.sheetnames))
 
 
 if __name__ == "__main__":

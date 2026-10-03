@@ -23,6 +23,7 @@ GitHub Actions runs the Python reporting code. APSRTC is the operational data so
 | What is the Proddatur Engine Upto issue? | [Annual KPI known issues](annual-kpi-known-issues.md) |
 | What is the approved daily visual/delivery contract? | [Daily template v1.1](daily-template-v1.md) |
 | When do tyres appear? | [Current-request tyre details](daily-tyre-checks.md) |
+| How do Monthly/Annual B/F tyres and engine/product UD/UM snapshots work? | [Monthly and Annual detail tabs](monthly-annual-detail-tabs.md) |
 | What were the 13 failed checks? | [Daily regression audit](daily-regression-audit.md) |
 | How do events and Telegram input work? | [Vehicle event register](vehicle-event-register.md), [Telegram operations](telegram-operations.md), [Apps Script guide](telegram-google-apps-script-webhook.md) |
 

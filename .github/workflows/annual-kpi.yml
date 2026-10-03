@@ -48,8 +48,9 @@ jobs:
 
       - name: Validate Annual Python syntax
         run: |
-          python -m py_compile annual_kpi_runner_v3.py annual_kpi_runner_v7.py annual_kpi_runner_v10.py annual_kpi_runner_v11.py annual_history.py annual_visuals.py
+          python -m py_compile annual_kpi_runner_v3.py annual_kpi_runner_v7.py annual_kpi_runner_v10.py annual_kpi_runner_v11.py annual_history.py annual_visuals.py report_details.py
           python -m unittest discover -s tests -p 'test_annual_history.py' -v
+          python -m unittest discover -s tests -p 'test_report_details.py' -v
 
       - name: Show annual KPI request
         run: |
@@ -180,4 +181,3 @@ jobs:
           path: reports/*ANNUAL_KPI*.xlsx
           if-no-files-found: ignore
           retention-days: 7
-

@@ -25,7 +25,7 @@ The early Phase A–G list described the initial daily project; it was not certi
 - Current daily requests fetch optional Telugu tyre details after normal KMPL. Historical dates skip tyres. The previous odd-day rule was superseded.
 - PR #6 corrected the daily slab defect and 13 earlier daily regression failures; PR #5 added current-request tyres. Both are merged.
 - PR #7 merged the approved daily-v1.1 model: centred tables, common SPARE1 shown once and strict NAC redundancy filtering. Telegram receives formatted text; Drive receives source TXT plus coloured HTML. PNG/PDF are review-only.
-- Annual v11 stores source snapshots in hidden history and renders the selected-month endpoint into two visible tabs, preserving supported historical values.
+- Annual v11 stores source snapshots in hidden history and renders the selected-month endpoint into Dashboard and Detailed Data, preserving supported historical values. The [detail-tabs extension](docs/monthly-annual-detail-tabs.md) adds Tyre Statements and Engine & Product KMPL to Monthly and Annual reports with a separate history cache.
 - Monthly reporting distinguishes provisional open-month population from official closed-month MTD-598 and includes Vehicle Performance/Vehicle 360 when applicable.
 
 Proddatur's seven retained historical Engine Upto identities remain unresolved and owner-deferred. PR #1 and Hub/native-logo PR #4 remain draft/unmerged; PR #4 separately records a deployed Apps Script version. Standalone Vehicle 360 lookup is not implemented. Fleet availability and depot-versus-APSRTC comparisons are closed/out of current scope because sources are unavailable. WhatsApp is an unimplemented future idea.
@@ -57,4 +57,3 @@ Reports are written under reports/ as UTF-8 text or XLSX. Generated reports, .en
 - [Application home](docs/index.md) and [privacy](docs/privacy.md)
 
 Source contracts, identities, calculation/rounding/slab rules, selected-period semantics and the approved report design must not change silently. Keep rule/source/history/status documentation with each bounded review. Git merge, Apps Script deployment, report generation, Hub return and Telegram API acceptance are separate outcomes.
-

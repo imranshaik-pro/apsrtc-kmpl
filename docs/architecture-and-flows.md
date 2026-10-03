@@ -87,7 +87,7 @@ The production workflow executes annual_kpi_runner_v11.py, not every runner name
 | v4 assigns m.direct_dimension_rows = strict_dimension_rows | Active Product/Engine body indexes are month=3 and Upto=6; newer v3 helper presence does not establish use |
 | v8 assigns m.fetch_lub = fetch_lub_depotwise | Verified yymm POST, returned-month validation and exact depot-wise Total Lub columns |
 | v10.fetch_tyre_v10 | FY24-25 exact booklet adapter; supported later FYs use captured original web implementation |
-| v11.main_v11 | Loads/migrates persistent history, dispatches missing groups, selects view, renders two visible tabs |
+| v11.main_v11 | Loads/migrates original persistent KPI history, dispatches missing groups, selects view, and adds two separately cached source-detail views to the original two tabs |
 | v11 uses v10.ORIGINAL_POPULATE_TARGETS | April targets-only path; deliberately bypasses v10's all-month backfill/unavailability wrapper |
 
 This shared path does not prove a Proddutur-only old parser. The unresolved legacy Engine labels and lack of an authoritative crosswalk are recorded in [known issues](annual-kpi-known-issues.md). Old wrapper functions/docstrings can describe rules that the active v11 main no longer invokes.
@@ -112,6 +112,8 @@ flowchart TD
 Source errors during missing-value repair preserve supported saved fields. Persist migration before modifying visible tabs. Known FY24 LUB/SPRING unavailability is explicit. Targets are attempted once per FY. A versioned Engine refresh adds exact source identities without relabelling retained engines.
 
 Selecting May after July changes the view and May Upto endpoint; it does not delete June/July cached data or recompute historical FYs. The cache checksum covers saved chunks; it cannot certify that the original source classified a legacy engine correctly.
+
+The [Monthly/Annual detail extension](monthly-annual-detail-tabs.md) follows a separate path: B/F total-size tyre rows and the combined engine/product UD/UM matrix → `_REPORT_DETAILS_HISTORY` → two generated views. This cache does not rewrite the legacy `_ANNUAL_HISTORY` engine labels. Its own missing/provisional month snapshots and selected UM refresh have independent fetch rules.
 
 ## Monthly and Vehicle 360 lifecycle
 

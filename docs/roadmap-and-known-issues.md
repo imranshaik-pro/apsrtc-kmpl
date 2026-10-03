@@ -18,12 +18,14 @@ Reviewed on 3 October 2026. Baseline: [54dcf6b](https://github.com/imranshaik-pr
 
 | Priority | Item / status | Concrete next action and acceptance |
 | --- | --- | --- |
-| 1 | Documentation consolidation: this documentation-only review | Review linked rules, sources, diagrams, complete ledger and statuses; merge separately under owner approval. No runtime or Apps Script changes are included. |
+| 1 | Monthly/Annual B/F tyre and engine/product detail tabs: implementation review | Verify both depots May → July → May, full workbook previews and private native Sheets replacement; review the [new rules](monthly-annual-detail-tabs.md), then obtain separate production merge approval. |
 | 2 | PR #4: Hub callback/native logo code remains draft in Git; recorded Apps Script version 7 already deployed | Reconcile reviewed branch with active deployed source, refresh its checks and resolve documentation overlaps before a separate approved merge. Do not paste conflicting doPost handlers. Preserve actual Hub row, authenticated callback, valid daily Drive-file and annual spreadsheet URLs, repeat-safe logos and event API. |
 | 3 | Production v1.1 live acceptance | Next approved current daily Hub/scheduled run should confirm date, source values, latest HTML link, callback when applicable and Telegram formatting. Earlier live v1 delivery is verified; screenshot-correction v1.1 had local/rendered checks, not a separately sent live message at merge time. |
 | 4 | Standalone Vehicle 360 lookup: not implemented | Scope separately if the owner requests it. The monthly workbook Vehicle 360 tab must not be confused with this input-channel feature. |
 
 ## Deferred or evidence-dependent
+
+Documentation consolidation was approved and merged in [PR #8](https://github.com/imranshaik-pro/apsrtc-kmpl/pull/8) at cf07f0f. The detail-tabs review extends that documentation with new source contracts and history rules.
 
 | Item | Decision / reopening evidence |
 | --- | --- |

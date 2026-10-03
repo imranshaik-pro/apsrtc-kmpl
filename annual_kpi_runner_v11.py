@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Annual KPI v11: v10 logic plus visible borders for the Upto column."""
+"""Annual KPI v11: persistent KPI history and separate source-detail views."""
 import sys
 import os
 import annual_history as history
@@ -21,7 +21,7 @@ v7 = v10.v7
 LAYOUT_VERSION = "10"
 
 # Keep existing v7/v8/v9/v10 sheet layouts compatible.
-# v11 is a formatting-only patch; retain the established v10 layout contract.
+# New detail tabs use a separate cache; the original KPI grid keeps v10's contract.
 v7.LAYOUT_VERSION = "10"
 
 ORIGINAL_FORMAT_SHEET = v7.format_sheet_v7
