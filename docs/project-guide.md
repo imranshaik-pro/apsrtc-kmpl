@@ -45,6 +45,8 @@ GitHub Actions runs the Python reporting code. APSRTC is the operational data so
 
 ## How to interpret the evidence
 
+After the audited baseline, documentation PR #8 was approved and merged at cf07f0f. [PR #9](https://github.com/imranshaik-pro/apsrtc-kmpl/pull/9) now contains the Monthly/Annual source-detail extension, its business rules and live acceptance record. That code is reviewed separately and is not yet a production release.
+
 The [ledger](change-ledger.md) contains every one of the 295 commits reachable from the audited production baseline, including temporary diagnostics and their removal. Open PR changes are listed separately. Commit subjects describe work performed; they do not by themselves certify every value, external deployment or delivery.
 
 The guides distinguish current code, owner requirements, recorded live validation and unresolved issues. The old README phase labels were an early daily-project plan; they were not certification of the later Hub, monthly, annual and source-completeness work. Private conversations or external changes without a retained record cannot be reconstructed from Git.

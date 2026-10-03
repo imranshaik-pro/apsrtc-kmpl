@@ -305,3 +305,24 @@ Open draft PR #1 (historical Engine marker issue) and PR #4 (Hub callback/native
 | 295 | 2026-10-02T11:01:46Z | [54dcf6b](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/54dcf6bd760bbf60d728ce1aee8677b54021b177) | Merge PR #7: approved daily-v1.1 report template |
 
 For changes after this baseline, preserve the existing ledger and append newly reviewed commits, or regenerate against a new explicit baseline with full pagination. Never silently include unmerged proposals as production releases.
+
+## Approved additions after the audited baseline
+
+| No. | Commit date UTC | Commit | Change |
+| --- | --- | --- | --- |
+| 296 | 2026-10-02T19:34:19Z | [b342269](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/b342269b487e0c363b14238e349ee6c7194894a0) | Consolidate project rules, sources, flows and complete history; documentation-only PR #8 head |
+| 297 | 2026-10-02T19:41:01Z | [cf07f0f](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/cf07f0ff163b1af7d88e18cf671e7f61ec5bddcc) | Merge owner-approved documentation PR #8; production base for the detail-tabs review |
+
+## Unmerged detail-tabs review
+
+These commits are on [PR #9](https://github.com/imranshaik-pro/apsrtc-kmpl/pull/9), not production releases.
+
+| Commit | Change |
+| --- | --- |
+| [41b3846](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/41b3846d3219b900cf7a3481a379238932505b92) | Capture authenticated engine/product UD and UM source contracts |
+| [66c9a4c](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/66c9a4c6c9afa22f88c7d4cb0a28c74d454a22a9) | Add source-preserving Monthly and Annual detail tabs |
+| [6b6e41f](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/6b6e41fd5e083dffb332d0cc9d9e1c3755652497) | Polish detail views, apply established KMPL colours and document UD/UM rules |
+| [bb396c3](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/bb396c37c77f18220c694bd7f781835ab13bec0d) | Preserve Monthly's fresh-session lifecycle in previews and distinguish provisional tyre month data from daily cutoffs |
+| [6afcdc3](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/6afcdc368d05dfddcaf51a9836451cf4a3f9f494) | Keep the FY25-26 history floor specific to Annual; validate standalone Monthly source selection |
+
+The review's final documentation update records source/workbook/Sheets acceptance and the owner approval boundary. See [detail-tabs evidence](monthly-annual-detail-tabs.md).

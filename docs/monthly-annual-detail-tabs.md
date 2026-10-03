@@ -64,4 +64,23 @@ Native Sheets publication verifies typed values and dimensions through the API. 
 
 The review workflow is restricted to the feature branch on push, with manual dispatch available. `verify_report_details.py` performs authenticated source reads, May/July/May history checks, private new-tab Google Sheets checks and full workbook previews. Existing annual KPI data is read from its cache for preview; it is not repaired. The monthly upload boundary is intercepted for preview. No production file is a write destination, and no Hub callback, Telegram message or Apps Script deployment occurs.
 
-The live evidence and final workbook previews are recorded below after validation. A production merge requires the owner's separate approval.
+The change is open for review in [PR #9](https://github.com/imranshaik-pro/apsrtc-kmpl/pull/9). A production merge requires the owner's separate approval.
+
+## Live acceptance evidence
+
+Code commit [6afcdc3](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/6afcdc368d05dfddcaf51a9836451cf4a3f9f494) passed [run 37090754311](https://github.com/imranshaik-pro/apsrtc-kmpl/actions/runs/37090754311): relevant compilation, 24 detail tests, 12 Annual history tests and 3 presentation tests. Full May 2026 Monthly/Annual workbooks were generated for both depots. Both Monthly builds fetched days 1–31, with 86 Proddutur and 47 Rajampet official roster vehicles in their existing history views.
+
+| Depot | May UD / UM | July UD / UM | Return to May UD / UM | Source calls per step | Engine-view rows July → May | Engine-view columns July → May |
+| --- | --- | --- | --- | --- | --- | --- |
+| PRODDUTUR | 4.94 / 4.98 | 4.89 / 4.94 | 4.94 / 4.98 | 43 → 7 → 1 | 216 → 189 | 11 → 11 |
+| RAJAMPET | 5.20 / 5.23 | 5.20 / 5.22 | 5.20 / 5.23 | 43 → 7 → 1 | 206 → 182 | 11 → 8 |
+
+All 14 initial B/F/UD monthly snapshots from April 2025 through May 2026 and both June/July additions were available. FY2025-26 snapshot checksums stayed unchanged across each sequence. Proddutur retains 11 sheet columns because an earlier visible historical matrix uses them; its selected May matrix has exactly its 10 source columns. Rajampet's selected May matrix has 7 columns; its Annual historical matrices require 8. Returning to May removes every July 2026 block, while June/July remain in hidden history.
+
+The native writer passed API readback of every generated value, merge count, resized grid and hidden checksum cache through all three selections. Review files are separate, owner-only Sheets (`shared=false` confirmed by Drive metadata): [Proddutur](https://docs.google.com/spreadsheets/d/1S75kRgbXNZ9VRXYDXAkdMG7ZTqSYp9VVXvZxR-QTpOA/edit?usp=drivesdk) and [Rajampet](https://docs.google.com/spreadsheets/d/1L6WSHC1UPIp343BrP44j7qn4u-kFnwZOzHGPK6ZVymY/edit?usp=drivesdk). They contain the new Annual detail views, not a claim of production Hub delivery.
+
+The [run artifact](https://github.com/imranshaik-pro/apsrtc-kmpl/actions/runs/37090754311/artifacts/11261559297) contains four full May workbooks, all six transition workbooks, history snapshots and the validation summary. The new views were imported, recalculated, inspected and rendered with Artifact Tool; error scans found no spreadsheet errors. Embedded logos, centred headings, preserved source headers, readable numeric formats and the smaller May layouts were visually inspected. Google Sheets readback is native data/layout verification; it does not create a floating logo.
+
+Two repeated previews encountered `RemoteDisconnected` in the existing vehicle fetch while the audit harness reused its source-audit HTTP session. The harness was corrected to preserve Monthly's normal fresh login. The following two complete code validations passed. The server-side cause of the closed connection is not established; no production retry/parser change was made for it.
+
+A repository-wide compile probe found a SyntaxError in the unchanged legacy `generate_report.py` at line 101. Compiling the original production bytes reproduced it. That inactive alternative entry point is outside this feature; the active Monthly/Annual runners and affected dependencies compile.
