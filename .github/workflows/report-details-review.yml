@@ -1,0 +1,36 @@
+name: Monthly and Annual detail tabs review
+
+on:
+  push:
+    branches: [feat/monthly-annual-details-20261003]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install project dependencies
+        run: pip install -r requirements.txt
+      - name: Validate authenticated UD and UM source periods
+        env:
+          APSRTC_USERNAME: ${{ secrets.APSRTC_USERNAME }}
+          APSRTC_PASSWORD: ${{ secrets.APSRTC_PASSWORD }}
+        run: |
+          python diagnose_report_details.py --depot PRODDUTUR --months 2025-04,2026-03,2026-05,2026-07 --output reports/detail-sources/PRODDUTUR
+          python diagnose_report_details.py --depot RAJAMPET --months 2026-05,2026-07 --output reports/detail-sources/RAJAMPET
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: report-details-source-contracts
+          path: reports/detail-sources
+          retention-days: 7
+          if-no-files-found: error
