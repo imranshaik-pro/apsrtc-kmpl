@@ -27,6 +27,32 @@ def main():
         session=login()
         if args.probe_selection:
             from bs4 import BeautifulSoup
+            from urllib.parse import urljoin, urlparse
+            pages=[f"{k.d.BASE}/rindex.php",*[f"{k.d.BASE}/med/{p}" for p in k.ENDPOINTS.values()]]
+            seen=set()
+            for url in pages:
+                if url in seen or len(seen)>15:
+                    continue
+                seen.add(url)
+                response=session.get(url,timeout=45)
+                soup=BeautifulSoup(response.text,"html.parser")
+                print("RANGE_SELECTOR_PAGE",url,"status",response.status_code)
+                for form in soup.find_all("form"):
+                    fields=[]
+                    for field in form.find_all(["input","select"]):
+                        name=field.get("name","")
+                        if any(word in name.lower() for word in ["pass","user","token","session"]):
+                            continue
+                        fields.append(dict(name=name,type=field.get("type"),value=field.get("value"),options=[(o.get("value"),o.get_text(" ",strip=True)) for o in field.find_all("option")]))
+                    print("RANGE_SELECTOR_FORM",form.get("action"),form.get("method"),json.dumps(fields))
+                for link in soup.find_all(["a","frame","iframe"],href=True)+soup.find_all(["frame","iframe"],src=True):
+                    target=urljoin(url,link.get("href") or link.get("src"))
+                    if urlparse(target).netloc!=urlparse(k.d.BASE).netloc:
+                        continue
+                    if any(word in target.lower() for word in ["kmpl","vehlog","drvlog","menu","main"]):
+                        print("RANGE_SELECTOR_LINK",target,link.get_text(" ",strip=True))
+                        if len(pages)<20:
+                            pages.append(target)
             payload=dict(action="",yymm=args.month.replace("-",""),rreg="YSRKADAPA")
             for entity,endpoint in k.ENDPOINTS.items():
                 url=f"{k.d.BASE}/med/{endpoint}"
