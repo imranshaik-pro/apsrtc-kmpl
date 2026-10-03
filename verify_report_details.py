@@ -85,7 +85,7 @@ def verify_google(api, sid, workbook, cache):
     assert next(s for s in meta["sheets"] if s["properties"]["title"] == d.CACHE_TITLE)["properties"]["hidden"]
 
 
-def full_monthly_preview(depot, cache, session, output):
+def full_monthly_preview(depot, output):
     """Run the existing generator, replacing only the delivery boundary and new-tab fetch.
 
     Its prior-history download and source reads remain active. No Drive write or
@@ -94,10 +94,10 @@ def full_monthly_preview(depot, cache, session, output):
     import monthly_vehicle_report as monthly
     captured = {}
 
-    def attach(wb, _session, display, region, selected, folder):
+    def attach(wb, monthly_session, display, region, selected, folder):
         assert display == depot and selected == "2026-05"
         monthly_cache = d.new_cache(depot)
-        d.update(monthly_cache, [selected], d.SourceAdapter(session, depot, region, tyre_site_info),
+        d.update(monthly_cache, [selected], d.SourceAdapter(monthly_session, depot, region, tyre_site_info),
                  refresh_monthly=True)
         assert all(g in monthly_cache["months"][selected] for g in ("B", "F", "UD"))
         assert monthly_cache["months"][selected]["UD"]["rows"][-1][-1] == EXPECTED[depot][selected][0]
@@ -108,8 +108,9 @@ def full_monthly_preview(depot, cache, session, output):
         captured["path"] = Path(path)
         return {"id": "local-review", "webViewLink": "local-review.xlsx"}
 
-    with patch.object(monthly, "login", return_value=session), \
-            patch.object(monthly, "attach_monthly_tabs", side_effect=attach), \
+    # The production monthly runner owns a fresh authenticated session. Preserve
+    # that lifecycle instead of reusing the source-audit session/connection pool.
+    with patch.object(monthly, "attach_monthly_tabs", side_effect=attach), \
             patch.object(monthly, "upload_xlsx_as_google_sheet", side_effect=capture), \
             patch.object(sys, "argv", ["monthly_vehicle_report.py", "--depot", depot, "--month", "2026-05"]):
         assert monthly.main() == 0
@@ -189,7 +190,7 @@ def main():
             target = out / f"{depot}_ANNUAL_KPI_2026-05.xlsx"
             load_workbook(path).save(target)
             previews.append(str(target))
-            previews.append(full_monthly_preview(depot, cache, session, out))
+            previews.append(full_monthly_preview(depot, out))
         result.append(dict(depot=depot, steps=steps, workbooks=previews,
                            google_preview=f"https://docs.google.com/spreadsheets/d/{sid}/edit" if sid else None,
                            production_writes=0, deliveries=0))

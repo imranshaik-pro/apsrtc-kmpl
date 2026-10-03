@@ -13,6 +13,8 @@ For a completed month, UD covers its first through last day. UM covers 1 April o
 
 An open month uses yesterday in Asia/Kolkata and is marked provisional. No completed day on the first of the month, or a future month, cannot produce a verified month-end detail snapshot. Provisional snapshots remain refreshable until a completed-month source is captured. The existing Hub/Monthly future-month guards remain; this addition does not change the legacy annual CLI guard boundary.
 
+The day cutoff applies to engine/product requests. B/F statements expose a month filter rather than a daily cutoff: an open-month tyre row is labelled as the current monthly source as fetched, without claiming it stops at yesterday.
+
 ## Exact source contracts
 
 Base URL: `http://103.44.14.20`.

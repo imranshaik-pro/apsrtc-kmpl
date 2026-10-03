@@ -434,7 +434,8 @@ def render_tabs(workbook, cache, selected, annual=False):
             r += 1
             context = block.get("period_text") or "Month-wise source values"
             if block.get("provisional"):
-                context += " · PROVISIONAL — through completed days"
+                context += (" · PROVISIONAL — current monthly statement; no daily cutoff supplied"
+                            if block["kind"] == "tyre" else " · PROVISIONAL — through completed days")
             ws.merge_cells(f"A{r}:{last}{r}")
             ws.cell(r, 1, context)
             ws.cell(r, 1).font = Font(name="Arial", size=10, color="63758A")

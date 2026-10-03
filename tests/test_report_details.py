@@ -213,6 +213,14 @@ class HistoryAndViewTests(unittest.TestCase):
         d.update(cache, ["2026-05"], source)
         source.assert_not_called()
 
+    def test_current_tyre_statements_do_not_claim_a_daily_cutoff(self):
+        cache, wb = d.new_cache("PRODDUTUR"), Workbook()
+        d.update(cache, ["2026-05"], lambda g, p: dict(fixture(g, p), provisional=True))
+        d.render_tabs(wb, cache, "2026-05")
+        notes = [c.value for row in wb[d.TYRE_TITLE] for c in row if c.value is not None]
+        self.assertEqual(sum("no daily cutoff supplied" in str(v) for v in notes), 2)
+        self.assertFalse(any("through completed days" in str(v) for v in notes))
+
     def test_monthly_refresh_uses_same_source_period_but_can_update_that_month(self):
         cache = d.new_cache("PRODDUTUR")
         d.update(cache, ["2026-05"], fixture)
