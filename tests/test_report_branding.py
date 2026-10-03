@@ -39,7 +39,7 @@ class BrandingTests(unittest.TestCase):
         model=dashboard_model('PRODDUTUR',fys,rows,'2026-06')
         for name,fill in [('TOTAL LUB KMPL','E2F0D9'),('B.D RATE','F4CCCC'),('MED CANCL.','E2F0D9'),('HSD KMPL INCL AC','FFF2D9')]:
             r=next(c['r'] for c in model['cells'] if c['text']==name)
-            self.assertEqual(next(c['fill'] for c in model['cells'] if c['r']==r and c['c']==6),fill)
+            self.assertEqual(next(c['fill'] for c in model['cells'] if c['r']==r and c['c']==7),fill)
         requests=google_dashboard_requests(12,model)
         self.assertIn(LOGO_URL,str(requests));self.assertIn('formulaValue',str(requests))
         w=Workbook();render_xlsx_dashboard(w,'Dashboard',model,'PRODDUTUR','2026-06')
@@ -47,3 +47,4 @@ class BrandingTests(unittest.TestCase):
         self.assertTrue(any(p.startswith('xl/media/') for p in ZipFile(b).namelist()))
 
 if __name__=='__main__': unittest.main()
+

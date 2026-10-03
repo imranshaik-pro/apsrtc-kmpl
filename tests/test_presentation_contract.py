@@ -57,7 +57,7 @@ class PresentationTests(unittest.TestCase):
         self.assertEqual(data['HSD KMPL EXCL AC']['2026-27'][17],0)
         model=visual.dashboard_model('RAJAMPET',years,rows,'2026-06')
         self.assertTrue(any(c['text']==0 and c['size']==20 for c in model['cells']))
-        self.assertEqual([c['text'] for c in model['cells'] if c['r']==4], ['HSD INCL. AC · YTD KMPL','HSD EXCL. AC · YTD KMPL','AVERAGE TYRE LIFE · YTD LAKH KM','BREAKDOWN RATE · YTD'])
+        self.assertEqual([c['text'] for c in model['cells'] if c['r']==4], ['HSD INCL. AC · YTD KMPL','HSD EXCL. AC · YTD KMPL','AVG TYRE LIFE · LAKH KM','BREAKDOWN RATE · YTD'])
         self.assertEqual([c['points'] for c in model['charts']],[3,3])
         self.assertTrue(any('June 2026' in str(c['text']) for c in model['cells']))
         self.assertEqual(len([r for r in visual.google_dashboard_requests(12,model) if 'addChart' in r]),2)
@@ -94,3 +94,4 @@ class PresentationTests(unittest.TestCase):
             dispatch.assert_called_with('monthly-report.yml',{'depot':'RAJAMPET','month':'2026-06'})
 
 if __name__=='__main__': unittest.main()
+
