@@ -3,6 +3,15 @@ name: Monthly and Annual detail tabs review
 on:
   push:
     branches: [feat/monthly-annual-details-20261003]
+    paths:
+      - report_details.py
+      - verify_report_details.py
+      - monthly_vehicle_report.py
+      - annual_kpi_runner_v11.py
+      - tests/test_report_details.py
+      - tests/test_annual_history.py
+      - tests/fixtures/report-details/**
+      - .github/workflows/report-details-review.yml
   workflow_dispatch:
 
 permissions:
@@ -11,7 +20,7 @@ permissions:
 jobs:
   source-contracts:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -20,17 +29,30 @@ jobs:
           cache: pip
       - name: Install project dependencies
         run: pip install -r requirements.txt
-      - name: Validate authenticated UD and UM source periods
+      - name: Compile and verify focused history and presentation contracts
+        env:
+          APSRTC_USERNAME: offline
+          APSRTC_PASSWORD: offline
+        run: |
+          python -m compileall -q report_details.py verify_report_details.py monthly_vehicle_report.py annual_kpi_runner_v11.py
+          python -m unittest discover -s tests -p 'test_report_details.py' -v
+          python -m unittest discover -s tests -p 'test_annual_history.py' -v
+          python -m unittest discover -s tests -p 'test_report_branding.py' -v
+      - name: Validate both depots May July May and build isolated report previews
         env:
           APSRTC_USERNAME: ${{ secrets.APSRTC_USERNAME }}
           APSRTC_PASSWORD: ${{ secrets.APSRTC_PASSWORD }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          VEHICLE_EVENTS_API_URL: ${{ secrets.VEHICLE_EVENTS_API_URL }}
+          VEHICLE_EVENTS_API_KEY: ${{ secrets.VEHICLE_EVENTS_API_KEY }}
         run: |
-          python diagnose_report_details.py --depot PRODDUTUR --months 2025-04,2026-03,2026-05,2026-07 --output reports/detail-sources/PRODDUTUR
-          python diagnose_report_details.py --depot RAJAMPET --months 2026-05,2026-07 --output reports/detail-sources/RAJAMPET
+          python verify_report_details.py --google-previews --full-reports
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: report-details-source-contracts
-          path: reports/detail-sources
+          name: monthly-annual-details-review
+          path: reports/detail-review
           retention-days: 7
           if-no-files-found: error

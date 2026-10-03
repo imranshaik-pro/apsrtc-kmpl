@@ -3,6 +3,7 @@
 import sys
 import os
 import annual_history as history
+import report_details as details
 from datetime import datetime
 from annual_visuals import dashboard_model, render_xlsx_dashboard, google_dashboard_requests, print_setup, period_label, rgb, number
 
@@ -93,8 +94,8 @@ def _build_dashboard_xlsx(wb, display, fys, mat):
         dashboard_model(display,fys,mat,REPORT_MONTH),display,REPORT_MONTH)
 
 
-def make_xlsx_v11(display, mat, fys):
-    """Approved two-sheet Annual workbook: executive dashboard + detailed APSRTC data."""
+def make_xlsx_v11(display, mat, fys, detail_cache=None):
+    """Existing KPI views plus the approved source-detail tabs when supplied."""
     mat=list(mat)
     while mat and not any(v not in (None, "") for v in mat[-1]): mat.pop()
     path = ORIGINAL_MAKE_XLSX(display, mat, fys)
@@ -132,6 +133,9 @@ def make_xlsx_v11(display, mat, fys):
     _build_dashboard_xlsx(wb, display, fys, mat)
     if "_META" in wb.sheetnames:
         del wb["_META"]
+    if detail_cache is not None:
+        details.render_tabs(wb, detail_cache, REPORT_MONTH, annual=True)
+        details.write_xlsx_cache(wb, detail_cache)
     wb.save(path)
     return path
 
@@ -375,7 +379,7 @@ def _style_live_detail(spreadsheet_id, mat):
 
 
 def _finalize_live_workbook(spreadsheet_id):
-    """Expose exactly the two approved sheets and remove stale legacy tabs."""
+    """Keep KPI and source-detail views visible; preserve all durable hidden history."""
     svc = m.sheets_service()
     meta = svc.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
     sheets = meta.get("sheets", [])
@@ -391,6 +395,14 @@ def _finalize_live_workbook(spreadsheet_id):
                                     "fields": "title,index"}},
     ]
     keep = {dash["properties"]["sheetId"], detail["properties"]["sheetId"]}
+    for index, title in enumerate(details.TAB_TITLES, 2):
+        extra = next((s for s in sheets if s["properties"]["title"] == title), None)
+        if extra is None:
+            raise RuntimeError(f"Source-detail sheet finalization failed: {title}")
+        extra_id = extra["properties"]["sheetId"]
+        keep.add(extra_id)
+        requests.append({"updateSheetProperties": {"properties": {
+            "sheetId": extra_id, "index": index, "hidden": False}, "fields": "index,hidden"}})
     for sheet in sheets:
         sid = sheet["properties"]["sheetId"]
         if sid not in keep:
@@ -404,7 +416,7 @@ def _finalize_live_workbook(spreadsheet_id):
 ORIGINAL_V7_MAIN=v7.main
 
 def main_v11():
-    """Reuse persistent history and render the selected month into two visible tabs."""
+    """Reuse KPI history and render the chosen period into four visible tabs."""
     args=sys.argv[1:]
     def _arg(name, default=""):
         try: return args[args.index(name)+1]
@@ -456,6 +468,15 @@ def main_v11():
         last_saved=rows
     # Persist migrated history BEFORE changing the visible report or contacting APSRTC.
     save_cache()
+    detail_cache = details.read_google_cache(m.sheets_service(), sid, display)
+    last_details_saved = None
+    def save_details_cache():
+        nonlocal last_details_saved
+        rows = details.encode(detail_cache)
+        if rows != last_details_saved:
+            details.save_google_cache(m.sheets_service(), sid, detail_cache)
+            last_details_saved = rows
+    save_details_cache()
     session=None
     def get_session():
         nonlocal session
@@ -479,11 +500,16 @@ def main_v11():
         save_cache()
     st=history.view_store(cache,fys,selected,m)
     mat=v7.matrix_with_target(st)
-    make_xlsx_v11(display,mat,fys)
+    adapter = lambda group, period: details.SourceAdapter(
+        get_session(), display, region, m.tyre_site_info)(group, period)
+    details.update(detail_cache, details.annual_periods(selected), adapter,
+                   selected_um=selected, checkpoint=save_details_cache)
+    xlsx = make_xlsx_v11(display,mat,fys,detail_cache)
     format_sheet_v11(sid,mat,fys)
     _style_live_detail(sid,mat)
     _ensure_dashboard_google_sheet(sid,display,fys,mat)
     _add_live_identity(sid,display,fys)
+    details.publish_google_tabs(m.sheets_service(), sid, load_workbook(xlsx))
     m.ensure_hidden_sheet(sid,m.META_TITLE)
     m.write_values(sid,f"'{m.META_TITLE}'!A1",[['KEY','VALUE'],['DEPOT',display],
         ['LAST_SELECTED_MONTH',selected],['LAYOUT_VERSION',LAYOUT_VERSION],['HISTORY_SCHEMA',history.SCHEMA]])
