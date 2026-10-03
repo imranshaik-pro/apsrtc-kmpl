@@ -313,9 +313,9 @@ For changes after this baseline, preserve the existing ledger and append newly r
 | 296 | 2026-10-02T19:34:19Z | [b342269](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/b342269b487e0c363b14238e349ee6c7194894a0) | Consolidate project rules, sources, flows and complete history; documentation-only PR #8 head |
 | 297 | 2026-10-02T19:41:01Z | [cf07f0f](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/cf07f0ff163b1af7d88e18cf671e7f61ec5bddcc) | Merge owner-approved documentation PR #8; production base for the detail-tabs review |
 
-## Unmerged detail-tabs review
+## Detail-tabs development and approved release
 
-These commits are on [PR #9](https://github.com/imranshaik-pro/apsrtc-kmpl/pull/9), not production releases.
+These commits were developed and verified on [PR #9](https://github.com/imranshaik-pro/apsrtc-kmpl/pull/9). The owner approved production on 3 October 2026 with count-only FY Total rows; PR merge metadata records the release commit.
 
 | Commit | Change |
 | --- | --- |
@@ -329,5 +329,8 @@ These commits are on [PR #9](https://github.com/imranshaik-pro/apsrtc-kmpl/pull/
 | [8e5e821](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/8e5e8216f337609f53b4530412fa893328c22b2a) | Apply owner tyre model, add Statement C, correct fiscal-year formulas, and preserve source discrepancies |
 
 | [cb0ac0d](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/cb0ac0d9f77a238fc60220ce8b2d188f3bc722a9) | Align calculated tyre totals and clarify Monthly source heading |
+
+| [838b71d](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/838b71dffbef7840e28ac57277c5fc61e3961749) | Record owner-template source/formula/workbook acceptance and documentation |
+| [15c399c](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/15c399c5dc2ee2257ccda0fe6ae44270f44c1b72) | Apply final owner rule: FY count SUMs only, blank percentage totals; validate before approved release |
 
 The review's final documentation update records source/workbook/Sheets acceptance and the owner approval boundary. See [detail-tabs evidence](monthly-annual-detail-tabs.md).

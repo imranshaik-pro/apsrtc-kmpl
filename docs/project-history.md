@@ -30,6 +30,8 @@ Reviewed on 3 October 2026. The complete [change ledger](change-ledger.md) recor
 
 | 3 October owner-template extension | Add Statement C, project the supplied B/C/F layout, correct labels and FY formulas, keep receipt inputs hidden and source discrepancies explicit | PR #9 review branch; 45 focused checks and both depot live/native/formula validations passed on 8e5e821 and final cb0ac0d; still unmerged |
 
+| 3 October final owner approval | FY Total counts cover April–March or April through the selected current-FY month; no totals for percentage columns | Production approved for PR #9 after final verification; release commit is recorded in PR merge metadata |
+
 Commit dates above use recorded UTC where specified. Operational date decisions use Asia/Kolkata.
 
 ## Challenges and how they were handled
