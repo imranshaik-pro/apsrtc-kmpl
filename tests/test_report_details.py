@@ -236,6 +236,16 @@ class HistoryAndViewTests(unittest.TestCase):
         fetch.assert_not_called()
         self.assertEqual(d.annual_periods("2025-03"), [])
 
+    def test_monthly_selection_is_not_restricted_by_annual_history_floor(self):
+        cache, fetch = d.new_cache("PRODDUTUR"), Mock(side_effect=fixture)
+        d.update(cache, ["2024-06"], fetch, refresh_monthly=True)
+        self.assertEqual(fetch.call_count, 3)
+        self.assertEqual({c.args for c in fetch.call_args_list}, {("B", "2024-06"), ("F", "2024-06"), ("UD", "2024-06")})
+        blocks = d.sections(cache, "2024-06", False)
+        self.assertEqual(len(blocks[d.ENGINE_TITLE]), 1)
+        self.assertIn("June 2024", blocks[d.ENGINE_TITLE][0]["title"])
+        self.assertFalse(blocks[d.ENGINE_TITLE][0]["missing"])
+
     def test_july_to_may_removes_future_rows_columns_merges_images_and_formats(self):
         cache = d.new_cache("PRODDUTUR")
         d.update(cache, ["2026-05", "2026-07"], fixture, selected_um="2026-07")

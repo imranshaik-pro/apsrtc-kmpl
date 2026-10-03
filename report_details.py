@@ -273,7 +273,7 @@ def update(cache, wanted, fetch, selected_um=None, checkpoint=lambda: None, refr
     """History is immutable after a verified closed-month fetch; UM is a dated refresh."""
     calls = []
     for period in wanted:
-        if period < FIRST_PERIOD:
+        if period < FIRST_PERIOD and not refresh_monthly:
             continue
         month_end(period)
         groups = cache["months"].setdefault(period, {})
@@ -358,7 +358,9 @@ def _project_tyre(cache, periods, statement):
 
 
 def sections(cache, selected, annual):
-    periods = annual_periods(selected) if annual else ([selected] if selected >= FIRST_PERIOD else [])
+    # The FY2025-26 floor applies to annual history. A standalone Monthly
+    # selection may request any supported source month without backfilling FYs.
+    periods = annual_periods(selected) if annual else [selected]
     tyre = [_project_tyre(cache, periods, group) for group in ("B", "F")]
     engine = []
     if annual and selected >= FIRST_PERIOD:

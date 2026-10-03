@@ -9,6 +9,8 @@ Implementation review started on 3 October 2026 from production [cf07f0f](https:
 | Monthly | Selected-month B and F source rows, exact mapped depot and total tyre size | Selected month's source matrix with UD and the month's last date |
 | Annual | Available B/F monthly rows from April 2025 through the selected month | FY2025-26 monthly UD snapshots, current FY monthly UD snapshots through selection, and a selected-month UM matrix |
 
+April 2025 is the Annual detail-history starting point. A standalone Monthly request fetches its selected month, including an earlier month if the source supports it; it does not backfill older FYs. Unsupported source months are reported unavailable.
+
 For a completed month, UD covers its first through last day. UM covers 1 April of the selected FY through the selected month's last day. The authenticated engine report heading verifies both endpoints. **UM is fiscal cumulative; UD is monthly actual.** The source's product and Grand Total KMPL values are retained directly, not averaged from engine rows.
 
 An open month uses yesterday in Asia/Kolkata and is marked provisional. No completed day on the first of the month, or a future month, cannot produce a verified month-end detail snapshot. Provisional snapshots remain refreshable until a completed-month source is captured. The existing Hub/Monthly future-month guards remain; this addition does not change the legacy annual CLI guard boundary.
