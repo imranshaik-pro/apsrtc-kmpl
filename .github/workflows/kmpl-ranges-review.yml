@@ -1,0 +1,56 @@
+name: KMPL range sheets review
+
+on:
+  push:
+    branches: [feat/kmpl-range-sheets-20261003]
+    paths:
+      - kmpl_ranges.py
+      - verify_kmpl_ranges.py
+      - monthly_vehicle_report.py
+      - annual_kpi_runner_v11.py
+      - tests/test_kmpl_ranges.py
+      - tests/fixtures/kmpl-range-*.html
+      - .github/workflows/kmpl-ranges-review.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  range-sheets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install project dependencies
+        run: pip install -r requirements.txt
+      - name: Validate range source, history and preserved report contracts
+        env:
+          APSRTC_USERNAME: offline
+          APSRTC_PASSWORD: offline
+        run: |
+          python -m py_compile kmpl_ranges.py verify_kmpl_ranges.py monthly_vehicle_report.py annual_kpi_runner_v11.py
+          python -m unittest discover -s tests -p 'test_kmpl_ranges.py' -v
+          python -m unittest discover -s tests -p 'test_report_details.py' -v
+          python -m unittest discover -s tests -p 'test_annual_history.py' -v
+          python -m unittest discover -s tests -p 'test_detail_polish.py' -v
+          python -m unittest discover -s tests -p 'test_report_branding.py' -v
+          python verify_kmpl_ranges.py --offline --output reports/range-review/owner-fixtures
+      - name: Read both range sources and build isolated previews
+        env:
+          APSRTC_USERNAME: ${{ secrets.APSRTC_USERNAME }}
+          APSRTC_PASSWORD: ${{ secrets.APSRTC_PASSWORD }}
+        run: |
+          python verify_kmpl_ranges.py --probe-selection
+          python verify_kmpl_ranges.py --output reports/range-review/live
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kmpl-range-sheets-review
+          path: reports/range-review
+          retention-days: 7
+          if-no-files-found: error

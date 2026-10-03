@@ -80,6 +80,8 @@ For supported history, a failed source request leaves valid saved fields intact.
 
 ## Monthly / Vehicle Performance / Vehicle 360 inputs
 
+The new [KMPL range sheets](kmpl-range-sheets.md) read **GET** `/med/vehlog_kmpldepot.php` and `/med/drvlog_kmpldepot.php` with blank `action`, `yymm=YYYYMM`, and `rreg=mapped_region`. Both reports supply regional depot counts; their selected-depot range snapshots are stored separately in `_KMPL_RANGE_HISTORY`. These methods/fields differ from the POST raw-vehicle and trend adapters below. Source bucket counts and monthly populations are not reconstructed from daily logs or added into a distinct FY population.
+
 | Data | Contract | Consumer and coverage |
 | --- | --- | --- |
 | Daily monthly grid | POST /med/vehkmpl.php for each completed day | [monthly_vehicle_report.py](../monthly_vehicle_report.py); consolidates duplicate daily records, latest valid source Upto |
