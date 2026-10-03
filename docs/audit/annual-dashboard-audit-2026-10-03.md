@@ -57,4 +57,37 @@ python annual_value_audit.py SOURCE.xlsx --depot PRODDUTUR --month 2026-05 --cal
 
 Zero failed checks means the implemented preservation/formula checks passed; it does not mean unresolved source diagnostics or missing provenance are cleared. Review those and approve the visual preview before any production merge. Production history has now been read and reconciled. Next data action: capture the exact original May product/engine endpoint responses; compare endpoint scope and headers with the confirmed production cache without relabelling engines. Monthly visual adaptation follows only after this annual design is approved.
 
-Rollback is the single feature commit. Source contracts, caches, parser versions, Hub routing and live deployment remain unchanged by this branch.
+Rollback the PR changes as one unit. Source contracts, caches, parser versions and Hub routing remain unchanged by this branch.
+
+## Owner-supplied source verification and approval
+
+After the initial audit, the owner supplied original Proddutur May 2026 Product and Engine response HTML. Extracting the actual `v4.strict_dimension_rows` function and the application's normalization/number functions from their source, then executing them against the supplied tables, reproduced all five Product and six Engine monthly CY/Upto CY pairs. All six Engine pairs also match the reference workbook. Blank LY cells in TATA - Others retain their positions and do not shift CY selection. No parser patch or numerical substitution is justified for these responses.
+
+| Product | May CY | Upto CY |
+| --- | ---: | ---: |
+| EXPRESS | 4.87 | 5.07 |
+| INDRA | 3.72 | 4.02 |
+| PALLEVELUGU | 5.10 | 5.37 |
+| SUP-LUX | 4.91 | 5.09 |
+| ULTRA-DELUX | 4.99 | 5.18 |
+
+| Engine | May CY | Upto CY |
+| --- | ---: | ---: |
+| AL BS-III Indra | 3.72 | 4.02 |
+| AL BSVI | 4.89 | 5.07 |
+| Eicher BS-III | 5.04 | 5.37 |
+| TATA - Others | 4.91 | 5.52 |
+| TATA BS-III | 5.09 | 5.14 |
+| TATA BS-IV | 4.94 | 5.10 |
+
+The 14 Product/Engine diagnostics now have confirmed source-value provenance for the supplied May responses. Nine monthly-range inconsistencies and five cross-endpoint differences remain source-definition questions, not proven extraction failures. This evidence does not certify denominator weights, all historical periods or equivalence between original single-dimension and combined UM reports. The ten Statement C source-arithmetic discrepancies remain retained exceptions. Audit screening counts stay 24 review and seven unverified; evidence does not erase the observations. The seven deferred legacy engine labels are absent under their exact names in this May response, so no crosswalk or alias is inferred.
+
+On 3 October 2026 at 21:40 IST, the owner approved the annual visual change for production and requested continuing improvement toward 10/10. The production merge scope remains annual dashboard visuals and the offline audit; it does not include a new populated-Upto refresh policy, live quality-tab integration, report dispatch or Apps Script deployment.
+
+### Follow-up visual acceptance plan
+
+1. Apply the approved visual language to monthly and B/C/F/Engine detail sheets: readable multirow headers, consistent widths, alignment and repeated print headings.
+2. Verify dynamic Product/Engine categories, long names, sparse values and changing row counts across both depots and May → July → May. Retain history while removing stale visible cells and excess print pages.
+3. Add concise endpoint/period source notes and clearly distinguish source-confirmed exceptions from failed extraction checks.
+4. Compare Excel, native Sheets and PDF outputs for clipping, logo proportions, chart labels and print pagination; obtain owner acceptance of representative outputs.
+5. Validate values before and after each visual change. No averaging ratios, percentage FY totals or fabricated missing values. A 10/10 goal is a review target, not a claimed current result.
