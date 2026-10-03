@@ -28,6 +28,8 @@ Reviewed on 3 October 2026. The complete [change ledger](change-ledger.md) recor
 | 3 October IST documentation release | Consolidated current rules, source contracts, diagrams, history/ledger and action register; corrected stale status/guide claims | PR #8 merged at cf07f0f on 2 October 19:41 UTC; no runtime/deployment changes |
 | 3 October detail-tabs review | B/F total-size tyre rows and combined engine/product monthly UD plus selected UM; separate historical cache and professional new views | [PR #9](https://github.com/imranshaik-pro/apsrtc-kmpl/pull/9); both depots May → July → May passed with 43 → 7 → 1 calls, 39 focused checks and full workbook previews; not merged |
 
+| 3 October owner-template extension | Add Statement C, project the supplied B/C/F layout, correct labels and FY formulas, keep receipt inputs hidden and source discrepancies explicit | PR #9 review branch; 45 focused checks and both depot live/native/formula validations passed on 8e5e821 and final cb0ac0d; still unmerged |
+
 Commit dates above use recorded UTC where specified. Operational date decisions use Asia/Kolkata.
 
 ## Challenges and how they were handled

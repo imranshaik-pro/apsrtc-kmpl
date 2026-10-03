@@ -113,7 +113,7 @@ Source errors during missing-value repair preserve supported saved fields. Persi
 
 Selecting May after July changes the view and May Upto endpoint; it does not delete June/July cached data or recompute historical FYs. The cache checksum covers saved chunks; it cannot certify that the original source classified a legacy engine correctly.
 
-The [Monthly/Annual detail extension](monthly-annual-detail-tabs.md) follows a separate path: B/F total-size tyre rows and the combined engine/product UD/UM matrix → `_REPORT_DETAILS_HISTORY` → two generated views. This cache does not rewrite the legacy `_ANNUAL_HISTORY` engine labels. Its own missing/provisional month snapshots and selected UM refresh have independent fetch rules.
+The [Monthly/Annual detail extension](monthly-annual-detail-tabs.md) follows a separate path: B/C/F total-size tyre rows and the combined engine/product UD/UM matrix → `_REPORT_DETAILS_HISTORY` → two generated views. This cache does not rewrite the legacy `_ANNUAL_HISTORY` engine labels. Its own missing/provisional month snapshots and selected UM refresh have independent fetch rules. `report_tyre_template.py` projects B mechanical/premature tables, C's four stages and F's Stone/Worn Smooth percentages. Derived `_TYRE_INPUTS` holds the visible periods' receipt and numerator/denominator counts; native formulas use those counts for separate fiscal-year totals. It is rebuilt with the view, while `_REPORT_DETAILS_HISTORY` retains the closed snapshots. An existing B/F cache backfills only missing C snapshots.
 
 ## Monthly and Vehicle 360 lifecycle
 

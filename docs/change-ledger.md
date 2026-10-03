@@ -325,4 +325,9 @@ These commits are on [PR #9](https://github.com/imranshaik-pro/apsrtc-kmpl/pull/
 | [bb396c3](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/bb396c37c77f18220c694bd7f781835ab13bec0d) | Preserve Monthly's fresh-session lifecycle in previews and distinguish provisional tyre month data from daily cutoffs |
 | [6afcdc3](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/6afcdc368d05dfddcaf51a9836451cf4a3f9f494) | Keep the FY25-26 history floor specific to Annual; validate standalone Monthly source selection |
 
+| [b14ded9](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/b14ded93cf34154ceaae3838c5626389d6efc87c) | Record initial B/F source/workbook/native Sheets acceptance |
+| [8e5e821](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/8e5e8216f337609f53b4530412fa893328c22b2a) | Apply owner tyre model, add Statement C, correct fiscal-year formulas, and preserve source discrepancies |
+
+| [cb0ac0d](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/cb0ac0d9f77a238fc60220ce8b2d188f3bc722a9) | Align calculated tyre totals and clarify Monthly source heading |
+
 The review's final documentation update records source/workbook/Sheets acceptance and the owner approval boundary. See [detail-tabs evidence](monthly-annual-detail-tabs.md).

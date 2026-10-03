@@ -95,3 +95,20 @@ The [run artifact](https://github.com/imranshaik-pro/apsrtc-kmpl/actions/runs/37
 Two repeated previews encountered `RemoteDisconnected` in the existing vehicle fetch while the audit harness reused its source-audit HTTP session. The harness was corrected to preserve Monthly's normal fresh login. The following two complete code validations passed. The server-side cause of the closed connection is not established; no production retry/parser change was made for it.
 
 A repository-wide compile probe found a SyntaxError in the unchanged legacy `generate_report.py` at line 101. Compiling the original production bytes reproduced it. That inactive alternative entry point is outside this feature; the active Monthly/Annual runners and affected dependencies compile.
+
+## Owner B/C/F template acceptance — 3 October 2026
+
+The owner supplied `template.ods`, Statement C screenshots and complete source HTML. The correction follows its visible mechanical/premature/scrap layout, omits depot/region/zone and supporting raw receipt fields from the views, and retains F's Stone% and Worn Smooth% beside the mechanical defect percentage. MA/MM labels, the truncated C Total heading and the sample's incorrect mechanical total formula are corrected.
+
+[Code review run 37098714266](https://github.com/imranshaik-pro/apsrtc-kmpl/actions/runs/37098714266) passed on [8e5e821](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/8e5e8216f337609f53b4530412fa893328c22b2a): relevant compilation, **45 focused checks** (24 detail/history, 6 owner-template/C, 12 original annual history, 3 branding), authenticated source reads, isolated native Sheets formula/value/merge/grid/cache checks and four complete May workbook builds. The recorded live source errors were empty; the offline timeout message is an intentional failure-preservation test.
+
+| Depot | May → July → May source calls | Tyre view rows | Engine view rows | Selected UD / UM totals |
+| --- | --- | --- | --- | --- |
+| Proddutur | 57 → 9 → 1 | 101 → 107 → 101 | 189 → 216 → 189 | May 4.94 / 4.98; July 4.89 / 4.94; May 4.94 / 4.98 |
+| Rajampet | 57 → 9 → 1 | 98 → 106 → 98 | 182 → 206 → 182 | May 5.20 / 5.23; July 5.20 / 5.22; May 5.20 / 5.23 |
+
+FY25–26 B/C/F/UD snapshot checksums were unchanged within both sequences. All six Annual fiscal-year total blocks were checked against independent source sums in native Sheets. A selected-May B receipt count was temporarily doubled in each isolated review sheet; its weighted fiscal-year percentage recalculated correctly, then returned to its original value after restoration. No production workbook was used as a write destination.
+
+The four full workbooks' original Monthly KMPL/Vehicle Performance/Vehicle 360 or Annual Dashboard/Detailed Data cell values and merges match the prior accepted core previews. The two hidden detail tabs retain checksummed history and matching formula inputs. Recalculated preview scans found no formula errors. Proddutur May RC1's source total **13** remains **13**, with its S1–S9 sum **10** visibly flagged. XLSX logos remain in A3:C3; floating native logos remain outside this change.
+
+A final presentation-only correction right-aligns calculated total cells and replaces the Monthly FY-total subtitle with a monthly-source subtitle. The final [run 37099010277](https://github.com/imranshaik-pro/apsrtc-kmpl/actions/runs/37099010277) passed on [cb0ac0d](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/cb0ac0d9f77a238fc60220ce8b2d188f3bc722a9), repeating all 45 checks, live depot sequences, native formula/reactivity checks and four full workbook builds. Its final artifact is `11265711889`, generated directly by the reviewed code. Original core values and merges were checked again against the earlier accepted previews; the revised view renders and recalculated formula scans passed. **PR #9 remains unmerged; revised previews need owner review before production approval.**

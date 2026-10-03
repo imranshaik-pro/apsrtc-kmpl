@@ -101,7 +101,9 @@ Current master history.good rejects None, blank and MANUAL strings, but consider
 
 ## Visuals, decisions and delivery
 
-Every visible report identifies depot and period. Annual KPI Dashboard and Detailed Data retain the original KPI model. The [detail-tabs extension](monthly-annual-detail-tabs.md) adds Tyre Statements and Engine & Product KMPL, making four visible tabs. _ANNUAL_HISTORY, _REPORT_DETAILS_HISTORY, _META and preserved legacy tabs remain hidden rather than deleted. Q is a hidden original KPI spacer; R is original detail Upto.
+Every visible report identifies depot and period. Annual KPI Dashboard and Detailed Data retain the original KPI model. The [detail-tabs extension](monthly-annual-detail-tabs.md) adds Tyre Statements and Engine & Product KMPL, making four visible tabs. _ANNUAL_HISTORY, _REPORT_DETAILS_HISTORY, _TYRE_INPUTS, _META and preserved legacy tabs remain hidden rather than deleted. Q is a hidden original KPI spacer; R is original detail Upto.
+
+The owner's Monthly/Annual tyre model shows B mechanical defects with F Stone% and Worn Smooth%, B premature failures separately, and C's four S1–S9/Total stage groups. Monthly displays its selected month; Annual separates FY25–26 and FY26–27 through the selection, with weighted rates calculated from each source's matching counts. B and F receipts are different populations. Preserve reported stage totals, visibly flag a code-sum discrepancy, and never fabricate a missing source count. May → July → May removes June/July from views and derived input ranges while preserving their cached snapshots.
 
 Fuel and TOTAL LUB KMPL: higher is better. BD and MED cancellation rates: lower is better. Annual red/green grading for these KPIs requires a numeric source target; missing values receive unavailable treatment. Monthly cells use existing KMPL slab colours. Do not invent targets or infer the depot fuel-weighted average's cause from vehicle count shares.
 

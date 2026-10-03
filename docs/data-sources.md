@@ -62,7 +62,7 @@ In the table, source base is http://103.44.14.20. Year/month formats are adapter
 
 Monthly/Upto fields are selected by the final imported adapter. The active Product/Engine parser is v4.strict_dimension_rows, installed on the shared v3 module, with body month index 3 and Upto index 6. v3 also contains newer header helpers; their existence alone does not mean the v11 import chain uses them. Both depots share the active path. See [annual architecture](architecture-and-flows.md).
 
-The new [Monthly/Annual detail tabs](monthly-annual-detail-tabs.md) use separate B/F statement endpoints and `mednew/eng_prod_um.php`. That combined matrix's verified UD month interval and UM fiscal interval are independent of the original single-dimension KPI parser described above.
+The new [Monthly/Annual detail tabs](monthly-annual-detail-tabs.md) use separate B/C/F statement endpoints and `mednew/eng_prod_um.php`. C uses `/tyres/c_statement_final.php` with the same depot/month/all-size query as B/F; its four repeated S1–S9 groups are qualified by tyre stage. Only owner-template fields are displayed, while raw verified snapshots retain all source fields. That combined matrix's verified UD month interval and UM fiscal interval are independent of the original single-dimension KPI parser described above.
 
 The v8 lubricant contract example is yymm=202605May_2026. MED token uses its separate hyphen form; do not interchange these fields. Annual targets use April of the FY and explicit target columns in the corresponding depot source, including tyre targets only where an exact depot target exists.
 
