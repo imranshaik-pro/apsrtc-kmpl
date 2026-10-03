@@ -23,9 +23,10 @@ For questions about this application or Google account authorization, contact th
 
 ## Project records
 
+The [3 October Hub reconciliation](hub-reconciliation-2026-10-03.md) records PR #4 against current production, the fresh form-to-link-to-Telegram check, and evidence for the scheduled delivery delay.
+
 The [project guide](project-guide.md) links the current business rules, source contracts, architecture and report sequences, full commit ledger, challenge history, operations and action plan. Reviewed on 3 October 2026 against production 54dcf6b; the ledger starts at the first 21 August commit. Runtime releases and separately deployed Apps Script changes are identified independently.
 
 ## Privacy
 
 See the [Privacy Policy](privacy.md).
-

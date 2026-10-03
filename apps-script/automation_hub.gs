@@ -120,7 +120,10 @@ function hubStatus_(sheet,row,status){
   const h=sheet.getRange(1,1,1,sheet.getLastColumn()).getDisplayValues()[0];let c=h.indexOf('Automation Status')+1;
   if(!c){c=sheet.getLastColumn()+1;sheet.getRange(1,c).setValue('Automation Status').setFontWeight('bold').setBackground('#0B3D78').setFontColor('#FFFFFF');}
   sheet.getRange(row,c).setValue(status);
-  hubEnsureColumn_(sheet,'Drive Report Link');
+  const linkColumn=hubEnsureColumn_(sheet,'Drive Report Link');
+  // Forms may carry a preceding HYPERLINK formula into the newly appended row.
+  // A submitted request has no report link until its authenticated callback returns.
+  if(String(status).startsWith('SUBMITTED |')) sheet.getRange(row,linkColumn).clearContent();
 }
 function hubEnsureColumn_(sheet,header){
   const h=sheet.getRange(1,1,1,sheet.getLastColumn()).getDisplayValues()[0];let c=h.indexOf(header)+1;
@@ -136,27 +139,7 @@ function hubSetDriveLink_(sheet,row,url){
   sheet.getRange(row,c).setFormula('=HYPERLINK("'+String(url).replace(/"/g,'""')+'","Open Report")');
 }
 
-/* GitHub Actions callback endpoint.
- * Deploy this Apps Script project as a Web App (execute as owner; access restricted
- * by the shared HUB_CALLBACK_TOKEN). Workflows POST the real report URL here. */
-function doPost(e){
-  try{
-    const body=JSON.parse((e&&e.postData&&e.postData.contents)||'{}');
-    const expected=PropertiesService.getScriptProperties().getProperty('HUB_CALLBACK_TOKEN');
-    if(!expected||String(body.token||'')!==expected) throw new Error('Unauthorized callback.');
-    const ssid=PropertiesService.getScriptProperties().getProperty('AUTOMATION_HUB_V2_RESPONSE_SHEET_ID');
-    if(!ssid) throw new Error('AUTOMATION_HUB_V2_RESPONSE_SHEET_ID is missing.');
-    const ss=SpreadsheetApp.openById(ssid);
-    const sheet=ss.getSheets()[0];
-    const row=Number(body.row||0);
-    if(row<2) throw new Error('Invalid Hub row.');
-    hubSetDriveLink_(sheet,row,String(body.url||''));
-    if(body.status) hubStatus_(sheet,row,String(body.status));
-    return ContentService.createTextOutput(JSON.stringify({ok:true,row:row})).setMimeType(ContentService.MimeType.JSON);
-  }catch(err){
-    return ContentService.createTextOutput(JSON.stringify({ok:false,error:err.message})).setMimeType(ContentService.MimeType.JSON);
-  }
-}
+/* Report callbacks are routed from vehicle_event_trigger.gs to report_branding.gs. */
 
 /* Professional response-sheet presentation. Keeps raw response columns intact. */
 function formatAutomationHubSheet(){

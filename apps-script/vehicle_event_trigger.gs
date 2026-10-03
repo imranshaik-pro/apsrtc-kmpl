@@ -512,6 +512,8 @@ function doGet(e) {
  * The permanent Google Sheet remains the source of truth.
  */
 function doPost(e) {
+  // Hub report callbacks use their own token; preserve keyed vehicle-event requests.
+  if (!(e && e.parameter && e.parameter.key)) return hubReportCallback_(e);
   try {
     const expectedKey = PropertiesService.getScriptProperties().getProperty('VEHICLE_EVENTS_API_KEY');
     const suppliedKey = e && e.parameter ? String(e.parameter.key || '').trim() : '';

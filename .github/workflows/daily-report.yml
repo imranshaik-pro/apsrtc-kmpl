@@ -1,4 +1,5 @@
 name: APSRTC Daily Report
+run-name: Daily ${{ github.event_name }} • ${{ github.event.schedule || inputs.report_date || 'current-date' }}
 
 on:
   workflow_dispatch:
@@ -44,6 +45,26 @@ jobs:
     timeout-minutes: 15
 
     steps:
+      - name: Record trigger timing
+        env:
+          TRIGGER_EVENT: ${{ github.event_name }}
+          TRIGGER_CRON: ${{ github.event.schedule }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from zoneinfo import ZoneInfo
+          now = datetime.now(timezone.utc)
+          print('DAILY_TRIGGER_TIMING: ' + json.dumps({
+              'event': os.environ['TRIGGER_EVENT'],
+              'cron': os.environ.get('TRIGGER_CRON', ''),
+              'started_utc': now.isoformat(),
+              'started_ist': now.astimezone(ZoneInfo('Asia/Kolkata')).isoformat(),
+              'run_id': os.environ['GITHUB_RUN_ID'],
+              'attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+          }))
+          PY
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
