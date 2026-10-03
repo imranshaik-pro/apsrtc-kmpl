@@ -54,6 +54,7 @@ jobs:
           python -m unittest discover -s tests -p 'test_tyre_template.py' -v
           python -m unittest discover -s tests -p 'test_annual_dashboard_v2.py' -v
           python -m unittest discover -s tests -p 'test_report_branding.py' -v
+          python -m unittest discover -s tests -p 'test_detail_polish.py' -v
 
       - name: Show annual KPI request
         run: |

@@ -41,11 +41,11 @@ def write_inputs(workbook, cache, periods):
     ws.sheet_state = "hidden"
 
 
-def scrap_notes(cache, periods):
+def scrap_notes(cache, periods, stages=None):
     notes = []
     for period in periods:
         c = metrics(cache, period, "C")
-        for stage in d.SCRAP_GROUPS:
+        for stage in (stages or d.SCRAP_GROUPS):
             codes = [value(c, f"{stage} — S{i}") for i in range(1, 10)]
             reported = value(c, f"{stage} — Total")
             if isinstance(reported, (int, float)) and all(isinstance(x, (int, float)) for x in codes):
@@ -125,3 +125,4 @@ def finish_totals(ws, block, data_start):
         ws.cell(total, col, f'=IF(COUNT({target})={count},SUM({target}),"")')
         ws.cell(total, col).number_format = "#,##0"
         ws.cell(total, col).alignment = Alignment(horizontal="right", vertical="center")
+

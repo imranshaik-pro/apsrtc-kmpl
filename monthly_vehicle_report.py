@@ -126,10 +126,18 @@ def apply_formatting(workbook, display_name, report_period):
     ws["A2"] = f"MONTHLY VEHICLE KMPL PERFORMANCE — {report_period}"
     ws["A2"].font = Font(bold=True, color="1F4E78", size=12)
     ws["A2"].alignment = Alignment(horizontal="center", vertical="center")
-    ws.merge_cells(f"A3:{last_letter}3")
-    ws["A3"] = "Daily HSD KMPL | Up-To-Day performance | Schedule-III 🔧 | Schedule-IV ⚙"
-    ws["A3"].font = Font(italic=True, color="595959", size=9)
-    ws["A3"].alignment = Alignment(horizontal="center", vertical="center")
+    ws.merge_cells("A3:C3")
+    ws.merge_cells(f"D3:{last_letter}3")
+    ws["D3"] = "Daily HSD KMPL | Up-To-Day performance | Schedule-III 🔧 | Schedule-IV ⚙"
+    ws["D3"].font = Font(italic=True, color="595959", size=9)
+    ws["D3"].alignment = Alignment(horizontal="center", vertical="center")
+    ws.merge_cells(f"A4:{last_letter}4")
+    ws["A4"] = "KMPL bands: ≤5.00 | 5.01–5.10 | 5.11–5.20 | 5.21–5.30 | >5.30 · Blank = no source value"
+    ws["A4"].font = Font(name="Arial", size=9, italic=True, color="63758A")
+    ws["A4"].alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[2].height = 24
+    ws.row_dimensions[4].height = 20
+    ws.sheet_properties.tabColor = "1F4E78"
     ws.freeze_panes = "E6"
     ws.auto_filter.ref = f"A5:{last_letter}{ws.max_row}"
     ws.sheet_view.showGridLines = False
@@ -155,7 +163,7 @@ def apply_formatting(workbook, display_name, report_period):
                 continue
             try: numeric_value = float(str(cell.value).replace(",", "").strip())
             except (TypeError, ValueError): continue
-            cell.value = round(numeric_value, 2); cell.number_format = "0.00"
+            cell.number_format = "0.00"  # Display precision only; preserve source values.
             fill, font = get_style(numeric_value)
             if fill: cell.fill = fill
             if font: cell.font = font
@@ -193,6 +201,12 @@ def apply_formatting(workbook, display_name, report_period):
     ws.page_setup.fitToWidth = 1
     ws.page_setup.fitToHeight = 0
     ws.sheet_properties.pageSetUpPr.fitToPage = True
+    from copy import copy
+    for row in ws:
+        for cell in row:
+            font = copy(cell.font)
+            font.name = "Arial"
+            cell.font = font
     ws.oddHeader.center.text = f"APSRTC — {display_name} DEPOT — {report_period}"
     ws.oddFooter.right.text = "Page &P of &N"
 
@@ -359,3 +373,4 @@ def main():
 
 
 if __name__ == "__main__": sys.exit(main())
+
