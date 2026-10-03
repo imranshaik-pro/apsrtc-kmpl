@@ -1,150 +1,124 @@
-# APSRTC reporting: business rules, decisions and lessons
+# Business rules, decisions and lessons
 
-Last reviewed: 1 October 2026. Review branch: `fix/hub-callback-over-grid-logo`.
+Reviewed on 3 October 2026 against production [54dcf6b](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/54dcf6bd760bbf60d728ce1aee8677b54021b177). This is the current rule register. Earlier rules and the reasons they changed are recorded in [project history](project-history.md).
 
-## Scope and evidence
+## Purpose, scope and identity
 
-This is the consolidated record of the rules recoverable from the current repository and the owner's recorded decisions through this review. It is not a claim that every historical conversation, deployment or report has been independently retested. Each status below distinguishes implemented behavior, observed validation, requirements and open work. Existing operating guides remain authoritative for their specific modules.
-
-The original README mainly documents daily KMPL. Its blanket phase-complete labels must not be interpreted as certification that every later Hub integration, annual source row or bot feature is complete.
-
-## Purpose and operating model
-
-Prepare accurate depot reports that help identify poor performance and support operational decisions, while preserving source values and historical evidence. GitHub contains runners and workflows; APSRTC supplies operational source reports; Google Drive/Sheets stores outputs and annual history; Forms/Telegram are input channels, not independent calculation engines.
-
-The owner selected one Automation Hub Form for depot and report selection: daily, monthly, annual and supported event actions. Preserve the separate scheduled Proddatur daily report around the 05:00 IST window. Do not reintroduce a Proddatur-only route into shared manual reporting.
-
-## Core calculation rules
-
-| Rule | Required behavior / implementation reference |
-| --- | --- |
-| KMPL | Total kilometres divided by HSD. Sum kilometres and fuel first; never average individual vehicle KMPL. `src/calculations/kmpl.py`, `pipeline.py`. |
-| Duplicate vehicle rows | Consolidate by vehicle number before calculating daily vehicle KMPL. `src/calculations/consolidation.py`. |
-| For-Day versus Upto | Independent measures and source periods. Neither is a substitute for the other. |
-| Rounding | Production daily presentation uses Decimal and ROUND_HALF_UP, as recorded in README and `src/calculations/rounding.py`. Do not assume every workbook adapter has been audited against this requirement. |
-| Slabs | <=5.00; >5.00–5.10; >5.10–5.20; >5.20–5.30; >5.30. Exactly 5.30 belongs to slab 4. |
-| Regional categories | Preserve TOT, NAC and AC and the target/day/Upto/previous-month/previous-year-month comparison structure. |
-| Product versus engine | Keep Product KMPL and Engine KMPL separate; preserve source identities. |
-| Missing data | Unavailable is not zero. Preserve blanks/manual markers; do not infer values from another engine, depot or district. |
-
-## Dates, financial years and depot identity
-
-- Financial years run April–March. April 2026 through March 2027 is FY 2026-27.
-- Annual v11 derives the three-FY reporting window from selected month; the workflow's FY input is not justification for overwriting retained history.
-- Daily scheduled runs use yesterday in Asia/Kolkata. Manual today resolves to yesterday; future dates are rejected (`run_automated_daily.py`).
-- User/workflow dates use YYYY-MM-DD; annual/monthly selection uses YYYY-MM. Source adapters translate to their required source date formats.
-- Resolve selected depot through mappings rather than treating display names, vehicle codes and tyre booklet codes as interchangeable. PRODDUTUR/PDTR and RAJAMPET/RJPT are examples.
-- Owner business context: Rajampet moved from Annamayya to YSR Kadapa effective January 2026. Tyre FY 2025-26 comparisons must respect the relevant source-period mapping. This document records the requirement; it does not certify every historical mapping.
-- Selecting All Zones/All Regions was proposed for depot discovery. It is not evidence that every adapter supports a universal query.
-
-## Annual history and selected-month behavior
-
-Persistent snapshots live in the hidden `_ANNUAL_HISTORY` tab. Presentation is a view, not the history store (`annual_history.py`, `annual_kpi_runner_v11.py`).
-
-| Situation | Business rule |
-| --- | --- |
-| First depot run | Fetch missing source groups for historical FYs and current FY months through the selection. Retain unavailable markers where source evidence is absent. |
-| Later month | Reuse valid saved values; fetch missing months/groups and needed endpoint Upto. Do not refetch or overwrite all historical FY numbers merely to redraw the report. |
-| Earlier month after later month | Render only months through the selected endpoint; select that month's stored/source Upto. Later cached months remain stored but must not appear in this view. |
-| Closed FY | Show March/full-year Upto, separately labelled from current FY selected-month YTD. |
-| Failed fetch | Preserve saved valid numbers. Never replace them with blanks, failures or manual markers. |
-| Invalid/wrong-depot cache | Fail closed on schema, depot identity, chunk count or checksum failure; do not silently rebuild over saved history. |
-| Legacy workbook | Migrate valid monthly cells and targets; assign current FY Upto only when its date is proven by heading/metadata. Save migration before changing visible tabs. |
-| FY rollover | Preserve snapshots and display the newly derived FY window. |
-| Dynamic engine rows | Keep exact identities. A versioned legacy row-set repair can refresh source evidence without merging unrelated engine names or replacing good saved values. |
-
-The user's phrase “replace Upto for the selected month” means replace the displayed endpoint when switching months. Current cache logic fills missing fields and preserves existing good values; it is not a general forced-refresh mechanism for a source that later revises an already valid number. That distinction must remain explicit.
-
-Owner regression sequences: Proddatur April 2026 → July 2026 → May 2026; Rajampet May 2026 → July 2026 → May 2026. Prior checks passed for available values; they do not resolve absent Proddatur historical engine Upto. Automated history tests also cover later-to-earlier views, failed fetch preservation, migration, cache integrity and rollover (`tests/test_annual_history.py`).
-
-## Annual source groups and tyres
-
-Annual groups include HSD incl./excl. AC, Product, Engine, Total Lub KMPL, breakdown rate, MED cancellation, spring consumption and tyre metrics.
-
-Tyre source availability is evidence-dependent:
-- The original concern was missing FY 2024-25 tyre web history. The v6 adapter can use exact depot rows in official TRS monthly PDF booklets where present.
-- PDF depot tyre-life values are already in lakh km; do not divide them by 100,000 again.
-- April monthly can equal April Upto because it is the first FY month. Later cumulative-only depot pages do not justify invented monthly figures.
-- District Target/For/Upto pages must never substitute for selected-depot values.
-- FY 2024-25 lubricant and spring groups are explicitly marked unavailable by the current history adapter.
-- A partial fallback is not proof that every tyre cell or every depot/FY is available.
-
-References: `annual_kpi_runner_v6.py`, `annual_kpi_runner_v10.py`, `annual_history.py`.
-
-## Monthly and vehicle history
-
-The monthly runner fetches daily vehicle rows, consolidates duplicates and preserves day-wise KMPL in the workbook. It carries prior history and builds Vehicle Performance/Vehicle 360 projections using verified source and event data.
-
-Schedule III is Major Service; Schedule IV is Complete Major Service. Source completion dates determine daily-cell markers, while retaining that day's KMPL. Ambiguous duplicate/conflicting schedule rows are not assigned a guessed marker. Current marker logic starts April 2026 (`monthly_vehicle_report.py`).
-
-Manual events are append-only: one real event = one row. Keep stable event IDs, vehicle identity, event date, depot, category-specific details and entry source. Repeated aggregate changes remain chronological. Forms and Telegram must use the same canonical schema. Source-derived schedules must not be manually duplicated just to populate history. Standalone Telegram Vehicle 360 lookup is not certified implemented by the existing guide.
-
-See [Vehicle event register](vehicle-event-register.md), [Telegram operations](telegram-operations.md) and [Apps Script Telegram guide](telegram-google-apps-script-webhook.md).
-
-## Presentation and decision rules
-
-- Every visible sheet identifies depot and reporting period.
-- Annual report exposes two main tabs: KPI Dashboard and Detailed Data. History/metadata remain hidden and are not deleted during formatting.
-- Preserve separate HSD incl. AC and excl. AC measures and separate Product/Engine groups.
-- Upto is column R in the detail layout; retain clear borders and numbers. Hide the unused Q spacer rather than presenting it as missing KPI data.
-- Annual charts use same-unit monthly series through selected month. Current model includes HSD and tyre trends.
-- Fuel and TOTAL LUB KMPL: higher is better. Breakdown and MED cancellation rates: lower is better.
-- Annual red/green target colouring requires a numeric source target; missing values use an unavailable treatment. Do not invent thresholds.
-- Monthly daily cells use the established KMPL slab colours.
-- Full-year and YTD are different periods: label them clearly and avoid misleading like-for-like comparisons.
-- Fleet-availability trends and depot-versus-APSRTC comparisons are closed/out of current scope by owner decision on 1 October 2026 because accessible source data is unavailable. Do not list them as pending implementation. Reconsider only if source availability changes and the owner requests it.
-- XLSX logos are embedded image assets. Owner requested native Google Sheets logos over cells, not an IMAGE cell formula. Rajampet June 2026 dashboard/detail floating logos were installed and visually verified.
-- Use clear operational captions and legends; avoid decorative claims that imply unsupported performance.
-
-References: `annual_visuals.py`, `annual_kpi_runner_v11.py`, `report_branding.py`, `apps-script/report_branding.gs`.
-
-## Hub and delivery contract
-
-1. Form submission selects depot and applicable date/month/action.
-2. Apps Script validates inputs and dispatches the matching GitHub workflow, including the originating Hub row.
-3. Workflow generates/updates the report and emits its actual Google URL.
-4. An authenticated callback records the report link and COMPLETED status on the same request row.
-5. Verify output data, period and visual rendering as well as workflow completion.
-
-SUBMITTED means dispatch was accepted, not that report generation or delivery completed. A successful build with callback skipped is not end-to-end success. Missing callback secrets currently cause a skip message in workflows.
-
-The scheduled daily workflow is separate and defaults to Proddatur. Its current schedule is 05:07, 06:11, 07:17, 08:23, 09:29, 10:35 and 11:41 IST. GitHub schedules may be delayed. The settings JSON lists a broader retry-hours array; actual workflow schedules govern execution. Existing report filename checks and scheduled Telegram suppression avoid repeatedly uploading/delivering the same daily report; manual requests may deliberately redeliver.
-
-Telegram long polling, scheduled checks and Apps Script webhook are alternative ingestion modes; do not run competing consumers. Command registration or /status alone is not delivery proof. Never store tokens in source or chat.
-
-## Challenges, correction and evidence
-
-| Challenge | What changed / lesson | Current status |
+| ID | Rule | Reason / implementation |
 | --- | --- | --- |
-| Repeated annual full rebuilds and lost selected-period context | Persistent source snapshots, migration, endpoint-based views, checksum and depot guards. | Implemented; history tests exist. |
-| Proddatur historical engine Upto missing | Shared runner path investigated; exact historical labels/source mapping remain unresolved. Do not manufacture aliases or zeros. | Deferred by owner; Rajampet passed the checks performed. See known-issues document. |
-| Suspected old Proddatur-only parser | Both depots traced through shared annual runners/parsers; suspicion is not a proven cause. | No speculative depot parser replacement approved. |
-| Annual Python indentation failure reported during earlier work | Compile gate added before build; recorded real Rajampet Hub run passed the compile step. | Gate implemented; not evidence of universal source completeness. |
-| Google Sheets merge/frozen-boundary errors | v11 clears conflicting freeze boundaries during legacy formatting and restores safe header freeze. | Implemented in current runner. |
-| Weak visual identity, missing legends and confusing periods | Shared presentation model, named units/series, target-based colours, grouped KPIs and depot/period headers. | Implemented; fleet-availability and depot-versus-APSRTC charts are closed/out of current scope because accessible sources are unavailable. |
-| External IMAGE formula showed #REF! | Floating native images replace formula dependency for annual Hub callback/repair. | Rajampet June live repair and automatic Hub callback branding visually verified on 1 October 2026. |
-| Live Hub omitted hub_row despite repository code having it | Corrected all three live dispatch inputs after observing callback step skipped. | Live dispatcher corrected. |
-| Repository and deployed Apps Script differed | Located actual installable trigger project; empty bound project was not production engine. | Active Vehicle Event Engine project identified and version 6 updated. |
-| Conflicting doPost handlers | Route unkeyed Hub callbacks from existing vehicle handler; preserve keyed vehicle-event route. | Committed in PR #4 and deployed version 6. |
-| Callback token missing | Last safe diagnostic reported token absent; matching Apps Script/GitHub settings are required. | Owner configured the shared token; safe diagnostic confirmed it without revealing values. Real annual callback authenticated successfully on 1 October 2026. |
-| Daily callback URL type differs from annual | Daily returns Drive file links; initial annual callback validator accepts only spreadsheet links and opens reports as spreadsheets. | Bounded correction committed: accept Drive file links without opening them as spreadsheets; require a spreadsheet for annual branding. Tests passed; Apps Script version 7 deployed on 1 October 2026. Matching credentials and the missing GitHub HUB_CALLBACK_URL were configured; real annual callback validated on 1 October 2026. |
-| Signed-in browser session reset; Google connection failed | Existing deployment/commits remain saved; do not confuse connection failure with lost code. | 1 October: initial 502 / Connection refused recovered after owner sign-in; project access verified. Signed-in access recovered; final annual callback validation passed after callback configuration. |
-| Static settings lag behind later workflow features | Record differences explicitly: old FY defaults, Telegram disabled flag and retry array do not certify current workflow behavior. | Documentation warning; no unrelated settings silently changed. |
+| B01 | One Hub accepts selected depot, action and period; preserve the separate scheduled Proddutur daily run. | Shared manual reporting must work for mapped depots. [Hub dispatcher](../apps-script/automation_hub.gs). |
+| B02 | Use depot mapping and the source-specific depot identifier. | Display, vehicle, tyre-web, PDF and spare-selector codes differ. [Source identity table](data-sources.md). |
+| B03 | Product and Engine KMPL remain separate, with exact source labels. | Similar labels do not establish the same classification. [Annual adapters](../annual_kpi_runner_v3.py). |
+| B04 | Unavailable source data is not zero or another depot's value. | Preserve evidence and explicitly display unavailable/manual values. The known master em-dash predicate gap is recorded below. |
+| B05 | Existing working source contracts and calculations must not change silently to satisfy a visual request. | Presentation consumes completed report data; source and calculation changes need their own evidence. |
 
-## Evidence and change status
+## Daily KMPL and vehicle classification
 
-- [PR #2](https://github.com/imranshaik-pro/apsrtc-kmpl/pull/2) and [PR #3](https://github.com/imranshaik-pro/apsrtc-kmpl/pull/3) were previously merged.
-- [PR #4](https://github.com/imranshaik-pro/apsrtc-kmpl/pull/4) contains callback/over-cell logo code and this documentation; it remains unmerged unless separately approved.
-- [Rajampet June Hub run 36734569179](https://github.com/imranshaik-pro/apsrtc-kmpl/actions/runs/36734569179): report generation and Telegram succeeded; callback skipped because live dispatch lacked hub_row.
-- Apps Script web-app version 7 deployed on 1 October 2026 with existing URL/access settings retained, including the daily Drive-link correction. Safe diagnostic subsequently confirmed the callback token configured without revealing its value.
-- Local JavaScript syntax, callback authentication, row bounds, URL rejection and repeat-safe logo tests passed. Additional daily Drive-link and monthly spreadsheet-link success tests, annual Drive-link rejection and malformed-link rejection also passed.
-- [Rajampet June Hub run 36833906698, attempt 2](https://github.com/imranshaik-pro/apsrtc-kmpl/actions/runs/36833906698): compile, build, callback and Telegram succeeded. Attempt 1 skipped callback because GitHub HUB_CALLBACK_URL was missing despite token presence; configuring the existing version-7 endpoint corrected it. Hub row 19 independently reads `COMPLETED | ANNUAL KPI | RAJAMPET | 2026-06`, with the correct report hyperlink. Both floating logos were visually verified after callback; dashboard N1 is empty, with no IMAGE formula. Checked HSD/Express historical cells retained their values; current HSD Apr/May/Jun = 5.32/5.20/5.19, Upto = 5.24, July onward blank. This validates the annual Hub path; daily/monthly callback paths have local tests but were not live-run in this check.
-- Proddatur data issue is explicitly outside the callback/logo fix.
+| ID | Rule | Current code |
+| --- | --- | --- |
+| D01 | Vehicle KMPL = total kilometres / HSD. Consolidate duplicate vehicle measurements by summing kilometres and HSD before division. Never average individual vehicle KMPL. | [Pipeline](../src/calculations/pipeline.py), [consolidation](../src/calculations/consolidation.py). |
+| D02 | Calculate For-Day and Up-To-Day independently from their respective source measurements. Zero HSD gives no calculable KMPL. | [Normalization](../src/calculations/normalization.py), [KMPL](../src/calculations/kmpl.py). |
+| D03 | Daily presentation rounds to two decimals with Decimal ROUND_HALF_UP. Classify the unrounded calculated ratio. | [Rounding](../src/calculations/rounding.py), [slabs](../src/calculations/slabs.py). Raw parser/calculation inputs are floats; this is not a claim that every workbook adapter uses Decimal arithmetic. |
+| D04 | Slabs use continuous upper bounds: <=5.00; >5.00–5.10; >5.10–5.20; >5.20–5.30; >5.30. Exactly 5.30 belongs to slab 4. | The displayed 5.01/5.11/5.21 labels are presentation labels, not gaps in classification. |
+| D05 | Low-performance list: at most ten NAC vehicles, positive calculable Day KMPL <=5.00, sorted by Day KMPL, with each vehicle's Upto retained. | [Vehicle summary](../src/reporting/vehicle_summary.py). Unknown codes provisionally enter NAC low-list consideration and are separately reported. |
+| D06 | Slab tables count each eligible mapped vehicle once in each independent Day/Upto table. | Zero/uncalculable values and unmapped operation codes do not enter these tables. Their totals are eligible classified vehicles, not a fleet-availability measure. |
+| D07 | Unknown operation types remain explicit. Do not invent a classification for CG or another unknown code. | [Vehicle-type mapping](../vehicle_type_mapping.json), unknown-code log and business-readable report note. |
+| D08 | Depot Target, Day, Upto, last-month and last-year-month metrics come from the selected depot's regional source rows, preserving TOT/NAC/AC independently. | [Application](../src/reporting/application.py), [region summary](../src/reporting/region_summary.py). They are not averages of the displayed low-vehicle list. |
 
-## Acceptance and change discipline
+## Dates and current-request tyre eligibility
 
-Before closing a report integration, verify source-to-cell values, historical preservation, selected period, workflow logs, matching Hub row COMPLETED/link, image rendering and delivery. Compile/test success alone is insufficient.
+All date decisions use Asia/Kolkata. Daily input uses YYYY-MM-DD; monthly/annual input uses YYYY-MM. Adapters translate these to each source contract.
 
-Do not merge, deploy or modify unrelated external systems without owner approval. Specific Apps Script deployment approval was given for the Hub/logo work; it is not permission to invent historical KPI data or merge another PR. Keep credentials out of commits, screenshots and chat.
+| Input intent | KMPL period | Tyres |
+| --- | --- | --- |
+| Scheduled daily run | Yesterday IST | Fetch after KMPL succeeds, every day. |
+| Manual daily date omitted | Yesterday IST | Fetch after KMPL succeeds, every day. |
+| Manual daily date equals today | Yesterday IST | Fetch after KMPL succeeds, every day. |
+| Manual daily date earlier than today | Exactly the selected date | Skip all tyre requests and remove any old tyre section from the local delivery view. |
+| Future date/month | Rejected by the operational entry points | No report should be claimed. |
 
-Known unresolved source rows are listed in [Annual KPI known issues](annual-kpi-known-issues.md). Update this register when new evidence changes a rule, a deployment differs from repository code, or a validation result closes an open item.
+The owner first requested an odd resolved-report-day rule, then explicitly replaced it with current-request gating. Preserve the original intent before resolving today's date to yesterday. Both odd and even current requests now fetch tyres. A manually selected yesterday is historical and skips tyres, even though today's default request resolves KMPL to that same day.
+
+Monthly current-month reporting stops at yesterday; on the first day of a month it has no completed current-month day. The annual Hub rejects future months; direct v11 CLI expects a valid selected month but does not independently compare it with today. Do not describe a workflow input form as a complete future-period guard.
+
+## Optional tyre categories
+
+References: [tyre module](../src/reporting/tyre_checks.py) and [tyre operating record](daily-tyre-checks.md).
+
+1. Generate regular KMPL first. Enrich afterwards; an optional tyre-source failure must leave completed KMPL usable.
+2. Include RC front tyres, source-identified mismatched tyres, repair tyres and the source's over-two-month spare snapshot.
+3. Date-selectable categories use the resolved KMPL date. Match exact normalised depot rows, validate heading date, vehicle and positions, and deduplicate identical source rows.
+4. Count distinct vehicles and source tyre records separately. A mismatched report listing all positions is not proof that each listed position is independently faulty.
+5. Hide validated zero categories. If every category is validated empty, show no tyre section. Failure or malformed data is unavailable, never a zero result.
+6. Successful categories survive another category's failure. Login/write failures produce an unavailable note or preserve the original complete file.
+7. Spare source supports depot_id, not historical date selection. Resolve its live dropdown for the selected depot; PRODDUTUR=114 and RAJAMPET=115 are captured examples, not universal constants.
+8. Keep the spare source's own Run Date visible. Retain its over-two-month selection; do not impose a guessed 60/90-day replacement rule.
+9. Daily-v1.1 shows one recognised common spare position once above the table. Mixed or unknown positions keep the position column. Original source rows retain every position, tyre number and days value.
+
+## Annual history and financial years
+
+FY runs April–March. Annual v11 derives the three-FY window from selected month. April 2026–March 2027 is FY2026-27. A supplied FY argument does not justify replacing preserved history.
+
+| ID | Situation | Rule / actual behaviour |
+| --- | --- | --- |
+| A01 | First depot run | Build the historical FYs and current FY months through selection by fetching missing source groups. Keep unsupported cells unavailable. |
+| A02 | Later selected month | Reuse saved good values; fetch missing monthly groups and needed endpoint Upto. Do not refetch every FY just to redraw. |
+| A03 | Earlier selection after a later selection | Show only months through the selected endpoint and its stored/source Upto. Later months stay cached, hidden from this view. |
+| A04 | Valid saved numeric data | Preserve it during missing-value backfill and failed fetches. Switching selection replaces the displayed Upto endpoint; it is not a forced refresh of an already valid source value. |
+| A05 | Completed FY | Display March/full-FY Upto. Current FY uses selected-month YTD; label the different coverage. |
+| A06 | Cache safety | Hidden _ANNUAL_HISTORY stores schema/depot identity, length/chunks and checksum. Wrong depot, corrupt or unreadable history fails closed; no silent destructive rebuild. |
+| A07 | Legacy migration | Preserve monthly values/targets; date current-FY Upto only when heading/metadata proves its endpoint. Save migrated history before source requests or visible formatting. |
+| A08 | Source exceptions | FY2024-25 LUB and SPRING are explicitly unavailable in the active history path; those designated fields become MANUAL INPUT REQUIRED. This exception is separate from preserving supported historical numbers. |
+| A09 | Engine row-set repair | Older caches without engine-rowset-v1 may refresh Engine evidence once, add exact source identities and fill missing fields; never merge different engine models or replace good saved values. |
+| A10 | Targets | FY attributes sourced from April, exact depot and explicit target column. HSD, BD, MED, SPRING and tyres where supported; targets for unsupported rows stay blank. Attempts are recorded once per FY, so a failed target attempt is not automatically retried on every redraw. |
+| A11 | Proddatur missing legacy Engine Upto | Owner-deferred. Exact row/source mapping remains unresolved; no alias, copied value or guessed zero is authorised. |
+
+The requested regression sequences are Proddutur April 2026 → July 2026 → May 2026 and Rajampet May 2026 → July 2026 → May 2026. Those reported checks for available values do not close the seven missing Proddutur legacy Engine Upto rows. Automated selection tests are in [test_annual_history.py](../tests/test_annual_history.py).
+
+Current master history.good rejects None, blank and MANUAL strings, but considers an em dash present. Draft PR #1 fixes this predicate; it is not merged and does not provide values for unmatched engine labels. See [known issues](annual-kpi-known-issues.md).
+
+## Annual tyre sources, units and targets
+
+- FY2024-25 missing web history is not a blanket ban on verified official PDF data. The active v11 history path calls the exact-depot v6 booklet fallback; April monthly can equal April Upto, later cumulative-only depot pages do not justify invented monthly numbers.
+- Web tyre-life numbers are converted from km to lakh km by /100000. Booklet life numbers are already lakh km and are not divided again. Rate units stay as supplied.
+- Require the exact depot and All Tyre Sizes Total row. District, zone and corporation targets or For values cannot substitute for depot figures.
+- Rajampet's January 2026 district change is recorded business context. Current annual tyre-web requests use blank zone/region and the verified depot code; PDF and spare IDs remain separate.
+- v10's legacy all-month wrapper contains older April-only FY24 tyre restrictions. v11 deliberately uses history.update and the captured targets-only function instead of that blanket wrapper. [Architecture](architecture-and-flows.md) names the active path.
+
+## Monthly, maintenance and manual events
+
+| Rule | Behaviour |
+| --- | --- |
+| Monthly KMPL | Fetch daily vehicle rows for completed days; consolidate each vehicle's daily records, preserve daily KMPL, latest valid Upto and source operation/engine identity. |
+| Closed month | Official selected-month MTD-598 is authoritative for the current vehicle population and commission information. |
+| Current/open month | Skip MTD-598. Use provisional daily operational vehicles plus depot event candidates; label the population and operational cutoff. |
+| Historical vehicle data | Import the latest earlier same-depot monthly workbook; existing vehicles reuse history, new vehicles need backfill. Current vehicle history is the fixed FY24-25/FY25-26/FY26-27 layout, separate from dynamic annual FY selection. |
+| Schedule III/IV | Major Service / Complete Major Service. Fetch official dates; show markers without replacing that day's KMPL. Conflicting or repeated schedule records enter maintenance exceptions instead of a guessed marker. |
+| Manual event register | One real event = one append-only row with stable ID, date, depot, normalised vehicle and category-specific details. Do not overwrite prior aggregate changes. |
+| Event channels | Form/Hub and Telegram normalise into the canonical register. Source schedules normally come from APSRTC, although the Python schema also accepts Schedule III/IV. |
+| Vehicle 360 | Workbook projection combines roster/KMPL, maintenance and chronological manual events; standalone Hub/bot lookup remains unavailable. |
+| Event cutoff | Vehicle 360 event display is filtered to selected depot and completed report cutoff. Current provisional population construction separately considers all depot event candidates; it should not be described as a universally cutoff-filtered roster. |
+
+## Visuals, decisions and delivery
+
+Every visible report identifies depot and period. Annual KPI Dashboard and Detailed Data retain the original KPI model. The [detail-tabs extension](monthly-annual-detail-tabs.md) adds Tyre Statements and Engine & Product KMPL, making four visible tabs. _ANNUAL_HISTORY, _REPORT_DETAILS_HISTORY, _TYRE_INPUTS, _META and preserved legacy tabs remain hidden rather than deleted. Q is a hidden original KPI spacer; R is original detail Upto.
+
+The owner's Monthly/Annual tyre model shows B mechanical defects with F Stone% and Worn Smooth%, B premature failures separately, and C's four S1–S9/Total stage groups. Monthly displays its selected month; Annual separates FY25–26 and FY26–27 through the selection, with count-only FY Total rows; percentage totals remain blank while monthly source percentages remain visible. B and F receipts are different populations. Preserve reported stage totals, visibly flag a code-sum discrepancy, and never fabricate a missing source count. May → July → May removes June/July from views and derived input ranges while preserving their cached snapshots.
+
+Fuel and TOTAL LUB KMPL: higher is better. BD and MED cancellation rates: lower is better. Annual red/green grading for these KPIs requires a numeric source target; missing values receive unavailable treatment. Monthly cells use existing KMPL slab colours. Do not invent targets or infer the depot fuel-weighted average's cause from vehicle count shares.
+
+Daily-v1.1 retains the approved order: depot/date; KPI target/actual/difference; low vehicles; slabs; positive tyres; classification/inspection priorities; Drive link/caption. Centred tables and reduced repeated labels do not remove source associations. Exact layout and font/style contracts live in [daily template](daily-template-v1.md).
+
+Hide redundant NAC only with a positive mapped NAC-only source vehicle total, no unknown codes, all five Total/NAC KPI values matching, valid positive Day/Upto and absent/zero AC KPIs. Differing targets/history, AC data/types or uncertainty keep separate sections. Real Proddutur 1 October has AC data, so retains TOT/NAC/AC.
+
+Telegram receives escaped bold/monospaced text with balanced supported HTML and bounded chunks. Its fonts/colours follow the client theme. Drive holds the source TXT and coloured self-contained HTML; PNG/PDF images are review-only, not generated/sent by the daily workflow.
+
+XLSX uses embedded APSRTC assets. Native annual Google Sheet images over cells, including the requested A3:C3 sizing preference, belong to the separately recorded Hub branding deployment/PR #4. Do not claim that merging Python presentation code updates a live Apps Script project or makes IMAGE formulas reliable.
+
+## Approval and closed scope
+
+Repository change, PR merge, workflow execution, source-value verification, Apps Script deployment, callback writeback and Telegram API acceptance are distinct outcomes. SUBMITTED means dispatch accepted; it does not mean COMPLETED. A skipped callback is not a validated Hub return path. API acceptance does not establish that a person read the message.
+
+Proddatur historical Engine Upto remains deferred by the owner. Fleet availability and depot-versus-APSRTC comparisons are closed/out of scope because accessible sources are absent, not pending features. Reopen only with source evidence and owner direction. WhatsApp is an unimplemented future idea.
+
+Keep secrets in GitHub Actions secrets or Apps Script Script Properties. Record setting names and deployment versions, never token/password values. Preserve owner's separate merge/deployment approval boundaries.

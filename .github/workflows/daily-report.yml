@@ -1,4 +1,5 @@
 name: APSRTC Daily Report
+run-name: Daily ${{ github.event_name }} • ${{ github.event.schedule || inputs.report_date || 'current-date' }}
 
 on:
   workflow_dispatch:
@@ -44,6 +45,26 @@ jobs:
     timeout-minutes: 15
 
     steps:
+      - name: Record trigger timing
+        env:
+          TRIGGER_EVENT: ${{ github.event_name }}
+          TRIGGER_CRON: ${{ github.event.schedule }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from zoneinfo import ZoneInfo
+          now = datetime.now(timezone.utc)
+          print('DAILY_TRIGGER_TIMING: ' + json.dumps({
+              'event': os.environ['TRIGGER_EVENT'],
+              'cron': os.environ.get('TRIGGER_CRON', ''),
+              'started_utc': now.isoformat(),
+              'started_ist': now.astimezone(ZoneInfo('Asia/Kolkata')).isoformat(),
+              'run_id': os.environ['GITHUB_RUN_ID'],
+              'attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+          }))
+          PY
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -54,7 +75,17 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Validate daily tyre checks and date rules
+        env:
+          APSRTC_USERNAME: test-fixture
+          APSRTC_PASSWORD: test-fixture
+        run: |
+          python -m py_compile src/reporting/daily_template.py src/reporting/telegram_daily.py run_automated_daily.py src/reporting/application.py src/reporting/tyre_checks.py src/integrations/google_drive.py
+          python -m pytest -q tests/test_daily_tyre_checks.py tests/test_current_daily_tyres.py tests/test_daily_workflow.py tests/test_telegram_daily_visual.py tests/test_daily_template.py tests/test_daily_template_delivery.py
 
       - name: Generate and upload daily report
         id: daily_report
@@ -82,7 +113,7 @@ jobs:
             depot="${{ inputs.depot }}"
           fi
 
-          report_date=$(sed -n 's/^Report date: //p' /tmp/daily.log | tail -1)
+          report_date=$(sed -nE 's/^Report date: ([0-9]{4}-[0-9]{2}-[0-9]{2})$/\1/p' /tmp/daily.log | head -1)
           drive_link=$(sed -n 's/^DRIVE_LINK: //p' /tmp/daily.log | tail -1)
           already_link=$(sed -n 's/^ALREADY_DELIVERED: //p' /tmp/daily.log | tail -1)
           report_file=$(find reports -maxdepth 1 -type f -name '*.txt' -print -quit 2>/dev/null || true)
@@ -144,6 +175,7 @@ jobs:
           REPORT_DATE: ${{ steps.daily_report.outputs.report_date }}
           DRIVE_LINK: ${{ steps.daily_report.outputs.drive_link }}
           REPORT_FILE: ${{ steps.daily_report.outputs.report_file }}
+          CACHED_REPORT: ${{ steps.daily_report.outputs.already_delivered }}
         run: |
           python - <<'PY'
           import json, os, urllib.parse, urllib.request
@@ -156,23 +188,16 @@ jobs:
           body = ''
           if report_file and Path(report_file).is_file():
               body = Path(report_file).read_text(encoding='utf-8', errors='replace').strip()
-          header = '🚌 APSRTC DAILY REPORT\nDepot: ' + os.environ.get('DEPOT','') + '\nDate: ' + os.environ.get('REPORT_DATE','') + '\n\n'
-          footer = '\n\n✅ Uploaded to Google Drive'
-          link = os.environ.get('DRIVE_LINK', '').strip()
-          if link:
-              footer += '\n📄 Report: ' + link
-          full = header + (body or 'Report generated successfully.') + footer
-          chunks = []
-          while full:
-              if len(full) <= 3800:
-                  chunks.append(full); break
-              cut = full.rfind('\n', 0, 3800)
-              if cut < 1900: cut = 3800
-              chunks.append(full[:cut].rstrip())
-              full = full[cut:].lstrip('\n')
+          from src.reporting.telegram_daily import format_daily_telegram
+          chunks = format_daily_telegram(
+              body or 'Report generated successfully.',
+              os.environ.get('DEPOT', ''), os.environ.get('REPORT_DATE', ''),
+              os.environ.get('DRIVE_LINK', '').strip(),
+              os.environ.get('CACHED_REPORT', '') == 'true',
+          )
           for i, chunk in enumerate(chunks, 1):
               prefix = ('Part %d/%d\n\n' % (i, len(chunks))) if len(chunks) > 1 else ''
-              data = urllib.parse.urlencode({'chat_id': chat_id, 'text': prefix + chunk, 'disable_web_page_preview': 'true'}).encode()
+              data = urllib.parse.urlencode({'chat_id': chat_id, 'text': prefix + chunk, 'disable_web_page_preview': 'true', 'parse_mode': 'HTML'}).encode()
               req = urllib.request.Request('https://api.telegram.org/bot' + token + '/sendMessage', data=data, method='POST')
               with urllib.request.urlopen(req, timeout=20) as response:
                   payload = json.load(response)
@@ -213,7 +238,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: apsrtc-daily-report-${{ github.run_number }}
-          path: reports/*.txt
+          path: |
+            reports/*.txt
+            reports/*.html
           if-no-files-found: ignore
           retention-days: 7
-

@@ -1,4 +1,4 @@
-﻿from decimal import Decimal
+from decimal import Decimal
 
 from src.reporting.vehicle_summary import build_vehicle_summary
 
@@ -30,9 +30,10 @@ def test_low_kmpl_threshold_is_inclusive():
     summary = build_vehicle_summary(
         for_day_results,
         up_to_day_results,
+        [{"vehicle_no": r["vehicle_number"], "operation_type": "OR"} for r in for_day_results + up_to_day_results],
     )
 
-    assert summary["low_day_vehicles_count"] == 2
+    assert len(summary["low_day_vehicles"]) == 2
 
 
 def test_none_kmpl_is_not_counted():
@@ -46,9 +47,10 @@ def test_none_kmpl_is_not_counted():
     summary = build_vehicle_summary(
         for_day_results,
         up_to_day_results,
+        [{"vehicle_no": r["vehicle_number"], "operation_type": "OR"} for r in for_day_results + up_to_day_results],
     )
 
-    assert summary["low_day_vehicles_count"] == 1
+    assert len(summary["low_day_vehicles"]) == 1
 
 
 def test_for_day_and_up_to_day_are_independent():
@@ -65,10 +67,12 @@ def test_for_day_and_up_to_day_are_independent():
     summary = build_vehicle_summary(
         for_day_results,
         up_to_day_results,
+        [{"vehicle_no": r["vehicle_number"], "operation_type": "OR"} for r in for_day_results + up_to_day_results],
     )
 
-    assert summary["low_day_vehicles_count"] == 1
-    assert summary["low_month_vehicles_count"] == 1
+    assert len(summary["low_day_vehicles"]) == 1
+    assert summary["low_day_vehicles"][0]["vehicle"] == "BUS001"
+    assert summary["low_day_vehicles"][0]["month_kmpl"] == Decimal("5.20")
 
 
 def test_duplicate_vehicle_is_rejected():
@@ -83,6 +87,7 @@ def test_duplicate_vehicle_is_rejected():
         build_vehicle_summary(
             for_day_results,
             up_to_day_results,
+            [{"vehicle_no": r["vehicle_number"], "operation_type": "OR"} for r in for_day_results + up_to_day_results],
         )
         raise AssertionError(
             "Expected ValueError for duplicate vehicle."
@@ -103,6 +108,7 @@ def test_up_to_day_duplicate_vehicle_is_rejected():
         build_vehicle_summary(
             for_day_results,
             up_to_day_results,
+            [{"vehicle_no": r["vehicle_number"], "operation_type": "OR"} for r in for_day_results + up_to_day_results],
         )
         raise AssertionError(
             "Expected ValueError for duplicate vehicle."
@@ -113,7 +119,7 @@ def test_up_to_day_duplicate_vehicle_is_rejected():
 
 def test_none_result_group_is_rejected():
     try:
-        build_vehicle_summary(None, [])
+        build_vehicle_summary(None, [], [])
         raise AssertionError(
             "Expected ValueError for None For-Day results."
         )
@@ -121,7 +127,7 @@ def test_none_result_group_is_rejected():
         assert "For-Day results cannot be None" in str(exc)
 
     try:
-        build_vehicle_summary([], None)
+        build_vehicle_summary([], None, [])
         raise AssertionError(
             "Expected ValueError for None Up-To-Day results."
         )
@@ -130,3 +136,4 @@ def test_none_result_group_is_rejected():
 
 
 print("Vehicle summary tests passed.")
+

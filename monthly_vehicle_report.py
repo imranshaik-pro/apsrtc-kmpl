@@ -21,6 +21,7 @@ from src.reporting.vehicle_history import (
     read_existing_history, build_history, write_history_sheet, write_vehicle_360_sheet, fetch_schedule,
 )
 from src.reporting.vehicle_events import fetch_vehicle_events_api
+from report_details import attach_monthly_tabs
 
 PROJECT_DIR = Path(__file__).resolve().parent
 MAPPING_FILE = PROJECT_DIR / "depot_mapping.json"
@@ -347,6 +348,7 @@ def main():
         )
         print(f"VEHICLE_360: {len(report_events)} Vehicle Event records through {cutoff}")
 
+    attach_monthly_tabs(workbook, session, display_name, region_code, args.month, folder_id)
     from report_branding import style_monthly_workbook
     style_monthly_workbook(workbook)
     workbook.save(xlsx_path)

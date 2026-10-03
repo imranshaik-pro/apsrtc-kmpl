@@ -58,3 +58,4 @@ function checkHubCallbackConfiguration() {
   const p=PropertiesService.getScriptProperties();
   console.log(JSON.stringify({hubSheetConfigured:!!p.getProperty('AUTOMATION_HUB_V2_RESPONSE_SHEET_ID'),callbackTokenConfigured:!!p.getProperty('HUB_CALLBACK_TOKEN')}));
 }
+

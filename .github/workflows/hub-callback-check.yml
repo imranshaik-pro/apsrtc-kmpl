@@ -1,0 +1,31 @@
+name: Hub callback checks
+
+on:
+  pull_request:
+    paths:
+      - 'apps-script/**'
+      - 'tests/test_hub_*.cjs'
+      - '.github/workflows/hub-callback-check.yml'
+  push:
+    branches: [fix/hub-callback-over-grid-logo]
+    paths:
+      - 'apps-script/**'
+      - 'tests/test_hub_*.cjs'
+      - '.github/workflows/hub-callback-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate dispatch, callback and isolated POST routing
+        run: |
+          node tests/test_hub_dispatch.cjs
+          node tests/test_hub_branding.cjs
+          node tests/test_hub_router.cjs

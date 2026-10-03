@@ -21,14 +21,12 @@ This application is intended only for the authorized owner/operator of the autom
 
 For questions about this application or Google account authorization, contact the developer through the support email configured on the application's Google OAuth consent screen.
 
+## Project records
+
+The [3 October Hub reconciliation](hub-reconciliation-2026-10-03.md) records PR #4 against current production, the fresh form-to-link-to-Telegram check, and evidence for the scheduled delivery delay.
+
+The [project guide](project-guide.md) links the current business rules, source contracts, architecture and report sequences, full commit ledger, challenge history, operations and action plan. Reviewed on 3 October 2026 against production 54dcf6b; the ledger starts at the first 21 August commit. Runtime releases and separately deployed Apps Script changes are identified independently.
+
 ## Privacy
 
 See the [Privacy Policy](privacy.md).
-
-## Business and operations documentation
-
-- [Business rules, decisions and lessons](business-rules-and-lessons.md)
-- [Annual KPI known issues and regression pattern](annual-kpi-known-issues.md)
-- [Vehicle event register](vehicle-event-register.md)
-- [Telegram operations](telegram-operations.md)
-- [Apps Script Telegram webhook](telegram-google-apps-script-webhook.md)

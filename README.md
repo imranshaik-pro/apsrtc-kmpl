@@ -1,230 +1,59 @@
-﻿# APSRTC-KMPL
+# APSRTC-KMPL
 
-Automated APSRTC vehicle and regional KMPL reporting application.
+Depot reporting automation for daily HSD KMPL, monthly vehicle performance, annual KPI history and Vehicle 360 workbook projections. APSRTC supplies operational sources; GitHub Actions executes reports; Google Drive/Sheets stores reports and history; the Automation Hub and Telegram provide request/delivery channels.
 
-## Project Status
+## Project documentation
 
-- Phase A — Data Discovery — COMPLETE
-- Phase B — Calculation & Reporting — COMPLETE
-- Phase C — End-to-End Integration — COMPLETE
-- Phase D — Final Validation & Testing — COMPLETE
-- Phase E — Production Daily Workflow — COMPLETE
-- Phase F — Documentation & Finalization — IN PROGRESS
-- Phase G — WhatsApp Group Delivery — FUTURE
+Start with the [complete project guide](docs/project-guide.md), reviewed on 3 October 2026 against production commit 54dcf6b. It covers the project from its first commit on 21 August 2026 through the latest approved daily-template release.
 
-WhatsApp delivery has not yet been implemented.
+| Topic | Record |
+| --- | --- |
+| Business logic and decisions | [Rules and lessons](docs/business-rules-and-lessons.md) |
+| Where values are fetched and stored | [Sources, payloads and workbook lineage](docs/data-sources.md) |
+| Architecture and execution sequences | [Architecture and flows](docs/architecture-and-flows.md) |
+| Changes, challenges and solutions | [Project history](docs/project-history.md), [all 295 production commits](docs/change-ledger.md) |
+| Completed, pending, deferred and closed work | [Action plan and known issues](docs/roadmap-and-known-issues.md) |
+| Running, validating and handling failures | [Operations and validation](docs/operations-and-validation.md) |
+| Proddatur historical Engine Upto | [Exact unresolved scope](docs/annual-kpi-known-issues.md) |
 
-## Technology
+The early Phase A–G list described the initial daily project; it was not certification of all later features or every historical source value. The linked status register replaces blanket complete claims.
 
-- Python
-- requests
-- BeautifulSoup
-- Decimal
-- python-dotenv
+## Current production behaviour
 
-Project commands must use:
+- Manual Hub reports use the selected mapped depot. Scheduled daily reporting defaults to Proddutur and uses yesterday in Asia/Kolkata.
+- Vehicle KMPL sums kilometres and HSD before division; Day and Upto are independent. Daily display uses Decimal half-up rounding and continuous five-slab bounds.
+- Current daily requests fetch optional Telugu tyre details after normal KMPL. Historical dates skip tyres. The previous odd-day rule was superseded.
+- PR #6 corrected the daily slab defect and 13 earlier daily regression failures; PR #5 added current-request tyres. Both are merged.
+- PR #7 merged the approved daily-v1.1 model: centred tables, common SPARE1 shown once and strict NAC redundancy filtering. Telegram receives formatted text; Drive receives source TXT plus coloured HTML. PNG/PDF are review-only.
+- Annual v11 stores source snapshots in hidden history and renders the selected-month endpoint into Dashboard and Detailed Data, preserving supported historical values. The [detail-tabs extension](docs/monthly-annual-detail-tabs.md) adds Tyre Statements and Engine & Product KMPL to Monthly and Annual reports with a separate history cache.
+- Monthly reporting distinguishes provisional open-month population from official closed-month MTD-598 and includes Vehicle Performance/Vehicle 360 when applicable.
 
-    .\.venv\Scripts\python.exe
+Proddatur's seven retained historical Engine Upto identities remain unresolved and owner-deferred. PR #1 and Hub/native-logo PR #4 remain draft/unmerged; PR #4 separately records a deployed Apps Script version. Standalone Vehicle 360 lookup is not implemented. Fleet availability and depot-versus-APSRTC comparisons are closed/out of current scope because sources are unavailable. WhatsApp is an unimplemented future idea.
 
-PowerShell virtual-environment activation is not required.
+## Local environment
 
-## Environment Configuration
+Use the repository requirements in a virtual environment. GitHub workflows currently select Python 3.11. Do not commit real APSRTC, Google, Telegram, GitHub or callback credentials.
 
-Create a local `.env` file:
+Create a local .env from [.env.example](.env.example), with APSRTC_USERNAME and APSRTC_PASSWORD configured locally. Additional cloud setting names are listed in the operating guide; their values belong in Actions secrets or Apps Script Script Properties.
 
-    APSRTC_USERNAME=your_username
-    APSRTC_PASSWORD=your_password
+The direct daily core command is:
 
-Never commit `.env`.
+```bash
+python run_daily_report.py --date 2026-09-30 --depot PRODDUTUR --vehicle-depot "PDTR/PRODDUTUR" --region-code YSRKADAPA
+```
 
-Never hard-code APSRTC credentials.
+On Windows use .venv/Scripts/python.exe in place of python. This direct core is different from the cloud runner's request/date-resolution, cache, optional tyre and HTML behaviour. A source command authenticates and fetches real data; run it for an authorised request.
 
-`.env.example` contains only configuration placeholders.
+Reports are written under reports/ as UTF-8 text or XLSX. Generated reports, .env, caches and logs are ignored by Git. Cloud runner/workflow commands and relevant validation gates are in [operations](docs/operations-and-validation.md).
 
-## Production Daily Report
+## Focused guides
 
-Run:
+- [Approved daily-v1.1 visual and delivery contract](docs/daily-template-v1.md)
+- [Current daily tyre source/date rules and live evidence](docs/daily-tyre-checks.md)
+- [Daily regression defect and test audit](docs/daily-regression-audit.md)
+- [Permanent vehicle event register](docs/vehicle-event-register.md)
+- [Telegram listener and command operations](docs/telegram-operations.md)
+- [Telegram Apps Script deployment](docs/telegram-google-apps-script-webhook.md)
+- [Application home](docs/index.md) and [privacy](docs/privacy.md)
 
-    .\.venv\Scripts\python.exe .\run_daily_report.py --date 2026-08-18 --depot PRODDUTUR --vehicle-depot "PDTR/PRODDUTUR" --region-code YSRKADAPA
-
-The runner:
-
-1. Validates the report date.
-2. Authenticates using the existing login module.
-3. Retrieves the vehicle report.
-4. Parses vehicle records.
-5. Calculates For-Day KMPL.
-6. Calculates Up-To-Day KMPL independently.
-7. Builds the vehicle summary.
-8. Retrieves the Region report.
-9. Parses Region records.
-10. Builds the final Telugu report.
-11. Saves the report as UTF-8.
-12. Displays the report.
-13. Returns a non-zero status on failure.
-
-## Report Output
-
-Reports are saved under:
-
-    reports\
-
-Example:
-
-    reports\PRODDUTUR_2026-08-18.txt
-
-For reliable Telugu display in PowerShell:
-
-    Get-Content -Encoding UTF8 .\reports\PRODDUTUR_2026-08-18.txt
-
-## KMPL Calculation
-
-KMPL is calculated as:
-
-    Total Kms / HSD
-
-For-Day and Up-To-Day calculations are independent.
-
-Individual vehicle KMPL values are never averaged.
-
-Duplicate vehicle records are consolidated by:
-
-    Vehicle Number
-        |
-        v
-    Sum Total Kms
-        |
-        v
-    Sum HSD
-        |
-        v
-    Calculate KMPL
-
-Production rounding uses Decimal with ROUND_HALF_UP.
-
-Python `round()` is not used for production APSRTC presentation.
-
-## KMPL Slabs
-
-| Slab | Rule |
-|------|------|
-| 1 | KMPL <= 5.00 |
-| 2 | KMPL > 5.00 and <= 5.10 |
-| 3 | KMPL > 5.10 and <= 5.20 |
-| 4 | KMPL > 5.20 and <= 5.30 |
-| 5 | KMPL > 5.30 |
-
-5.30 belongs to Slab 4.
-
-## Regional Reporting
-
-Regional reporting preserves:
-
-- TOT
-- NAC
-- AC
-
-The final report uses one aligned table containing:
-
-- Target
-- ఈ రోజు
-- ఈ రోజు వరకు
-- గత నెల
-- గత ఇయర్ నెల
-
-Column alignment is generated programmatically.
-
-## Testing
-
-Tests are executed using:
-
-    .\.venv\Scripts\python.exe -m tests.<test_module>
-
-The project contains tests for:
-
-- calculation pipeline
-- application integration
-- daily workflow
-- region formatter
-- region parser
-- region reporting
-- reporting
-- Telugu report
-- vehicle summary
-
-## Diagnostic Files
-
-`inspect_report.py` is retained as a diagnostic utility for APSRTC vehicle-report troubleshooting.
-
-`region_response.html` is a captured diagnostic APSRTC response.
-
-These are not part of the production execution path.
-
-Generated reports under `reports\` are runtime output.
-
-## Security
-
-The repository must never contain:
-
-    .env
-
-or real APSRTC credentials.
-
-Before committing, verify:
-
-    git ls-files .env
-
-This command must return no output.
-
-`.gitignore` protects:
-
-- `.env`
-- `.venv`
-- Python cache files
-- generated reports
-- diagnostic Region HTML
-- log files
-
-## Future WhatsApp Integration
-
-WhatsApp delivery is not currently implemented.
-
-Future Phase G will cover:
-
-    Generated validated report
-            |
-            v
-    WhatsApp delivery integration
-            |
-            v
-    Intended WhatsApp group
-            |
-            v
-    Error handling
-            |
-            v
-    Retry behavior
-            |
-            v
-    End-to-end delivery test
-
-A WhatsApp provider/API will be selected only after evaluating its capabilities, authentication, cost, reliability, group-delivery support, and security implications.
-
-## Development Principle
-
-The project follows:
-
-    Simple
-    Reliable
-    Maintainable
-    Accurate
-    Low Cost
-
-Established APSRTC endpoints, business rules, calculation rules, rounding rules, slab rules, reporting structure, and Telugu report design must not be changed silently.
-
-
-## Current Business Rules and Validation Status
-
-See [Business rules, decisions and lessons](docs/business-rules-and-lessons.md) for the consolidated daily/monthly/annual rules, historical preservation, source constraints, Hub contract, visual requirements, challenges and verified resolutions. See [Annual KPI known issues](docs/annual-kpi-known-issues.md) for the deferred Proddatur historical engine Upto issue.
-
-The original phase labels above describe the earlier daily-report milestones. They do not certify completion of later Hub callbacks, all depot/FY source rows, or every requested chart/bot feature. The consolidated record distinguishes implementation, live validation and pending work.
+Source contracts, identities, calculation/rounding/slab rules, selected-period semantics and the approved report design must not change silently. Keep rule/source/history/status documentation with each bounded review. Git merge, Apps Script deployment, report generation, Hub return and Telegram API acceptance are separate outcomes.

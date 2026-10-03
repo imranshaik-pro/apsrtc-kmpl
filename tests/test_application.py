@@ -1,4 +1,4 @@
-﻿from src.reporting.application import build_daily_report
+from src.reporting.application import build_daily_report
 
 
 VEHICLE_HTML = """
@@ -225,9 +225,10 @@ def test_end_to_end_daily_report():
 
     assert "ఈ రోజు వరకు       4.88      4.92      3.73" in report
 
-    assert "(ఈ రోజు) :: 1>" in report
+    assert "AP01A0001 (ORD)" in report
+    assert "3.54 | 4.67" in report
 
-    assert "(ఈ రోజు వరకు) :: 1>" in report
+    assert "operation type" in report
 
     assert len(session.calls) == 2
 
@@ -248,3 +249,4 @@ def test_end_to_end_daily_report():
 
 
 print("Application integration tests passed.")
+

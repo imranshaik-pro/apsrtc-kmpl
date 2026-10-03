@@ -1,4 +1,5 @@
-﻿from decimal import Decimal
+import pytest
+from decimal import Decimal
 
 from src.reporting.telugu_report import build_telugu_daily_report
 
@@ -32,8 +33,8 @@ def build_region_data():
 
 def build_vehicle_data():
     return {
-        "low_day_vehicles_count": 12,
-        "low_month_vehicles_count": 9,
+        "low_day_vehicles": [{"vehicle": "BUS001", "day_kmpl": Decimal("4.80"), "month_kmpl": Decimal("5.10"), "operation_type": "OR"}],
+        "unknown_vehicles": [],
     }
 
 
@@ -72,8 +73,8 @@ def test_report_contains_vehicle_counts():
         build_vehicle_data(),
     )
 
-    assert "(ఈ రోజు) :: 12>" in report
-    assert "(ఈ రోజు వరకు) :: 9>" in report
+    assert "BUS001 (OR)" in report
+    assert "4.80 | 5.10" in report
 
 
 def test_report_contains_required_header_and_closing_message():
@@ -105,26 +106,10 @@ def test_invalid_date_is_rejected():
             "Expected ValueError for invalid date."
         )
     except ValueError as exc:
-        assert "YYYY-MM-DD" in str(exc)
+        assert "does not match format" in str(exc)
 
 
-def test_missing_vehicle_summary_field_is_rejected():
-    vehicle_data = {
-        "low_day_vehicles_count": 12,
-    }
-
-    try:
-        build_telugu_daily_report(
-            "PRODDUTUR",
-            "2026-08-18",
-            build_region_data(),
-            vehicle_data,
-        )
-        raise AssertionError(
-            "Expected ValueError for missing vehicle summary field."
-        )
-    except ValueError as exc:
-        assert "missing fields" in str(exc)
-
-
-print("Telugu report tests passed.")
+def test_optional_vehicle_list_can_be_empty():
+    report = build_telugu_daily_report("PRODDUTUR", "2026-08-18", build_region_data(), {})
+    assert "  (లేవు)" in report
+    assert "ఈ రోజు            4.84" in report

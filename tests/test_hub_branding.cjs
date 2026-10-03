@@ -39,3 +39,4 @@ context.hubBrandAnnual_(report);context.hubBrandAnnual_(report);
 assert.deepEqual(sheets.map(s=>s.images.length),[1,1],'repeat branding must not duplicate logos');
 assert.equal(writes,1,'only the previous IMAGE formula may be cleared');
 console.log('Callback authentication, row bounds, report URL and branding idempotency passed');
+

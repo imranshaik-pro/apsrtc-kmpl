@@ -15,7 +15,8 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from src.integrations.google_drive import download_file, find_file, upload_file
+from src.integrations.google_drive import download_file, find_file, upload_file, upload_daily_html
+from src.reporting.daily_template import VERSION, write_daily_html
 
 
 ROOT = Path(__file__).resolve().parent
@@ -41,6 +42,25 @@ def resolve_report_date(selected: str | None, scheduled: bool) -> date:
     return requested
 
 
+
+def current_daily_request(selected: str | None, scheduled: bool) -> bool:
+    """Retain request intent before today is resolved to yesterday's KMPL."""
+    if scheduled or not selected:
+        return True
+    today_ist = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+    return date.fromisoformat(selected) == today_ist
+
+
+def prepare_delivery_tyres(path: Path, report_date: date, depot: str, region: str, current: bool):
+    from src.reporting.tyre_checks import SECTION_MARKER, enrich_daily_file
+    # Cached reports may contain a previous snapshot. Refresh only the local
+    # delivery copy for current requests; historical delivery stays KMPL-only.
+    original = path.read_text(encoding="utf-8")
+    if SECTION_MARKER in original:
+        path.write_text(original.split(SECTION_MARKER, 1)[0].rstrip() + "\n", encoding="utf-8")
+    if current:
+        enrich_daily_file(path, report_date.isoformat(), depot, region)
+
 def depot_info(mapping: dict, requested: str) -> tuple[str, dict]:
     key = requested.lower().strip()
     if key in mapping and not key.startswith("_"):
@@ -54,7 +74,7 @@ def depot_info(mapping: dict, requested: str) -> tuple[str, dict]:
     raise KeyError(f"Unknown depot: {requested}")
 
 
-def run_report(display_name: str, info: dict, report_date: date) -> Path:
+def run_report(display_name: str, info: dict, report_date: date, *, include_tyres: bool = False) -> Path:
     command = [
         sys.executable,
         str(ROOT / "run_daily_report.py"),
@@ -77,7 +97,22 @@ def run_report(display_name: str, info: dict, report_date: date) -> Path:
     output = ROOT / "reports" / f"{display_name}_{report_date.isoformat()}.txt"
     if not output.exists():
         raise RuntimeError(f"Expected report file was not created: {output}")
+    if include_tyres:
+        prepare_delivery_tyres(output, report_date, display_name, info["region_code"], True)
     return output
+
+
+def publish_styled_report(source_path, depot, report_date, source_link, folder_id, cached, current):
+    """Render the approved layout from completed daily data only."""
+    html_path = write_daily_html(source_path, depot, report_date.isoformat(), source_link,
+                                 cached=cached, current=current)
+    print(f"DAILY_TEMPLATE: {VERSION}")
+    print(f"STYLED_REPORT_FILE: {html_path}")
+    published = upload_daily_html(html_path, folder_id=folder_id)
+    print(f"SOURCE_DRIVE_LINK: {source_link}")
+    print(f"DRIVE_FILE_ID: {published['id']}")
+    print(f"DRIVE_LINK: {published.get('webViewLink', published['id'])}")
+    return published
 
 
 def main() -> int:
@@ -96,6 +131,7 @@ def main() -> int:
     _, info = depot_info(mapping, requested_depot)
     display_name = info.get("display_name", requested_depot.upper())
     report_date = resolve_report_date(args.date, scheduled=args.scheduled)
+    include_tyres = current_daily_request(args.date, args.scheduled)
     filename = f"{display_name}_{report_date.isoformat()}.txt"
 
     print(f"Depot: {display_name}")
@@ -109,20 +145,27 @@ def main() -> int:
         if existing:
             existing_path = ROOT / "reports" / filename
             download_file(existing["id"], existing_path)
+            prepare_delivery_tyres(existing_path, report_date, display_name, info["region_code"], include_tyres)
             print(f"EXISTING_REPORT_FILE: {existing_path}")
+            publish_styled_report(existing_path, display_name, report_date,
+                                  existing.get('webViewLink', existing['id']), folder_id,
+                                  cached=True, current=include_tyres)
             print(f"ALREADY_DELIVERED: {existing.get('webViewLink', existing['id'])}")
             return 0
 
-    report_path = run_report(display_name=display_name, info=info, report_date=report_date)
+    report_path = run_report(display_name=display_name, info=info, report_date=report_date, include_tyres=include_tyres)
 
     if args.generate_only:
+        html_path = write_daily_html(report_path, display_name, report_date.isoformat(), current=include_tyres)
+        print(f"DAILY_TEMPLATE: {VERSION}")
+        print(f"STYLED_REPORT_FILE: {html_path}")
         print(f"GENERATED_ONLY: {report_path}")
         return 0
 
     uploaded = upload_file(report_path, folder_id=folder_id)
-    print(f"DRIVE_FILE_ID: {uploaded['id']}")
-    if uploaded.get("webViewLink"):
-        print(f"DRIVE_LINK: {uploaded['webViewLink']}")
+    publish_styled_report(report_path, display_name, report_date,
+                          uploaded.get('webViewLink', uploaded['id']), folder_id,
+                          cached=False, current=include_tyres)
     print("DAILY_AUTOMATION_SUCCESS")
     return 0
 

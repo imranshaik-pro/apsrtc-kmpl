@@ -36,6 +36,15 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Validate monthly detail source and history contracts
+        env:
+          APSRTC_USERNAME: offline
+          APSRTC_PASSWORD: offline
+        run: |
+          python -m py_compile monthly_vehicle_report.py report_details.py report_tyre_template.py
+          python -m unittest discover -s tests -p 'test_report_details.py' -v
+          python -m unittest discover -s tests -p 'test_tyre_template.py' -v
+
       - name: Generate and upload monthly Google Sheet
         env:
           APSRTC_USERNAME: ${{ secrets.APSRTC_USERNAME }}
@@ -162,4 +171,3 @@ jobs:
           path: reports/*.xlsx
           if-no-files-found: ignore
           retention-days: 7
-

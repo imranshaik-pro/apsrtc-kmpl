@@ -120,7 +120,10 @@ function hubStatus_(sheet,row,status){
   const h=sheet.getRange(1,1,1,sheet.getLastColumn()).getDisplayValues()[0];let c=h.indexOf('Automation Status')+1;
   if(!c){c=sheet.getLastColumn()+1;sheet.getRange(1,c).setValue('Automation Status').setFontWeight('bold').setBackground('#0B3D78').setFontColor('#FFFFFF');}
   sheet.getRange(row,c).setValue(status);
-  hubEnsureColumn_(sheet,'Drive Report Link');
+  const linkColumn=hubEnsureColumn_(sheet,'Drive Report Link');
+  // Forms may carry a preceding HYPERLINK formula into the newly appended row.
+  // A submitted request has no report link until its authenticated callback returns.
+  if(String(status).startsWith('SUBMITTED |')) sheet.getRange(row,linkColumn).clearContent();
 }
 function hubEnsureColumn_(sheet,header){
   const h=sheet.getRange(1,1,1,sheet.getLastColumn()).getDisplayValues()[0];let c=h.indexOf(header)+1;

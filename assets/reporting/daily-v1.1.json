@@ -1,0 +1,26 @@
+{
+  "version": "daily-v1.1",
+  "approved_on": "2026-10-02",
+  "css_sha256": "8638a3f31be190c58e52c2cb92f94b7cde7c0584769a663964bf7b404fa7eddf",
+  "font_sha256": {
+    "NotoSansTelugu-400.ttf": "431117bdd6a14d00b187e0549241d8cbf45f9ddff9847f961dd511178666d563",
+    "NotoSansTelugu-700.ttf": "d9acc5b5312c3edc860d1f736894f0bab8fcf29205daabf7e66fe445476b57bb",
+    "NotoEmoji.ttf": "988621dc5c9a75eb6144f28faae30317a8e3421b68b28740747b3d739e2326b8"
+  },
+  "section_order": [
+    "header",
+    "kpi",
+    "low_kmpl",
+    "slabs",
+    "tyres",
+    "classification_and_actions",
+    "drive",
+    "caption"
+  ],
+  "changes_require_owner_approval": true,
+  "approved_corrections": [
+    "centre table headings and values",
+    "display a uniform spare position once",
+    "omit duplicate NAC only with classified NAC-only source evidence and equal KPIs"
+  ]
+}
