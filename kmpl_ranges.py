@@ -92,9 +92,9 @@ def parse_range(html, entity, depot, period, region):
     if len(choices) != 1:
         layouts=[]
         for table in soup.find_all("table"):
-            layouts.append([[dict(text=c.get_text(" ",strip=True),rowspan=c.get("rowspan"),colspan=c.get("colspan"))
+            layouts.append([[dict(text=c.get_text(" ",strip=True),key=d.key(c.get_text()),rowspan=c.get("rowspan"),colspan=c.get("colspan"))
                              for c in tr.find_all(["th","td"],recursive=False)] for tr in table.find_all("tr")[:2]])
-        raise ValueError("Expected one verified range table; empty/login pages are unavailable; headers="+json.dumps(layouts))
+        raise ValueError("Expected one verified range table; empty/login pages are unavailable; expected="+str((entity,HEADER_KEYS))+"; headers="+json.dumps(layouts))
     return choices[0]
 
 
