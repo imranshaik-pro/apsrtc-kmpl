@@ -21,11 +21,11 @@ The day cutoff applies to engine/product requests. B/C/F statements expose a mon
 
 `report_tyre_template.py` projects the owner-supplied layout. Mechanical defects use MA/MM/CBW/KPP/BB/OI/UI/HBP (the reversed MA/MM sample is corrected), total defects and defect %. Only F's Stone % and Worn Smooth % are appended to the right. Premature failures have their own S1/S2/S3/S6/S8/S9 table. C retains four horizontal grouped stages, each with S1–S9 and a source Total. Region/zone/depot codes are retained for source validation/history but omitted from visible data columns. The identity heading retains depot and report period. No template annotation or sample engine value is a production data input.
 
-The separate hidden `_TYRE_INPUTS` numeric sheet provides formula denominators; the checksum-protected JSON cache remains authoritative source history. Annual count totals use `SUM` over their own FY rows, guarded for complete inputs. Defect % is total mechanical defects / total B receipts; Stone % is total F stones / total F receipts; Worn Smooth % is total F worn-smooth RC+RT / total F RC+RT. Rates use matching populations, not averages of monthly percentages. A missing prerequisite or zero denominator displays blank, not fabricated zero. Monthly percentages retain the actual source rate, converted from percentage points to a fraction and displayed with `0.00%`.
+Annual FY Total rows sum **counts only**, using guarded `SUM` over April–March for FY25–26 and April through the selected month for FY26–27. The three percentage cells in each FY Total row remain blank: no sums, averages or cumulative percentage formulas. Individual monthly source percentages remain unchanged, converted from percentage points to fractions and displayed with `0.00%`. Missing counts remain unavailable rather than becoming zero. `_TYRE_INPUTS` retains hidden supporting source counts; `_REPORT_DETAILS_HISTORY` is the authoritative checksummed history.
 
-The sample's L17 `K17/P17` ratio was in the defect-count column and counted only Hub Bearing Play. It is replaced by a count SUM; the percentage belongs in the next column and uses total defects / total receipts. C's sample `Tota` is corrected to `Total`. C reported totals are summed vertically without replacing them with sums of S-code categories: Proddutur May 2026 first-RC source total is 13 but S1–S9 sum to 10. The discrepancy is explicitly displayed and the source total retained.
+The sample's L17 `K17/P17` ratio was in the defect-count column and counted only Hub Bearing Play. It is replaced by a count SUM; monthly percentage belongs in the next column; the FY Total percentage remains blank under the owner's final instruction. C's sample `Tota` is corrected to `Total`. C reported totals are summed vertically without replacing them with sums of S-code categories: Proddutur May 2026 first-RC source total is 13 but S1–S9 sum to 10. The discrepancy is explicitly displayed and the source total retained.
 
-Native Sheets receives real `formulaValue` cells and percentage formats, with the hidden numeric input tab published first. Review readback compares entered formulas and independently checks calculated FY results; changing and restoring a receipt in a disposable review sheet verifies recalculation.
+Native Sheets receives real `formulaValue` cells and percentage formats, with the hidden numeric input tab published first. Review readback compares entered formulas and independently checks calculated FY results; changing and restoring a monthly defect count in a disposable review sheet verifies the FY count SUM recalculates while percentage totals remain blank.
 
 ## Exact source contracts
 
@@ -75,7 +75,7 @@ Native Sheets publication verifies typed values and dimensions through the API. 
 
 The review workflow is restricted to the feature branch on push, with manual dispatch available. `verify_report_details.py` performs authenticated source reads, May/July/May history checks, private new-tab Google Sheets checks and full workbook previews. Existing annual KPI data is read from its cache for preview; it is not repaired. The monthly upload boundary is intercepted for preview. No production file is a write destination, and no Hub callback, Telegram message or Apps Script deployment occurs.
 
-The change is open for review in [PR #9](https://github.com/imranshaik-pro/apsrtc-kmpl/pull/9). A production merge requires the owner's separate approval.
+The owner approved [PR #9](https://github.com/imranshaik-pro/apsrtc-kmpl/pull/9) for production on 3 October 2026, subject to the final count-only FY Total correction and verification.
 
 ## Initial B/F acceptance evidence (before owner template extension)
 
@@ -96,7 +96,7 @@ Two repeated previews encountered `RemoteDisconnected` in the existing vehicle f
 
 A repository-wide compile probe found a SyntaxError in the unchanged legacy `generate_report.py` at line 101. Compiling the original production bytes reproduced it. That inactive alternative entry point is outside this feature; the active Monthly/Annual runners and affected dependencies compile.
 
-## Owner B/C/F template acceptance — 3 October 2026
+## Initial owner B/C/F template acceptance — 3 October 2026 (before final count-only instruction)
 
 The owner supplied `template.ods`, Statement C screenshots and complete source HTML. The correction follows its visible mechanical/premature/scrap layout, omits depot/region/zone and supporting raw receipt fields from the views, and retains F's Stone% and Worn Smooth% beside the mechanical defect percentage. MA/MM labels, the truncated C Total heading and the sample's incorrect mechanical total formula are corrected.
 
@@ -111,4 +111,8 @@ FY25–26 B/C/F/UD snapshot checksums were unchanged within both sequences. All 
 
 The four full workbooks' original Monthly KMPL/Vehicle Performance/Vehicle 360 or Annual Dashboard/Detailed Data cell values and merges match the prior accepted core previews. The two hidden detail tabs retain checksummed history and matching formula inputs. Recalculated preview scans found no formula errors. Proddutur May RC1's source total **13** remains **13**, with its S1–S9 sum **10** visibly flagged. XLSX logos remain in A3:C3; floating native logos remain outside this change.
 
-A final presentation-only correction right-aligns calculated total cells and replaces the Monthly FY-total subtitle with a monthly-source subtitle. The final [run 37099010277](https://github.com/imranshaik-pro/apsrtc-kmpl/actions/runs/37099010277) passed on [cb0ac0d](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/cb0ac0d9f77a238fc60220ce8b2d188f3bc722a9), repeating all 45 checks, live depot sequences, native formula/reactivity checks and four full workbook builds. Its final artifact is `11265711889`, generated directly by the reviewed code. Original core values and merges were checked again against the earlier accepted previews; the revised view renders and recalculated formula scans passed. **PR #9 remains unmerged; revised previews need owner review before production approval.**
+A final presentation-only correction right-aligns calculated total cells and replaces the Monthly FY-total subtitle with a monthly-source subtitle. The final [run 37099010277](https://github.com/imranshaik-pro/apsrtc-kmpl/actions/runs/37099010277) passed on [cb0ac0d](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/cb0ac0d9f77a238fc60220ce8b2d188f3bc722a9), repeating all 45 checks, live depot sequences, native formula/reactivity checks and four full workbook builds. Its final artifact is `11265711889`, generated directly by the reviewed code. Original core values and merges were checked again against the earlier accepted previews; the revised view renders and recalculated formula scans passed. This records the earlier review stage. The owner subsequently approved production with count-only FY Total rows; that instruction supersedes the earlier weighted FY percentage display.
+
+## Final owner instruction: FY count totals only
+
+On 3 October 2026 the owner approved production and requested FY Total rows for counts only. Full FY25–26 uses April–March; current FY26–27 ends at the selected month. Defect%, Stone% and Worn Smooth% cells in every FY Total row are blank. Individual monthly percentages, source snapshots and all other report logic remain intact. The verification driver checks every FY count total against source sums, confirms percentage totals are blank, and changes/restores one defect count to prove native SUM recalculation.

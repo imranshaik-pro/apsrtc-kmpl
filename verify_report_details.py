@@ -105,37 +105,27 @@ def verify_formula_results(api, sid, workbook, cache, selected, exercise):
             expected = sum(originals) if all(isinstance(v, (int,float)) for v in originals) else None
             got = rows[r-1][c] if c < len(rows[r-1]) else None
             assert got == expected or expected is None and got in (None, ""), (block["title"], r, c+1, expected, got)
-        if block["template_kind"] == "mechanical":
-            b = [metrics(cache,p,"B") for p in block["periods"]]
-            f = [metrics(cache,p,"F") for p in block["periods"]]
-            def weighted(source, numerators, denominators):
-                nums = [value(v,label) for v in source for label in numerators]
-                denoms = [value(v,label) for v in source for label in denominators]
-                if not all(isinstance(x,(int,float)) for x in nums+denoms) or sum(denoms) <= 0:
-                    return None
-                return sum(nums)/sum(denoms)
-            expected = [weighted(b,["Total Mech Defects"],["Num. of Tyres received"]),
-                        weighted(f,["Stones"],["Number of Tyres Received"]),
-                        weighted(f,["Worn smooth RC","Worn smooth RT"],["Total RC","Total RT"])]
-            for c, wanted in zip((11,12,13), expected):
-                got = rows[r-1][c] if c < len(rows[r-1]) else None
-                assert (got in (None, "") if wanted is None else isinstance(got,(int,float)) and abs(got-wanted) < 1e-10), (r,c,wanted,got)
+        for c in block["percent_columns"]:
+            got = rows[r-1][c-1] if c <= len(rows[r-1]) else None
+            assert got in (None, ""), (block["title"], r, c, "percentage total must be blank", got)
     if exercise:
         block, r = next((block,r) for block,r in zip(blocks,totals_rows)
                         if block["template_kind"] == "mechanical" and selected in block["periods"])
-        input_row = d.annual_periods(selected).index(selected)+2
-        address = f"'{d.TYRE_INPUT_TITLE}'!B{input_row}"
-        original = value(metrics(cache,selected,"B"),"Num. of Tyres received")
-        denominator = sum(value(metrics(cache,p,"B"),"Num. of Tyres received") for p in block["periods"])
-        numerator = sum(value(metrics(cache,p,"B"),"Total Mech Defects") for p in block["periods"])
+        data_start = r - block["total_index"]
+        source_row = data_start + block["periods"].index(selected)
+        address = f"'{d.TYRE_TITLE}'!K{source_row}"
+        original = value(metrics(cache,selected,"B"),"Total Mech Defects")
+        total = sum(value(metrics(cache,p,"B"),"Total Mech Defects") for p in block["periods"])
         try:
             api.spreadsheets().values().update(spreadsheetId=sid, range=address,
-                valueInputOption="RAW", body={"values":[[original*2]]}).execute()
-            assert abs(read()[r-1][11] - numerator/(denominator+original)) < 1e-10
+                valueInputOption="RAW", body={"values":[[original+1]]}).execute()
+            assert read()[r-1][10] == total+1
         finally:
             api.spreadsheets().values().update(spreadsheetId=sid, range=address,
                 valueInputOption="RAW", body={"values":[[original]]}).execute()
-        assert abs(read()[r-1][11]-numerator/denominator) < 1e-10
+        restored=read()
+        assert restored[r-1][10] == total
+        assert all((restored[r-1][c-1] if c <= len(restored[r-1]) else None) in (None, "") for c in (12,13,14))
 
 
 def full_monthly_preview(depot, output):

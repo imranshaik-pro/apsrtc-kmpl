@@ -435,7 +435,7 @@ def render_tabs(workbook, cache, selected, annual=False):
         ws["D3"].font = Font(name="Arial", size=12, bold=True, color=BLUE)
         ws["D3"].alignment = Alignment(horizontal="center", vertical="center")
         ws.merge_cells(f"A4:{heading_last}4")
-        ws["A4"] = (("All Tyre Sizes Total · FY totals use source counts; percentages use matching denominators" if annual else
+        ws["A4"] = (("All Tyre Sizes Total · FY totals sum counts only · percentages are shown for individual months" if annual else
                      "All Tyre Sizes Total · Source monthly percentages · blank: no source value") if title == TYRE_TITLE else
                     ("UD: monthly actual · UM: April through selected month · blank: no source value" if annual else
                      "UD: monthly actual through month end · blank: no source value"))

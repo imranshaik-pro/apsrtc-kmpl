@@ -64,25 +64,25 @@ class TyreTemplateTests(unittest.TestCase):
         self.assertEqual(list(wb[d.TYRE_INPUT_TITLE].values)[1][1:],(32,73,0,4,0,32,0))
         self.assertTrue(any("source total 13; S1–S9 sum 10" in str(v) for v in all_values))
 
-    def test_annual_formulas_sum_counts_and_use_distinct_matching_denominators(self):
+    def test_annual_formulas_sum_only_counts_and_leave_percentage_totals_blank(self):
         wb=Workbook();d.render_tabs(wb,cache(),"2026-05",annual=True)
         ws=wb[d.TYRE_TITLE]
         totals=[r for r in range(1,ws.max_row+1) if ws.cell(r,2).value=="FY Total"]
         self.assertEqual(len(totals),6)
         for r in totals[:2]:
             self.assertEqual(ws.cell(r,11).data_type,"f")
-            self.assertIn("SUM(K",ws.cell(r,12).value)
-            self.assertIn("'_TYRE_INPUTS'!B",ws.cell(r,12).value)
-            self.assertIn("'_TYRE_INPUTS'!C",ws.cell(r,13).value)
-            self.assertIn("'_TYRE_INPUTS'!D",ws.cell(r,13).value)
-            self.assertIn("'_TYRE_INPUTS'!G",ws.cell(r,14).value)
-            self.assertIn("COUNT(",ws.cell(r,12).value)
-            self.assertEqual(ws.cell(r,12).number_format,"0.00%")
+            self.assertIn("SUM(K",ws.cell(r,11).value)
+            for col in (12,13,14):
+                self.assertIsNone(ws.cell(r,col).value)
         requests=d.google_requests(ws,123)
         cells=next(x["updateCells"]["rows"] for x in requests if "updateCells" in x)
         r=totals[0]
-        self.assertEqual(cells[r-1]["values"][11]["userEnteredValue"],{"formulaValue":ws.cell(r,12).value})
-        self.assertEqual(cells[r-1]["values"][11]["userEnteredFormat"]["numberFormat"]["type"],"PERCENT")
+        self.assertEqual(cells[r-1]["values"][10]["userEnteredValue"],{"formulaValue":ws.cell(r,11).value})
+        for col in (11,12,13):
+            self.assertFalse(cells[r-1]["values"][col].get("userEnteredValue"))
+        # Monthly percentage source values and native PERCENT formats are retained.
+        monthly=Workbook();d.render_tabs(monthly,cache(),"2026-05")
+        self.assertEqual([monthly[d.TYRE_TITLE].cell(10,col).value for col in (12,13,14)],[.375,0,.125])
 
     def test_july_to_may_removes_future_tyre_rows_and_formula_input_ranges(self):
         saved=cache();saved["months"]["2026-07"]={"C":snapshot("C","2026-07")}

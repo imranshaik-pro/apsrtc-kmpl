@@ -1,7 +1,7 @@
 """Owner's template. Raw B/C/F snapshots stay immutable; presentation is derived.
 
 B mechanical defects plus F's two percentages, B premature failures, then C's
-four grouped stages. Receipts and F numerator/denominator counts are hidden.
+four grouped stages. Receipts and F numerator/denominator counts are hidden. FY totals sum counts only; percentage cells stay blank.
 """
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Alignment
@@ -118,20 +118,10 @@ def finish_totals(ws, block, data_start):
     last = data_start + count - 1
     total = last + 1
     for col in range(3, len(block["headers"]) + 1):
+        if col in block.get("percent_columns", []):
+            continue
         letter = get_column_letter(col)
         target = f"{letter}{data_start}:{letter}{last}"
         ws.cell(total, col, f'=IF(COUNT({target})={count},SUM({target}),"")')
         ws.cell(total, col).number_format = "#,##0"
         ws.cell(total, col).alignment = Alignment(horizontal="right", vertical="center")
-    if block["template_kind"] != "mechanical":
-        return
-    start, end = block["input_start"], block["input_end"]
-    inputs = lambda col: f"'{d.TYRE_INPUT_TITLE}'!{col}{start}:{col}{end}"
-    defects, receipts = f"K{data_start}:K{last}", inputs("B")
-    ws.cell(total, 12, f'=IF(AND(COUNT({defects},{receipts})={2*count},SUM({receipts})>0),SUM({defects})/SUM({receipts}),"")')
-    stones, received = inputs("D"), inputs("C")
-    ws.cell(total, 13, f'=IF(AND(COUNT({stones},{received})={2*count},SUM({received})>0),SUM({stones})/SUM({received}),"")')
-    worn_rc, worn_rt, total_rc, total_rt = [inputs(col) for col in "EFGH"]
-    ws.cell(total, 14, f'=IF(AND(COUNT({worn_rc},{worn_rt},{total_rc},{total_rt})={4*count},SUM({total_rc},{total_rt})>0),SUM({worn_rc},{worn_rt})/SUM({total_rc},{total_rt}),"")')
-    for col in (12, 13, 14):
-        ws.cell(total, col).number_format = "0.00%"
