@@ -27,7 +27,7 @@ def periods(fy):
     return [f'{y}-{mo:02}' for mo in range(4,13)]+[f'{y+1}-{mo:02}' for mo in range(1,4)]
 
 def good(value):
-    return value is not None and str(value).strip() not in ('', MANUAL, 'MANUAL')
+    return value is not None and str(value).strip() not in ('', MANUAL, 'MANUAL', '—')
 
 def new_cache(depot):
     # A newly created cache does not need the one-time legacy row-set repair.
@@ -160,3 +160,4 @@ def period_from_heading(values):
             if match:
                 return datetime.strptime(match[1],'%B %Y').strftime('%Y-%m')
     return ''
+

@@ -35,6 +35,24 @@ def source(group,period):
 class HistoryTests(unittest.TestCase):
     def setUp(self): self.cache=h.new_cache('RAJAMPET')
 
+
+    def test_display_dash_does_not_block_june_source_repair(self):
+        h.update(self.cache,['2026-27'],'2026-06',source)
+        pair=self.cache['months']['2026-06']['HSD']['HSD KMPL INCL AC']
+        pair['upto']='—'; pair['month']=0
+        fetch=Mock(return_value={'HSD KMPL INCL AC':{'month':4.93,'upto':4.97}})
+        h.update(self.cache,['2026-27'],'2026-06',fetch)
+        fetch.assert_called_once_with('HSD','2026-06')
+        self.assertEqual(pair,{'month':0,'upto':4.97})
+        self.assertFalse(h.good(' — '))
+
+
+    def test_migration_excludes_display_dash(self):
+        values=[['SL.No','KPI','Year','Target'],
+                [1,'HSD KMPL INCL AC','2026-27','',0,4.94,4.93]+['']*10+['—']]
+        h.migrate(self.cache,values,'2026-06')
+        self.assertNotIn('upto',self.cache['months']['2026-06']['HSD']['HSD KMPL INCL AC'])
+
     def test_june_august_june_and_repeat_have_no_historical_fetches(self):
         fetch=Mock(side_effect=source)
         h.update(self.cache,['2026-27'],'2026-06',fetch)
