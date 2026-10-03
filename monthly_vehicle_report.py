@@ -22,6 +22,7 @@ from src.reporting.vehicle_history import (
 )
 from src.reporting.vehicle_events import fetch_vehicle_events_api
 from report_details import attach_monthly_tabs
+import kmpl_ranges
 
 PROJECT_DIR = Path(__file__).resolve().parent
 MAPPING_FILE = PROJECT_DIR / "depot_mapping.json"
@@ -363,6 +364,7 @@ def main():
         print(f"VEHICLE_360: {len(report_events)} Vehicle Event records through {cutoff}")
 
     attach_monthly_tabs(workbook, session, display_name, region_code, args.month, folder_id)
+    kmpl_ranges.attach_monthly(workbook, session, display_name, region_code, args.month, folder_id)
     from report_branding import style_monthly_workbook
     style_monthly_workbook(workbook)
     workbook.save(xlsx_path)
@@ -373,4 +375,3 @@ def main():
 
 
 if __name__ == "__main__": sys.exit(main())
-
