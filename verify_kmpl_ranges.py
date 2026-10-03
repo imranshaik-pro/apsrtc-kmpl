@@ -14,6 +14,7 @@ import kmpl_ranges as k
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument("--offline",action="store_true")
+    parser.add_argument("--probe-selection",action="store_true",help="Read-only GET/POST request contract probe")
     parser.add_argument("--month",default="2026-09")
     parser.add_argument("--output",default="reports/range-review")
     args=parser.parse_args()
@@ -24,6 +25,23 @@ def main():
     if not args.offline:
         from src.auth.client import login
         session=login()
+        if args.probe_selection:
+            from bs4 import BeautifulSoup
+            payload=dict(action="",yymm=args.month.replace("-",""),rreg="YSRKADAPA")
+            for entity,endpoint in k.ENDPOINTS.items():
+                url=f"{k.d.BASE}/med/{endpoint}"
+                for method in ["GET","POST","POST_QUERY"]:
+                    response=(session.get(url,params=payload,timeout=45) if method=="GET" else
+                              session.post(url,data=payload,params=payload if method=="POST_QUERY" else None,timeout=45))
+                    response.raise_for_status()
+                    soup=BeautifulSoup(response.text,"html.parser")
+                    print("RANGE_SELECTION_PROBE",entity,method,"table_rows",[len(t.find_all('tr')) for t in soup.find_all('table')])
+                    try:
+                        result=k.parse_range(response.text,entity,"PRODDUTUR",args.month,"YSRKADAPA")
+                        print("RANGE_SELECTION_VALID",entity,method,result["counts"])
+                    except Exception as exc:
+                        print("RANGE_SELECTION_INVALID",entity,method,str(exc)[:140])
+            return
     summary={"mode":"owner source fixtures" if args.offline else "authenticated read-only source review","depots":{}}
     first_year=k.d.fy_start(args.month).year
     fys=[f"{year}-{str(year+1)[-2:]}" for year in range(first_year-2,first_year+1)]

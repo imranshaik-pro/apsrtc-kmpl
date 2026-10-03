@@ -44,7 +44,9 @@ jobs:
         env:
           APSRTC_USERNAME: ${{ secrets.APSRTC_USERNAME }}
           APSRTC_PASSWORD: ${{ secrets.APSRTC_PASSWORD }}
-        run: python verify_kmpl_ranges.py --output reports/range-review/live
+        run: |
+          python verify_kmpl_ranges.py --probe-selection
+          python verify_kmpl_ranges.py --output reports/range-review/live
       - uses: actions/upload-artifact@v4
         if: always()
         with:
