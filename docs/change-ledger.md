@@ -305,3 +305,32 @@ Open draft PR #1 (historical Engine marker issue) and PR #4 (Hub callback/native
 | 295 | 2026-10-02T11:01:46Z | [54dcf6b](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/54dcf6bd760bbf60d728ce1aee8677b54021b177) | Merge PR #7: approved daily-v1.1 report template |
 
 For changes after this baseline, preserve the existing ledger and append newly reviewed commits, or regenerate against a new explicit baseline with full pagination. Never silently include unmerged proposals as production releases.
+
+## Approved additions after the audited baseline
+
+| No. | Commit date UTC | Commit | Change |
+| --- | --- | --- | --- |
+| 296 | 2026-10-02T19:34:19Z | [b342269](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/b342269b487e0c363b14238e349ee6c7194894a0) | Consolidate project rules, sources, flows and complete history; documentation-only PR #8 head |
+| 297 | 2026-10-02T19:41:01Z | [cf07f0f](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/cf07f0ff163b1af7d88e18cf671e7f61ec5bddcc) | Merge owner-approved documentation PR #8; production base for the detail-tabs review |
+
+## Detail-tabs development and approved release
+
+These commits were developed and verified on [PR #9](https://github.com/imranshaik-pro/apsrtc-kmpl/pull/9). The owner approved production on 3 October 2026 with count-only FY Total rows; PR merge metadata records the release commit.
+
+| Commit | Change |
+| --- | --- |
+| [41b3846](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/41b3846d3219b900cf7a3481a379238932505b92) | Capture authenticated engine/product UD and UM source contracts |
+| [66c9a4c](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/66c9a4c6c9afa22f88c7d4cb0a28c74d454a22a9) | Add source-preserving Monthly and Annual detail tabs |
+| [6b6e41f](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/6b6e41fd5e083dffb332d0cc9d9e1c3755652497) | Polish detail views, apply established KMPL colours and document UD/UM rules |
+| [bb396c3](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/bb396c37c77f18220c694bd7f781835ab13bec0d) | Preserve Monthly's fresh-session lifecycle in previews and distinguish provisional tyre month data from daily cutoffs |
+| [6afcdc3](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/6afcdc368d05dfddcaf51a9836451cf4a3f9f494) | Keep the FY25-26 history floor specific to Annual; validate standalone Monthly source selection |
+
+| [b14ded9](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/b14ded93cf34154ceaae3838c5626389d6efc87c) | Record initial B/F source/workbook/native Sheets acceptance |
+| [8e5e821](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/8e5e8216f337609f53b4530412fa893328c22b2a) | Apply owner tyre model, add Statement C, correct fiscal-year formulas, and preserve source discrepancies |
+
+| [cb0ac0d](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/cb0ac0d9f77a238fc60220ce8b2d188f3bc722a9) | Align calculated tyre totals and clarify Monthly source heading |
+
+| [838b71d](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/838b71dffbef7840e28ac57277c5fc61e3961749) | Record owner-template source/formula/workbook acceptance and documentation |
+| [15c399c](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/15c399c5dc2ee2257ccda0fe6ae44270f44c1b72) | Apply final owner rule: FY count SUMs only, blank percentage totals; validate before approved release |
+
+The review's final documentation update records source/workbook/Sheets acceptance and the owner approval boundary. See [detail-tabs evidence](monthly-annual-detail-tabs.md).

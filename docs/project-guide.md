@@ -23,6 +23,7 @@ GitHub Actions runs the Python reporting code. APSRTC is the operational data so
 | What is the Proddatur Engine Upto issue? | [Annual KPI known issues](annual-kpi-known-issues.md) |
 | What is the approved daily visual/delivery contract? | [Daily template v1.1](daily-template-v1.md) |
 | When do tyres appear? | [Current-request tyre details](daily-tyre-checks.md) |
+| How do Monthly/Annual B/F tyres and engine/product UD/UM snapshots work? | [Monthly and Annual detail tabs](monthly-annual-detail-tabs.md) |
 | What were the 13 failed checks? | [Daily regression audit](daily-regression-audit.md) |
 | How do events and Telegram input work? | [Vehicle event register](vehicle-event-register.md), [Telegram operations](telegram-operations.md), [Apps Script guide](telegram-google-apps-script-webhook.md) |
 
@@ -43,6 +44,8 @@ GitHub Actions runs the Python reporting code. APSRTC is the operational data so
 | WhatsApp delivery | Future idea, not implemented or an approved current delivery requirement. |
 
 ## How to interpret the evidence
+
+After the audited baseline, documentation PR #8 was approved and merged at cf07f0f. [PR #9](https://github.com/imranshaik-pro/apsrtc-kmpl/pull/9) now contains the Monthly/Annual source-detail extension, its business rules and live acceptance record. That code is reviewed separately and is not yet a production release.
 
 The [ledger](change-ledger.md) contains every one of the 295 commits reachable from the audited production baseline, including temporary diagnostics and their removal. Open PR changes are listed separately. Commit subjects describe work performed; they do not by themselves certify every value, external deployment or delivery.
 

@@ -9,12 +9,14 @@ Reviewed on 3 October 2026. Start with [project guide](project-guide.md); exact 
 | Daily cloud/manual report | run_automated_daily.py; daily-report.yml |
 | Direct daily core, without cloud request-resolution/cache layer | run_daily_report.py |
 | Monthly native Sheet and workbook Vehicle 360 | monthly_vehicle_report.py; monthly-report.yml |
-| Annual persistent history/two-tab report | annual_kpi_runner_v11.py; annual-kpi.yml |
+| Annual persistent history/four-tab report with the detail extension | annual_kpi_runner_v11.py; report_details.py; annual-kpi.yml |
 | Annual read-only source diagnosis | diagnose_annual_sources.py; annual-kpi-diagnostic.yml |
 | Event validation / register integration | record_vehicle_event.py; vehicle-event.yml; permanent Apps Script register |
 | Monthly source validation | validate_monthly_vehicle_history.py; monthly-source-validation.yml |
 
 Direct source commands can authenticate, fetch, upload or send through workflows. Execute them only for an authorised report/test. This documentation review does not execute them.
+
+For the authorised [Monthly/Annual detail review](monthly-annual-detail-tabs.md), `report-details-review.yml` compiles the affected runners, runs focused offline contracts and uses `verify_report_details.py` for isolated live source/history/Sheets checks. It creates private review files and local workbook artifacts; production upload/delivery boundaries are excluded. Its final live acceptance is recorded separately from this guide's earlier documentation-only audit.
 
 ## Production daily schedule and storage
 

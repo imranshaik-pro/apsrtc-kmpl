@@ -25,7 +25,12 @@ Reviewed on 3 October 2026. The complete [change ledger](change-ledger.md) recor
 | 1–2 October | Optional tyre work expanded from RC/mismatch to repair/spare; owner replaced odd-day gating with current-request gating; revised Telugu columns | PR #5; mandatory daily KMPL stays first |
 | 2 October, 03:06–03:11 UTC | Exact-bound slab fix and 13 regression-contract repairs merged, followed by current-request tyre release and release record | PR #6 at 314f85d, PR #5 at df13f60, record db2303a |
 | 2 October, 09:39–11:01 UTC | Approved daily model implemented; footer-only Telegram split corrected; v1.1 centred tables, common SPARE1 and guarded NAC omission; merge authorised | PR #7 at 54dcf6b; tested a6d740c; 157 local daily checks plus compilation |
-| 3 October documentation review | Consolidated current rules, source contracts, diagrams, history/ledger and action register; corrected stale status/guide claims | Documentation-only review; no source/report/deployment changes |
+| 3 October IST documentation release | Consolidated current rules, source contracts, diagrams, history/ledger and action register; corrected stale status/guide claims | PR #8 merged at cf07f0f on 2 October 19:41 UTC; no runtime/deployment changes |
+| 3 October detail-tabs review | B/F total-size tyre rows and combined engine/product monthly UD plus selected UM; separate historical cache and professional new views | [PR #9](https://github.com/imranshaik-pro/apsrtc-kmpl/pull/9); both depots May → July → May passed with 43 → 7 → 1 calls, 39 focused checks and full workbook previews; not merged |
+
+| 3 October owner-template extension | Add Statement C, project the supplied B/C/F layout, correct labels and FY formulas, keep receipt inputs hidden and source discrepancies explicit | PR #9 review branch; 45 focused checks and both depot live/native/formula validations passed on 8e5e821 and final cb0ac0d; still unmerged |
+
+| 3 October final owner approval | FY Total counts cover April–March or April through the selected current-FY month; no totals for percentage columns | Production approved for PR #9 after final verification; release commit is recorded in PR merge metadata |
 
 Commit dates above use recorded UTC where specified. Operational date decisions use Asia/Kolkata.
 
@@ -65,5 +70,6 @@ Commit dates above use recorded UTC where specified. Operational date decisions 
 | [Daily model 36991267862](https://github.com/imranshaik-pro/apsrtc-kmpl/actions/runs/36991267862) | Live v1 HTML/text accepted, initially in two chunks; downloaded source/render outputs matched. |
 | [Complete v1 delivery 36992184866](https://github.com/imranshaik-pro/apsrtc-kmpl/actions/runs/36992184866) | Tested c84f00a; compilation and 75 workflow checks; one accepted complete Telegram message, 3,878 UTF-16 units. |
 | v1.1 review/merge | 157 local daily checks and compilation; real source-based HTML rendered, all tables retained; production merge tree matched tested a6d740c. No separate live v1.1 message was sent during screenshot correction. |
+| [Detail tabs 37090754311](https://github.com/imranshaik-pro/apsrtc-kmpl/actions/runs/37090754311) | Both depots passed authenticated source transitions, immutable FY25-26 checks, native new-tab readback and full May Monthly/Annual previews. Private review files only; no production file writes, Hub callbacks or Telegram delivery. |
 
 Live run references are retained records, not reruns performed for this documentation review. Telegram API acceptance does not prove recipient reading. Local test data, earlier source capture, cached KMPL and newly fetched source data must remain identified separately.
