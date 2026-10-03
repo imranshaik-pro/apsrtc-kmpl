@@ -45,10 +45,19 @@ def style_monthly_workbook(wb):
         if name not in wb.sheetnames:
             continue
         ws = wb[name]
-        add_logo(ws)
+        if not ws._images:
+            if name == 'Monthly KMPL':
+                from openpyxl.utils import get_column_letter
+                width = sum(ws.column_dimensions[get_column_letter(c)].width * 7 + 5 for c in (1, 2, 3)) - 10
+                add_logo(ws, anchor='A3', width=width)
+                ws.row_dimensions[3].height = math.ceil(width * 130 / 640 * .75) + 3
+            else:
+                add_logo(ws)
+        ws.sheet_view.showGridLines = False
         for row in ws.iter_rows(min_row=first_row, min_col=first_col, max_col=last_col or ws.max_column):
             # History footer / exceptions are not vehicle performance records.
             if name == 'Vehicle Performance' and str(ws.cell(row[0].row, 5).value or '') not in {'2024-25', '2025-26', '2026-27'}:
                 continue
             for cell in row:
                 style_kmpl(cell)
+

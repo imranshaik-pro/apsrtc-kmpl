@@ -402,6 +402,53 @@ def _engine_section(cache, period, mode, snap, selected=False):
                 provisional=bool(snap and snap.get("provisional")))
 
 
+
+def engine_row_height(row):
+    return max(23, 14 * math.ceil(len(str(row[1] or "")) / 25))
+
+def presentation_sections(cache, selected, annual):
+    """Bound printed tables without changing cached matrices or source identities.
+
+    Statement C keeps all forty stage fields, displayed in four readable panels.
+    Long engine matrices repeat their headings, with each source row shown once.
+    """
+    from copy import deepcopy
+    from report_tyre_template import scrap_notes
+    result = sections(cache, selected, annual)
+    for title, blocks in result.items():
+        visible = []
+        for original in blocks:
+            block = deepcopy(original)
+            if block.get("template_kind") == "scrap":
+                for i, stage in enumerate(SCRAP_GROUPS):
+                    panel = deepcopy(block)
+                    panel["title"] += " · " + stage
+                    panel["headers"] = block["headers"][:2] + block["headers"][2+i*10:12+i*10]
+                    panel["rows"] = [row[:2]+row[2+i*10:12+i*10] for row in block["rows"]]
+                    panel["header_groups"] = [(3, 12, stage)]
+                    notes = scrap_notes(cache, block["periods"], [stage])
+                    panel["notes"] = ["Source exceptions: " + " | ".join(notes)] if notes else []
+                    visible.append(panel)
+            elif block["kind"] == "engine" and sum(engine_row_height(row) for row in block["rows"]) > 360:
+                chunks, current, height = [], [], 0
+                for row in block["rows"]:
+                    row_height = engine_row_height(row)
+                    if current and height + row_height > 360:
+                        chunks.append(current)
+                        current, height = [], 0
+                    current.append(row)
+                    height += row_height
+                if current:
+                    chunks.append(current)
+                for i, rows in enumerate(chunks, 1):
+                    panel = deepcopy(block)
+                    panel.update(title=f"{block['title']} · Part {i}/{len(chunks)}", rows=rows)
+                    visible.append(panel)
+            else:
+                visible.append(block)
+        result[title] = visible
+    return result
+
 def render_tabs(workbook, cache, selected, annual=False):
     """Rebuild only the two generated views. Cache and unrelated sheets survive."""
     from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -411,7 +458,7 @@ def render_tabs(workbook, cache, selected, annual=False):
     from report_tyre_template import write_inputs, finish_totals
     write_inputs(workbook, cache, annual_periods(selected) if annual else [selected])
     result = {}
-    for title, blocks in sections(cache, selected, annual).items():
+    for title, blocks in presentation_sections(cache, selected, annual).items():
         index = workbook.sheetnames.index(title) if title in workbook.sheetnames else len(workbook.sheetnames)
         if title in workbook.sheetnames:
             del workbook[title]
@@ -442,15 +489,24 @@ def render_tabs(workbook, cache, selected, annual=False):
         ws["A4"].font = Font(name="Arial", size=10, italic=True, color="63758A")
         ws["A4"].alignment = Alignment(horizontal="center", vertical="center")
         ws.row_dimensions[4].height = 22
-        r, first_header, engine_blocks = 6, None, 0
+        r, first_header, page_used = 6, None, 0
         for block in blocks:
+            # A3 landscape leaves about 580 points below the repeated identity.
+            # Avoid a lone title at the bottom of a page or tiny 42-column text.
+            estimate = (198 + (len(block["rows"]) * 26 if title == TYRE_TITLE else
+                               sum(engine_row_height(row) for row in block["rows"])) +
+                        sum(max(32, 14 * math.ceil(len(n) / 150)) for n in block.get("notes", [])))
+            if page_used and page_used + estimate > 580:
+                ws.row_breaks.append(Break(id=r-1))
+                page_used = 0
+            page_used += estimate
             columns = max(len(block["headers"]), 3)
             end = get_column_letter(columns)
             ws.merge_cells(f"A{r}:{end}{r}")
             ws.cell(r, 1, block["title"])
             ws.cell(r, 1).fill = PatternFill("solid", fgColor="287B59" if block.get("selected") else NAVY)
             ws.cell(r, 1).font = Font(name="Arial", size=11, bold=True, color="FFFFFF")
-            ws.cell(r, 1).alignment = Alignment(vertical="center")
+            ws.cell(r, 1).alignment = Alignment(vertical="center", wrap_text=True)
             ws.row_dimensions[r].height = 27
             r += 1
             context = block.get("period_text") or "Month-wise source values"
@@ -460,6 +516,7 @@ def render_tabs(workbook, cache, selected, annual=False):
             ws.merge_cells(f"A{r}:{end}{r}")
             ws.cell(r, 1, context)
             ws.cell(r, 1).font = Font(name="Arial", size=10, color="63758A")
+            ws.cell(r, 1).alignment = Alignment(vertical="center", wrap_text=True)
             ws.row_dimensions[r].height = 22
             r += 1
             if block["headers"]:
@@ -480,7 +537,7 @@ def render_tabs(workbook, cache, selected, annual=False):
                     cell.font = Font(name="Arial", size=10, bold=True, color="FFFFFF")
                     cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
                     cell.border = Border(right=Side(style="thin", color="FFFFFF"))
-                ws.row_dimensions[r].height = 58 if title == TYRE_TITLE else 40
+                ws.row_dimensions[r].height = (36 if block.get("template_kind") == "scrap" else 58) if title == TYRE_TITLE else 40
                 r += 1
                 data_start = r
                 for row_index, row in enumerate(block["rows"]):
@@ -492,7 +549,7 @@ def render_tabs(workbook, cache, selected, annual=False):
                         cell.fill = PatternFill("solid", fgColor="EAF2FA" if total else (PALE if r % 2 else "FFFFFF"))
                         cell.font = Font(name="Arial", size=10, color=NAVY if total else INK, bold=total)
                         cell.alignment = Alignment(horizontal="right" if isinstance(value, (int, float)) else "left",
-                                                   vertical="center", wrap_text=c in (3, 4, 7, 8) and title == TYRE_TITLE)
+                                                   vertical="center", wrap_text=(c == 2 and block["kind"] == "engine") or (c in (3, 4, 7, 8) and title == TYRE_TITLE))
                         cell.border = Border(bottom=Side(style="thin", color=LINE))
                         label = block["headers"][c-1]
                         if isinstance(value, (int, float)):
@@ -503,7 +560,7 @@ def render_tabs(workbook, cache, selected, annual=False):
                                     cell.font = Font(name="Arial", size=10, color=cell.font.color, bold=True)
                     if total and block["kind"] == "engine":
                         ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=2)
-                    ws.row_dimensions[r].height = 26 if title == TYRE_TITLE else 23
+                    ws.row_dimensions[r].height = 26 if title == TYRE_TITLE else engine_row_height(row)
                     r += 1
                 finish_totals(ws, block, data_start)
             for note in block.get("notes", []):
@@ -511,7 +568,7 @@ def render_tabs(workbook, cache, selected, annual=False):
                 ws.cell(r, 1, note)
                 ws.cell(r, 1).font = Font(name="Arial", size=10, color="9C6500")
                 ws.cell(r, 1).alignment = Alignment(wrap_text=True, vertical="center")
-                ws.row_dimensions[r].height = 32
+                ws.row_dimensions[r].height = max(32, 14 * math.ceil(len(note) / 150))
                 r += 1
             for label, periods in (("Source unavailable", block["missing"]), ("Saved values retained; latest refresh failed", block["stale"])):
                 if periods:
@@ -528,9 +585,17 @@ def render_tabs(workbook, cache, selected, annual=False):
                 ws.row_dimensions[r].height = 19
                 r += 1
             if block["kind"] == "engine":
-                engine_blocks += 1
-                if annual and engine_blocks % 2 == 0:
-                    ws.row_breaks.append(Break(id=r))
+                from openpyxl.comments import Comment
+                definition = ("Combined engine/product source: UD is the selected month's start through month end; "
+                              "UM is April through the selected cutoff. Original annual Product/Engine Upto uses "
+                              "separate endpoints and is not replaced by this matrix. Source weighting is not supplied.")
+                ws.merge_cells(f"A{r}:{end}{r}")
+                ws.cell(r, 1, definition)
+                ws.cell(r, 1).font = Font(name="Arial", size=9, italic=True, color="63758A")
+                ws.cell(r, 1).alignment = Alignment(wrap_text=True, vertical="center")
+                ws.cell(r, 1).comment = Comment(definition, "APSRTC source audit")
+                ws.row_dimensions[r].height = 42
+                r += 1
             r += 2
         widths = ([6, 13] if title == TYRE_TITLE else [6, 25])
         for c in range(1, width + 1):
@@ -539,7 +604,7 @@ def render_tabs(workbook, cache, selected, annual=False):
         logo_width = sum(ws.column_dimensions[get_column_letter(c)].width * 7 + 5 for c in (1, 2, 3)) - 10
         add_logo(ws, anchor="A3", width=logo_width)
         ws.row_dimensions[3].height = math.ceil(logo_width * 130 / 640 * .75) + 3
-        ws.freeze_panes = f"C{(first_header or 7) + 1}"
+        ws.freeze_panes = "A5"
         ws.print_title_rows = "1:4"
         ws.print_area = f"A1:{last}{max(4, r - 2)}"
         ws.page_setup.orientation = "landscape"
@@ -610,6 +675,8 @@ def google_requests(worksheet, sheet_id, existing=None):
             if cell.border.bottom is not None and cell.border.bottom.style:
                 fmt["borders"] = {"bottom": {"style": "SOLID", "color": _rgb(LINE)}}
             record = {"userEnteredFormat": fmt}
+            if cell.comment:
+                record["note"] = cell.comment.text
             if cell.data_type == "f":
                 record["userEnteredValue"] = {"formulaValue": value}
             elif isinstance(value, (int, float)) and not isinstance(value, bool):
@@ -675,3 +742,4 @@ def attach_monthly_tabs(workbook, session, depot, region, selected, folder):
     render_tabs(workbook, cache, selected)
     write_xlsx_cache(workbook, cache)
     return cache
+

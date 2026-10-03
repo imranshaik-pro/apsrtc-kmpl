@@ -68,7 +68,7 @@ class TyreTemplateTests(unittest.TestCase):
         wb=Workbook();d.render_tabs(wb,cache(),"2026-05",annual=True)
         ws=wb[d.TYRE_TITLE]
         totals=[r for r in range(1,ws.max_row+1) if ws.cell(r,2).value=="FY Total"]
-        self.assertEqual(len(totals),6)
+        self.assertEqual(len(totals),12)
         for r in totals[:2]:
             self.assertEqual(ws.cell(r,11).data_type,"f")
             self.assertIn("SUM(K",ws.cell(r,11).value)
@@ -97,3 +97,4 @@ class TyreTemplateTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

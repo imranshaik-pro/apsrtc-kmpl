@@ -131,7 +131,7 @@ def audit_workbook(path, depot, selected, calculated_path=None):
         for field in ('headers','rows'):
             check('Captured HTML to saved snapshot', f'{group} {field}',snapshot[field],parsed[field],
                   str(fixture.relative_to(Path(__file__).parent)))
-    for title, blocks in details.sections(cache, selected, True).items():
+    for title, blocks in details.presentation_sections(cache, selected, True).items():
         ws, calc = wb[title], calculated[title]
         for block in blocks:
             anchor = next((r for r in range(1, ws.max_row+1) if ws.cell(r, 1).value == block['title']), None)

@@ -218,7 +218,7 @@ class HistoryAndViewTests(unittest.TestCase):
         d.update(cache, ["2026-05"], lambda g, p: dict(fixture(g, p), provisional=True))
         d.render_tabs(wb, cache, "2026-05")
         notes = [c.value for row in wb[d.TYRE_TITLE] for c in row if c.value is not None]
-        self.assertEqual(sum("no daily cutoff supplied" in str(v) for v in notes), 3)
+        self.assertEqual(sum("no daily cutoff supplied" in str(v) for v in notes), 6)
         self.assertFalse(any("through completed days" in str(v) for v in notes))
 
     def test_monthly_refresh_uses_same_source_period_but_can_update_that_month(self):
@@ -344,3 +344,4 @@ class HistoryAndViewTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
