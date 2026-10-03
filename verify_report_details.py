@@ -59,12 +59,12 @@ def existing_annual_model(depot, selected):
     return runner, fys, matrix, item["id"]
 
 
-def verify_google(api, sid, workbook, cache):
+def verify_google(api, sid, workbook, cache, selected, exercise_formulas=False):
     d.save_google_cache(api, sid, cache)
     d.publish_google_tabs(api, sid, workbook)
     assert d.read_google_cache(api, sid, cache["depot"]) == cache
     meta = api.spreadsheets().get(spreadsheetId=sid, fields="sheets(properties,merges)").execute()
-    for title in d.TAB_TITLES:
+    for title in (d.TYRE_INPUT_TITLE, *d.TAB_TITLES):
         ws = workbook[title]
         sheet = next(s for s in meta["sheets"] if s["properties"]["title"] == title)
         grid = sheet["properties"]["gridProperties"]
@@ -72,17 +72,70 @@ def verify_google(api, sid, workbook, cache):
         assert len(sheet.get("merges", [])) == len(ws.merged_cells.ranges)
         rows = api.spreadsheets().values().get(spreadsheetId=sid,
             range=f"'{title}'!A1:{get_column_letter(ws.max_column)}{ws.max_row}",
-            valueRenderOption="UNFORMATTED_VALUE").execute().get("values", [])
+            valueRenderOption="FORMULA").execute().get("values", [])
         for r, original in enumerate(ws.values):
             for c, value in enumerate(original):
                 got = rows[r][c] if r < len(rows) and c < len(rows[r]) else None
-                if r == 2 and c == 0:
+                if r == 2 and c == 0 and title != d.TYRE_INPUT_TITLE:
                     assert got == "APSRTC"  # native branding; the XLSX has the embedded image
                 elif value not in (None, ""):
                     assert got == value, (title, r + 1, c + 1, value, got)
                 else:
                     assert got in (None, ""), (title, r + 1, c + 1, got)
     assert next(s for s in meta["sheets"] if s["properties"]["title"] == d.CACHE_TITLE)["properties"]["hidden"]
+    assert next(s for s in meta["sheets"] if s["properties"]["title"] == d.TYRE_INPUT_TITLE)["properties"]["hidden"]
+    verify_formula_results(api, sid, workbook, cache, selected, exercise_formulas)
+
+
+def verify_formula_results(api, sid, workbook, cache, selected, exercise):
+    from report_tyre_template import metrics, value
+    ws = workbook[d.TYRE_TITLE]
+    blocks = d.sections(cache, selected, True)[d.TYRE_TITLE]
+    totals_rows = [r for r in range(1, ws.max_row+1) if ws.cell(r, 2).value == "FY Total"]
+    assert len(blocks) == len(totals_rows)
+    def read():
+        return api.spreadsheets().values().get(spreadsheetId=sid,
+            range=f"'{d.TYRE_TITLE}'!A1:AP{ws.max_row}", valueRenderOption="UNFORMATTED_VALUE").execute().get("values", [])
+    rows = read()
+    for block, r in zip(blocks, totals_rows):
+        for c in range(2, len(block["headers"])):
+            if c+1 in block["percent_columns"]:
+                continue
+            originals = [row[c] for row in block["rows"][:-1]]
+            expected = sum(originals) if all(isinstance(v, (int,float)) for v in originals) else None
+            got = rows[r-1][c] if c < len(rows[r-1]) else None
+            assert got == expected or expected is None and got in (None, ""), (block["title"], r, c+1, expected, got)
+        if block["template_kind"] == "mechanical":
+            b = [metrics(cache,p,"B") for p in block["periods"]]
+            f = [metrics(cache,p,"F") for p in block["periods"]]
+            def weighted(source, numerators, denominators):
+                nums = [value(v,label) for v in source for label in numerators]
+                denoms = [value(v,label) for v in source for label in denominators]
+                if not all(isinstance(x,(int,float)) for x in nums+denoms) or sum(denoms) <= 0:
+                    return None
+                return sum(nums)/sum(denoms)
+            expected = [weighted(b,["Total Mech Defects"],["Num. of Tyres received"]),
+                        weighted(f,["Stones"],["Number of Tyres Received"]),
+                        weighted(f,["Worn smooth RC","Worn smooth RT"],["Total RC","Total RT"])]
+            for c, wanted in zip((11,12,13), expected):
+                got = rows[r-1][c] if c < len(rows[r-1]) else None
+                assert (got in (None, "") if wanted is None else isinstance(got,(int,float)) and abs(got-wanted) < 1e-10), (r,c,wanted,got)
+    if exercise:
+        block, r = next((block,r) for block,r in zip(blocks,totals_rows)
+                        if block["template_kind"] == "mechanical" and selected in block["periods"])
+        input_row = d.annual_periods(selected).index(selected)+2
+        address = f"'{d.TYRE_INPUT_TITLE}'!B{input_row}"
+        original = value(metrics(cache,selected,"B"),"Num. of Tyres received")
+        denominator = sum(value(metrics(cache,p,"B"),"Num. of Tyres received") for p in block["periods"])
+        numerator = sum(value(metrics(cache,p,"B"),"Total Mech Defects") for p in block["periods"])
+        try:
+            api.spreadsheets().values().update(spreadsheetId=sid, range=address,
+                valueInputOption="RAW", body={"values":[[original*2]]}).execute()
+            assert abs(read()[r-1][11] - numerator/(denominator+original)) < 1e-10
+        finally:
+            api.spreadsheets().values().update(spreadsheetId=sid, range=address,
+                valueInputOption="RAW", body={"values":[[original]]}).execute()
+        assert abs(read()[r-1][11]-numerator/denominator) < 1e-10
 
 
 def full_monthly_preview(depot, output):
@@ -99,7 +152,7 @@ def full_monthly_preview(depot, output):
         monthly_cache = d.new_cache(depot)
         d.update(monthly_cache, [selected], d.SourceAdapter(monthly_session, depot, region, tyre_site_info),
                  refresh_monthly=True)
-        assert all(g in monthly_cache["months"][selected] for g in ("B", "F", "UD"))
+        assert all(g in monthly_cache["months"][selected] for g in ("B", "C", "F", "UD"))
         assert monthly_cache["months"][selected]["UD"]["rows"][-1][-1] == EXPECTED[depot][selected][0]
         d.render_tabs(wb, monthly_cache, selected)
         d.write_xlsx_cache(wb, monthly_cache)
@@ -164,22 +217,26 @@ def main():
             d.write_xlsx_cache(wb, cache)
             engine_ws = wb[d.ENGINE_TITLE]
             if attempt == 2:
-                july = (engine_ws.max_row, engine_ws.max_column, digest(cache["months"]["2026-07"]))
+                july = (engine_ws.max_row, engine_ws.max_column, digest(cache["months"]["2026-07"]), wb[d.TYRE_TITLE].max_row)
             if attempt == 3:
                 assert engine_ws.max_row < july[0]
+                assert wb[d.TYRE_TITLE].max_row < july[3]
+                assert wb[d.TYRE_INPUT_TITLE].max_row == len(d.annual_periods(selected))+1
+                assert not any(cell.value in ("Jun-26", "Jul-26") for row in wb[d.TYRE_TITLE] for cell in row)
                 assert digest(cache["months"]["2026-07"]) == july[2]
                 visible = d.sections(cache, selected, True)[d.ENGINE_TITLE]
                 assert all("July 2026" not in block["title"] for block in visible)
                 assert visible[0]["rows"] == cache["months"][selected]["UM"]["rows"]
             if api:
-                verify_google(api, sid, wb, cache)
+                verify_google(api, sid, wb, cache, selected, exercise_formulas=attempt == 3)
             review_path = out / f"{depot}_ANNUAL_DETAILS_{selected}_step{attempt}.xlsx"
             wb.save(review_path)
             (out / f"{depot}_detail-history_step{attempt}.json").write_text(json.dumps(cache, indent=2))
             record = dict(attempt=attempt, selected=selected, calls=calls,
                           source_totals=dict(zip(("UD", "UM"), totals(cache, selected))),
                           rows=engine_ws.max_row, columns=engine_ws.max_column,
-                          fy2526_sha256=closed, errors=cache["errors"])
+                          tyre_rows=wb[d.TYRE_TITLE].max_row, tyre_columns=wb[d.TYRE_TITLE].max_column,
+                          formula_checks="passed" if api else "not exercised", fy2526_sha256=closed, errors=cache["errors"])
             steps.append(record)
             print(json.dumps(dict(depot=depot, **record)), flush=True)
         previews = []

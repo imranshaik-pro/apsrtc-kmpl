@@ -1,4 +1,4 @@
-"""Source-preserving B/F tyre statements and month-end engine/product matrices.
+"""Source-preserving B/C/F tyre statements and month-end engine/product matrices.
 
 These tabs have a separate durable cache. Existing KPI and vehicle-history
 calculations are not inputs to these source snapshots.
@@ -20,6 +20,7 @@ CACHE_TITLE = "_REPORT_DETAILS_HISTORY"
 SCHEMA = "report-details-1"
 TYRE_TITLE = "Tyre Statements"
 ENGINE_TITLE = "Engine & Product KMPL"
+TYRE_INPUT_TITLE = "_TYRE_INPUTS"
 TAB_TITLES = (TYRE_TITLE, ENGINE_TITLE)
 FIRST_PERIOD = "2025-04"
 BASE = "http://103.44.14.20"
@@ -27,8 +28,40 @@ IST = ZoneInfo("Asia/Kolkata")
 NAVY, BLUE, INK, PALE, LINE = "12345B", "1976B9", "23364D", "F3F6FA", "DCE5EF"
 STATEMENTS = {
     "B": "Mechanical defects & premature tyre failures — Statement B",
+    "C": "Scrap tyres — Statement C",
     "F": "Tyres below 2 mm, stones & worn smooth — Statement F",
 }
+SCRAP_GROUPS = ("New Scrap Tyres", "Ist RC Scrap Tyres", "2nd RC Scrap Tyres", "3rd RC and above Scrap Tyres")
+
+
+def scrap_table(html):
+    """C has two header levels: retain stage identity for repeated S1..S9 names."""
+    soup, choices = BeautifulSoup(html, "html.parser"), []
+    for table in soup.find_all("table"):
+        trs = table.find_all("tr")
+        if len(trs) < 3:
+            continue
+        first = trs[0].find_all("th", recursive=False)
+        second = trs[1].find_all("th", recursive=False)
+        if [key(c.get_text(" ", strip=True)) for c in first[7:]] != list(map(key, SCRAP_GROUPS)):
+            continue
+        expected = [f"S{i}" for i in range(1, 10)] + ["TOTAL"]
+        if (len(first) != 11 or any(c.get("rowspan") != "2" for c in first[:7])
+                or any(c.get("colspan") != "10" for c in first[7:])
+                or [key(c.get_text(" ", strip=True)) for c in second] != expected * 4):
+            raise ValueError("Statement C grouped headings are not recognised")
+        headers = [c.get_text(" ", strip=True) for c in first[:7]]
+        if list(map(key, headers)) != ["SNUM", "MONTHYEAR", "ZONENAME", "REGION", "DEPOT", "TOTALSCRAP", "TYRESIZE"]:
+            raise ValueError("Statement C identifying headings are not recognised")
+        headers += [f"{stage} — {c.get_text(' ', strip=True)}"
+                    for i, stage in enumerate(SCRAP_GROUPS) for c in second[i*10:(i+1)*10]]
+        rows = table_rows(table)[2:]
+        if any(len(row) != 47 for row in rows):
+            raise ValueError("Statement C row width does not match grouped headings")
+        choices.append((headers, rows))
+    if len(choices) != 1:
+        raise ValueError("Expected one recognised Statement C table")
+    return choices[0]
 
 
 def norm(value):
@@ -122,9 +155,14 @@ def source_table(html, required):
 
 
 def parse_tyre(html, statement, depot_code, period, depot):
+    if statement not in STATEMENTS:
+        raise ValueError("Unknown tyre statement")
     required = ["Month-Year", "Depot", "Tyre size",
                 "Mismatching" if statement == "B" else "Worn Smooth %"]
-    _, headers, rows = source_table(html, required)
+    if statement == "C":
+        headers, rows = scrap_table(html)
+    else:
+        _, headers, rows = source_table(html, required)
     indices = {key(label): i for i, label in enumerate(headers)}
     wanted_month = month_end(period).strftime("%b-%Y").upper()
     chosen = [row for row in rows
@@ -262,7 +300,7 @@ def decode(rows, depot):
     for period, groups in cache["months"].items():
         month_end(period)
         for group, snapshot in groups.items():
-            if group not in ("B", "F", "UD", "UM"):
+            if group not in ("B", "C", "F", "UD", "UM"):
                 raise ValueError("Unknown cached detail source")
             validate_snapshot(snapshot, depot, group, period)
     cache.setdefault("errors", {})
@@ -277,7 +315,7 @@ def update(cache, wanted, fetch, selected_um=None, checkpoint=lambda: None, refr
             continue
         month_end(period)
         groups = cache["months"].setdefault(period, {})
-        for group in ("B", "F", "UD"):
+        for group in ("B", "C", "F", "UD"):
             old = groups.get(group)
             if old and not old.get("provisional") and not refresh_monthly:
                 continue
@@ -333,35 +371,12 @@ def save_google_cache(service, spreadsheet_id, cache):
                         valueInputOption="RAW", body={"values": rows}).execute()
 
 
-def _project_tyre(cache, periods, statement):
-    snapshots = [(p, cache["months"].get(p, {}).get(statement)) for p in periods]
-    headers = []
-    for _, snap in snapshots:
-        if snap:
-            for label in snap["headers"]:
-                if key(label) not in {key(x) for x in headers}:
-                    headers.append(label)
-    rows, missing, stale = [], [], []
-    for period, snap in snapshots:
-        if not snap:
-            missing.append(period)
-            continue
-        lookup = {key(label): i for i, label in enumerate(snap["headers"])}
-        for row in snap["rows"]:
-            rows.append([row[lookup[key(label)]] if key(label) in lookup else None for label in headers])
-        if cache["errors"].get(period, {}).get(statement):
-            stale.append(period)
-    return dict(kind="tyre", title=STATEMENTS[statement], headers=headers, rows=rows,
-                missing=missing, stale=stale,
-                provisional=any(snap and snap.get("provisional") for _, snap in snapshots),
-                source=f"{BASE}/tyres/{statement.lower()}_statement_final.php")
-
-
 def sections(cache, selected, annual):
     # The FY2025-26 floor applies to annual history. A standalone Monthly
     # selection may request any supported source month without backfilling FYs.
     periods = annual_periods(selected) if annual else [selected]
-    tyre = [_project_tyre(cache, periods, group) for group in ("B", "F")]
+    from report_tyre_template import tyre_sections
+    tyre = tyre_sections(cache, periods, annual)
     engine = []
     if annual and selected >= FIRST_PERIOD:
         snap = cache["months"].get(selected, {}).get("UM")
@@ -393,6 +408,8 @@ def render_tabs(workbook, cache, selected, annual=False):
     from openpyxl.utils import get_column_letter
     from openpyxl.worksheet.pagebreak import Break
     from report_branding import add_logo, style_kmpl
+    from report_tyre_template import write_inputs, finish_totals
+    write_inputs(workbook, cache, annual_periods(selected) if annual else [selected])
     result = {}
     for title, blocks in sections(cache, selected, annual).items():
         index = workbook.sheetnames.index(title) if title in workbook.sheetnames else len(workbook.sheetnames)
@@ -403,21 +420,22 @@ def render_tabs(workbook, cache, selected, annual=False):
         # matrix. Do not retain July-only product columns in a May monthly view.
         width = max([len(b["headers"]) for b in blocks] + [7])
         last = get_column_letter(width)
+        heading_last = "N" if title == TYRE_TITLE else last
         ws.sheet_view.showGridLines = False
         ws.sheet_properties.tabColor = BLUE if title == TYRE_TITLE else "287B59"
-        ws.merge_cells(f"A2:{last}2")
+        ws.merge_cells(f"A2:{heading_last}2")
         ws["A2"] = f"APSRTC — {cache['depot']} DEPOT — {title.upper()}"
         ws["A2"].font = Font(name="Arial", size=15, bold=True, color=NAVY)
         ws["A2"].alignment = Alignment(horizontal="center", vertical="center")
         ws.row_dimensions[1].height = 9
         ws.row_dimensions[2].height = 27
         ws.merge_cells(f"A3:C3")
-        ws.merge_cells(f"D3:{last}3")
+        ws.merge_cells(f"D3:{heading_last}3")
         ws["D3"] = ("ANNUAL KPI · Through " if annual else "MONTHLY REPORT · ") + month_end(selected).strftime("%B %Y")
         ws["D3"].font = Font(name="Arial", size=12, bold=True, color=BLUE)
         ws["D3"].alignment = Alignment(horizontal="center", vertical="center")
-        ws.merge_cells(f"A4:{last}4")
-        ws["A4"] = ("All Tyre Sizes Total · source counts and percentage points" if title == TYRE_TITLE else
+        ws.merge_cells(f"A4:{heading_last}4")
+        ws["A4"] = ("All Tyre Sizes Total · FY totals use source counts; percentages use matching denominators" if title == TYRE_TITLE else
                     ("UD: monthly actual · UM: April through selected month · blank: no source value" if annual else
                      "UD: monthly actual through month end · blank: no source value"))
         ws["A4"].font = Font(name="Arial", size=10, italic=True, color="63758A")
@@ -427,7 +445,7 @@ def render_tabs(workbook, cache, selected, annual=False):
         for block in blocks:
             columns = max(len(block["headers"]), 3)
             end = get_column_letter(columns)
-            ws.merge_cells(f"A{r}:{last}{r}")
+            ws.merge_cells(f"A{r}:{end}{r}")
             ws.cell(r, 1, block["title"])
             ws.cell(r, 1).fill = PatternFill("solid", fgColor="287B59" if block.get("selected") else NAVY)
             ws.cell(r, 1).font = Font(name="Arial", size=11, bold=True, color="FFFFFF")
@@ -438,12 +456,22 @@ def render_tabs(workbook, cache, selected, annual=False):
             if block.get("provisional"):
                 context += (" · PROVISIONAL — current monthly statement; no daily cutoff supplied"
                             if block["kind"] == "tyre" else " · PROVISIONAL — through completed days")
-            ws.merge_cells(f"A{r}:{last}{r}")
+            ws.merge_cells(f"A{r}:{end}{r}")
             ws.cell(r, 1, context)
             ws.cell(r, 1).font = Font(name="Arial", size=10, color="63758A")
             ws.row_dimensions[r].height = 22
             r += 1
             if block["headers"]:
+                if block.get("header_groups"):
+                    for start, stop, label in block["header_groups"]:
+                        if start != stop:
+                            ws.merge_cells(start_row=r, start_column=start, end_row=r, end_column=stop)
+                        cell = ws.cell(r, start, label)
+                        cell.fill = PatternFill("solid", fgColor=BLUE)
+                        cell.font = Font(name="Arial", size=10, bold=True, color="FFFFFF")
+                        cell.alignment = Alignment(horizontal="center", vertical="center")
+                    ws.row_dimensions[r].height = 29
+                    r += 1
                 first_header = first_header or r
                 for c, label in enumerate(block["headers"], 1):
                     cell = ws.cell(r, c, label)
@@ -453,10 +481,13 @@ def render_tabs(workbook, cache, selected, annual=False):
                     cell.border = Border(right=Side(style="thin", color="FFFFFF"))
                 ws.row_dimensions[r].height = 58 if title == TYRE_TITLE else 40
                 r += 1
-                for row in block["rows"]:
-                    total = block["kind"] == "engine" and key(row[0]) == "TOTAL"
+                data_start = r
+                for row_index, row in enumerate(block["rows"]):
+                    total = (block["kind"] == "engine" and key(row[0]) == "TOTAL") or row_index == block.get("total_index")
                     for c, value in enumerate(row, 1):
                         cell = ws.cell(r, c, value)
+                        if isinstance(value, str) and value.startswith("="):
+                            cell.data_type = "s"
                         cell.fill = PatternFill("solid", fgColor="EAF2FA" if total else (PALE if r % 2 else "FFFFFF"))
                         cell.font = Font(name="Arial", size=10, color=NAVY if total else INK, bold=total)
                         cell.alignment = Alignment(horizontal="right" if isinstance(value, (int, float)) else "left",
@@ -464,25 +495,33 @@ def render_tabs(workbook, cache, selected, annual=False):
                         cell.border = Border(bottom=Side(style="thin", color=LINE))
                         label = block["headers"][c-1]
                         if isinstance(value, (int, float)):
-                            cell.number_format = "0.00" if block["kind"] == "engine" and c > 2 or "%" in label else "#,##0"
+                            cell.number_format = "0.00%" if c in block.get("percent_columns", []) else ("0.00" if block["kind"] == "engine" and c > 2 or "%" in label else "#,##0")
                             if block["kind"] == "engine" and c > 2:
                                 style_kmpl(cell)
                                 if total:
                                     cell.font = Font(name="Arial", size=10, color=cell.font.color, bold=True)
-                    if total:
+                    if total and block["kind"] == "engine":
                         ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=2)
-                    ws.row_dimensions[r].height = 39 if title == TYRE_TITLE else 23
+                    ws.row_dimensions[r].height = 26 if title == TYRE_TITLE else 23
                     r += 1
+                finish_totals(ws, block, data_start)
+            for note in block.get("notes", []):
+                ws.merge_cells(f"A{r}:N{r}")
+                ws.cell(r, 1, note)
+                ws.cell(r, 1).font = Font(name="Arial", size=10, color="9C6500")
+                ws.cell(r, 1).alignment = Alignment(wrap_text=True, vertical="center")
+                ws.row_dimensions[r].height = 32
+                r += 1
             for label, periods in (("Source unavailable", block["missing"]), ("Saved values retained; latest refresh failed", block["stale"])):
                 if periods:
-                    ws.merge_cells(f"A{r}:{last}{r}")
+                    ws.merge_cells(f"A{r}:{end}{r}")
                     ws.cell(r, 1, label + ": " + ", ".join(periods))
                     ws.cell(r, 1).font = Font(name="Arial", size=10, color="9C6500", bold=True)
                     ws.cell(r, 1).alignment = Alignment(wrap_text=True, vertical="center")
                     ws.row_dimensions[r].height = max(23, 18 * math.ceil(len(ws.cell(r, 1).value) / max(70, width*8)))
                     r += 1
             if block.get("source"):
-                ws.merge_cells(f"A{r}:{last}{r}")
+                ws.merge_cells(f"A{r}:{end}{r}")
                 ws.cell(r, 1, "Source: " + block["source"])
                 ws.cell(r, 1).font = Font(name="Arial", size=9, italic=True, color="63758A")
                 ws.row_dimensions[r].height = 19
@@ -492,7 +531,7 @@ def render_tabs(workbook, cache, selected, annual=False):
                 if annual and engine_blocks % 2 == 0:
                     ws.row_breaks.append(Break(id=r))
             r += 2
-        widths = ([6, 13, 23, 25, 12, 13, 20] if title == TYRE_TITLE else [6, 25])
+        widths = ([6, 13] if title == TYRE_TITLE else [6, 25])
         for c in range(1, width + 1):
             ws.column_dimensions[get_column_letter(c)].width = widths[c-1] if c <= len(widths) else 12
         # A3:C3 is reserved for the embedded logo; size it to that exact span.
@@ -543,7 +582,7 @@ def google_requests(worksheet, sheet_id, existing=None):
         requests.append({"deleteBanding": {"bandedRangeId": band["bandedRangeId"]}})
     for chart in (existing or {}).get("charts", []):
         requests.append({"deleteEmbeddedObject": {"objectId": chart["chartId"]}})
-    requests.append({"updateSheetProperties": {"properties": {"sheetId": sheet_id, "hidden": False,
+    requests.append({"updateSheetProperties": {"properties": {"sheetId": sheet_id, "hidden": worksheet.title == TYRE_INPUT_TITLE,
         "gridProperties": {"rowCount": rows, "columnCount": cols, "hideGridlines": True},
         "tabColor": _rgb(BLUE if worksheet.title == TYRE_TITLE else "287B59")},
         "fields": "hidden,gridProperties.rowCount,gridProperties.columnCount,gridProperties.hideGridlines,tabColor"}})
@@ -566,16 +605,18 @@ def google_requests(worksheet, sheet_id, existing=None):
             if cell.fill.patternType == "solid":
                 fmt["backgroundColor"] = _rgb(cell.fill.fgColor.rgb[-6:])
             if cell.number_format not in ("General", "@"):
-                fmt["numberFormat"] = dict(type="NUMBER", pattern=cell.number_format)
+                fmt["numberFormat"] = dict(type="PERCENT" if "%" in cell.number_format else "NUMBER", pattern=cell.number_format)
             if cell.border.bottom is not None and cell.border.bottom.style:
                 fmt["borders"] = {"bottom": {"style": "SOLID", "color": _rgb(LINE)}}
             record = {"userEnteredFormat": fmt}
-            if isinstance(value, (int, float)) and not isinstance(value, bool):
+            if cell.data_type == "f":
+                record["userEnteredValue"] = {"formulaValue": value}
+            elif isinstance(value, (int, float)) and not isinstance(value, bool):
                 record["userEnteredValue"] = {"numberValue": value}
             elif value is not None:
                 # Source strings are literal values, even when they start with '='.
                 record["userEnteredValue"] = {"stringValue": str(value)}
-            elif r == 3 and c == 1:
+            elif r == 3 and c == 1 and worksheet.title != TYRE_INPUT_TITLE:
                 # Sheets v4 cannot create an over-grid image. Use native text
                 # branding in the reserved logo span; XLSX contains the logo.
                 record["userEnteredValue"] = {"stringValue": "APSRTC"}
@@ -602,13 +643,13 @@ def google_requests(worksheet, sheet_id, existing=None):
     # Only the first four identity rows are frozen: freezing through the first
     # section merge would cross a vertical boundary when source widths change.
     requests.append({"updateSheetProperties": {"properties": {"sheetId": sheet_id, "gridProperties": {
-        "frozenRowCount": 4, "frozenColumnCount": 0}}, "fields": "gridProperties.frozenRowCount,gridProperties.frozenColumnCount"}})
+        "frozenRowCount": 0 if worksheet.title == TYRE_INPUT_TITLE else 4, "frozenColumnCount": 0}}, "fields": "gridProperties.frozenRowCount,gridProperties.frozenColumnCount"}})
     return requests
 
 
 def publish_google_tabs(service, spreadsheet_id, workbook):
     api = service.spreadsheets()
-    for title in TAB_TITLES:
+    for title in (TYRE_INPUT_TITLE, *TAB_TITLES):
         meta = api.get(spreadsheetId=spreadsheet_id).execute()
         existing = next((s for s in meta.get("sheets", []) if s["properties"]["title"] == title), None)
         if existing is None:

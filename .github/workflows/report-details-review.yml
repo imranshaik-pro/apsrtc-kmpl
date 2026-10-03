@@ -5,10 +5,12 @@ on:
     branches: [feat/monthly-annual-details-20261003]
     paths:
       - report_details.py
+      - report_tyre_template.py
       - verify_report_details.py
       - monthly_vehicle_report.py
       - annual_kpi_runner_v11.py
       - tests/test_report_details.py
+      - tests/test_tyre_template.py
       - tests/test_annual_history.py
       - tests/fixtures/report-details/**
       - .github/workflows/report-details-review.yml
@@ -34,8 +36,9 @@ jobs:
           APSRTC_USERNAME: offline
           APSRTC_PASSWORD: offline
         run: |
-          python -m compileall -q report_details.py verify_report_details.py monthly_vehicle_report.py annual_kpi_runner_v11.py
+          python -m compileall -q report_details.py report_tyre_template.py verify_report_details.py monthly_vehicle_report.py annual_kpi_runner_v11.py
           python -m unittest discover -s tests -p 'test_report_details.py' -v
+          python -m unittest discover -s tests -p 'test_tyre_template.py' -v
           python -m unittest discover -s tests -p 'test_annual_history.py' -v
           python -m unittest discover -s tests -p 'test_report_branding.py' -v
       - name: Validate both depots May July May and build isolated report previews

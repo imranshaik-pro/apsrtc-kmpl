@@ -22,7 +22,7 @@ def fixture(group, period, depot="PRODDUTUR"):
     if group in ("UD", "UM") and (FIXTURES / depot / f"{period}-{group}.html").exists():
         return engine(depot, period, group)
     # Synthetic periods exercise persistence, not live-source correctness.
-    if group in ("B", "F"):
+    if group in ("B", "C", "F"):
         return dict(depot=depot, period=period, group=group,
                     headers=["S.N", "Month-Year", "Depot", "Tyre size", "Count"],
                     rows=[[1, d.month_end(period).strftime("%b-%Y").upper(),
@@ -138,7 +138,7 @@ class HistoryAndViewTests(unittest.TestCase):
         checkpoint = Mock(side_effect=OSError("cache write failed"))
         with self.assertRaises(OSError):
             d.update(cache, ["2026-05", "2026-06"], fetch, selected_um="2026-06", checkpoint=checkpoint)
-        self.assertEqual(fetch.call_count, 3)
+        self.assertEqual(fetch.call_count, 4)
         self.assertEqual(set(cache["months"]), {"2026-05"})
 
     def test_selected_um_replaces_rows_and_columns_that_disappear(self):
@@ -157,12 +157,12 @@ class HistoryAndViewTests(unittest.TestCase):
             cache = d.new_cache(depot)
             fetch = Mock(side_effect=lambda g, p: fixture(g, p, depot))
             d.update(cache, d.annual_periods("2026-05"), fetch, selected_um="2026-05")
-            self.assertEqual(fetch.call_count, 14 * 3 + 1)
+            self.assertEqual(fetch.call_count, 14 * 4 + 1)
             closed = copy.deepcopy({p: v for p, v in cache["months"].items() if p < "2026-04"})
             april_may = copy.deepcopy({p: cache["months"][p]["UD"] for p in ("2026-04", "2026-05")})
             fetch.reset_mock()
             d.update(cache, d.annual_periods("2026-07"), fetch, selected_um="2026-07")
-            self.assertEqual(fetch.call_count, 7)
+            self.assertEqual(fetch.call_count, 9)
             self.assertEqual({c.args[1] for c in fetch.call_args_list}, {"2026-06", "2026-07"})
             july = copy.deepcopy(cache["months"]["2026-07"])
             fetch.reset_mock()
@@ -204,11 +204,11 @@ class HistoryAndViewTests(unittest.TestCase):
         source = Mock(side_effect=lambda g, p: dict(fixture(g, p), provisional=True))
         d.update(cache, ["2026-05"], source)
         d.update(cache, ["2026-05"], source)
-        self.assertEqual(source.call_count, 6)
+        self.assertEqual(source.call_count, 8)
         source.reset_mock()
         source.side_effect = fixture
         d.update(cache, ["2026-05"], source)
-        self.assertEqual(source.call_count, 3)
+        self.assertEqual(source.call_count, 4)
         source.reset_mock()
         d.update(cache, ["2026-05"], source)
         source.assert_not_called()
@@ -218,7 +218,7 @@ class HistoryAndViewTests(unittest.TestCase):
         d.update(cache, ["2026-05"], lambda g, p: dict(fixture(g, p), provisional=True))
         d.render_tabs(wb, cache, "2026-05")
         notes = [c.value for row in wb[d.TYRE_TITLE] for c in row if c.value is not None]
-        self.assertEqual(sum("no daily cutoff supplied" in str(v) for v in notes), 2)
+        self.assertEqual(sum("no daily cutoff supplied" in str(v) for v in notes), 3)
         self.assertFalse(any("through completed days" in str(v) for v in notes))
 
     def test_monthly_refresh_uses_same_source_period_but_can_update_that_month(self):
@@ -226,8 +226,8 @@ class HistoryAndViewTests(unittest.TestCase):
         d.update(cache, ["2026-05"], fixture)
         fetch = Mock(side_effect=fixture)
         d.update(cache, ["2026-05"], fetch, refresh_monthly=True)
-        self.assertEqual(fetch.call_args_list[2].args, ("UD", "2026-05"))
-        self.assertEqual(fetch.call_count, 3)
+        self.assertEqual(fetch.call_args_list[3].args, ("UD", "2026-05"))
+        self.assertEqual(fetch.call_count, 4)
         self.assertNotIn("UM", cache["months"]["2026-05"])
 
     def test_no_fy24_source_fetches(self):
@@ -239,8 +239,8 @@ class HistoryAndViewTests(unittest.TestCase):
     def test_monthly_selection_is_not_restricted_by_annual_history_floor(self):
         cache, fetch = d.new_cache("PRODDUTUR"), Mock(side_effect=fixture)
         d.update(cache, ["2024-06"], fetch, refresh_monthly=True)
-        self.assertEqual(fetch.call_count, 3)
-        self.assertEqual({c.args for c in fetch.call_args_list}, {("B", "2024-06"), ("F", "2024-06"), ("UD", "2024-06")})
+        self.assertEqual(fetch.call_count, 4)
+        self.assertEqual({c.args for c in fetch.call_args_list}, {("B", "2024-06"), ("C", "2024-06"), ("F", "2024-06"), ("UD", "2024-06")})
         blocks = d.sections(cache, "2024-06", False)
         self.assertEqual(len(blocks[d.ENGINE_TITLE]), 1)
         self.assertIn("June 2024", blocks[d.ENGINE_TITLE][0]["title"])
@@ -323,7 +323,7 @@ class HistoryAndViewTests(unittest.TestCase):
             d.attach_monthly_tabs(wb, Mock(), "PRODDUTUR", "YSRKADAPA", "2026-05", "monthly-folder")
         find.assert_called_once_with("monthly-folder", "PRODDUTUR_2026-05")
         read.assert_called_once_with(api, "same-month-id", "PRODDUTUR")
-        self.assertEqual(source.call_count, 3)
+        self.assertEqual(source.call_count, 4)
         self.assertEqual(wb["Monthly KMPL"]["A1"].value, "original vehicle report")
         self.assertTrue(set(d.TAB_TITLES) <= set(wb.sheetnames))
         self.assertEqual(wb[d.CACHE_TITLE].sheet_state, "hidden")
