@@ -41,10 +41,14 @@ def main():
                 response.raise_for_status()
                 soup=BeautifulSoup(response.text,"html.parser")
                 print("RANGE_PARENT_POST",entity,parent,"tables",[len(t.find_all("tr")) for t in soup.find_all("table")])
+                print("RANGE_PARENT_STRUCTURE",entity,"all_tr",len(soup.find_all("tr")),"raw_tr",response.text.lower().count("<tr"),"tail",repr(response.text[-1800:]))
                 for link in soup.find_all("a",href=True):
                     if "YSR" in link.get_text() or "YSR" in link["href"]:
                         print("RANGE_PARENT_LINK",entity,link.get_text(" ",strip=True),urljoin(parent,link["href"]))
                 response=session.get(f"{k.d.BASE}/med/{endpoint}",params=dict(action="",yymm=args.month.replace("-",""),rreg="YSRKADAPA"),timeout=45)
+                soup=BeautifulSoup(response.text,"html.parser")
+                print("RANGE_DEPOT_STRUCTURE",entity,"all_tr",len(soup.find_all("tr")),"raw_tr",response.text.lower().count("<tr"),"tail",repr(response.text[-2200:]))
+                (output/f"{entity.lower()}_regional_response.html").write_text(response.text)
                 try:
                     result=k.parse_range(response.text,entity,"PRODDUTUR",args.month,"YSRKADAPA")
                     print("RANGE_PARENT_THEN_GET_VALID",entity,result["counts"])
