@@ -4,6 +4,7 @@ B mechanical defects plus F's two percentages, B premature failures, then C's
 four grouped stages. Receipts and F numerator/denominator counts are hidden.
 """
 from openpyxl.utils import get_column_letter
+from openpyxl.styles import Alignment
 import report_details as d
 
 DEFECTS = ("Misalignment", "Mismatching", "Camber wear", "King pin play", "Brake Binding",
@@ -121,6 +122,7 @@ def finish_totals(ws, block, data_start):
         target = f"{letter}{data_start}:{letter}{last}"
         ws.cell(total, col, f'=IF(COUNT({target})={count},SUM({target}),"")')
         ws.cell(total, col).number_format = "#,##0"
+        ws.cell(total, col).alignment = Alignment(horizontal="right", vertical="center")
     if block["template_kind"] != "mechanical":
         return
     start, end = block["input_start"], block["input_end"]
