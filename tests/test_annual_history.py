@@ -133,15 +133,16 @@ class HistoryTests(unittest.TestCase):
         fn=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='_finalize_live_workbook')
         svc=Mock(); svc.spreadsheets.return_value=svc
         detail_titles=('Tyre Statements','Engine & Product KMPL')
-        svc.get.return_value.execute.return_value={'sheets':[{'properties':{'sheetId':i,'title':t}} for i,t in enumerate(['Annual KPI','Dashboard',h.CACHE_TITLE,'_META','Legacy',*detail_titles,'_REPORT_DETAILS_HISTORY'])]}
+        svc.get.return_value.execute.return_value={'sheets':[{'properties':{'sheetId':i,'title':t}} for i,t in enumerate(['Annual KPI','Dashboard',h.CACHE_TITLE,'_META','Legacy',*detail_titles,'_REPORT_DETAILS_HISTORY','FY KMPL Range Trend','_KMPL_RANGE_HISTORY'])]}
         env={'m':types.SimpleNamespace(sheets_service=lambda:svc,SHEET_TITLE='Annual KPI'),'DASHBOARD_TITLE':'Dashboard','DETAIL_TITLE':'Detail',
-             'details':types.SimpleNamespace(TAB_TITLES=detail_titles)}
+             'details':types.SimpleNamespace(TAB_TITLES=detail_titles),
+             'ranges':types.SimpleNamespace(ANNUAL_TITLE='FY KMPL Range Trend')}
         exec(compile(ast.Module(body=[fn],type_ignores=[]),'<finalizer>','exec'),env)
         env['_finalize_live_workbook']('same-id')
         req=svc.batchUpdate.call_args.kwargs['body']['requests']
         self.assertFalse(any('deleteSheet' in r for r in req))
-        self.assertEqual({r['updateSheetProperties']['properties']['sheetId'] for r in req if r['updateSheetProperties']['properties'].get('hidden')},{2,3,4,7})
-        self.assertEqual({r['updateSheetProperties']['properties']['sheetId'] for r in req if r['updateSheetProperties']['properties'].get('hidden') is False},{5,6})
+        self.assertEqual({r['updateSheetProperties']['properties']['sheetId'] for r in req if r['updateSheetProperties']['properties'].get('hidden')},{2,3,4,7,9})
+        self.assertEqual({r['updateSheetProperties']['properties']['sheetId'] for r in req if r['updateSheetProperties']['properties'].get('hidden') is False},{5,6,8})
 
     def test_depot_first_telegram_flow(self):
         with patch.object(bot,'DEPOTS',('RAJAMPET',)),patch.object(bot,'send') as send,patch.object(bot,'answer_callback'):
@@ -177,7 +178,10 @@ class HistoryTests(unittest.TestCase):
         detail_api=types.SimpleNamespace(read_google_cache=Mock(return_value={}),
             encode=lambda _: [['detail-cache']],save_google_cache=Mock(),
             annual_periods=lambda _: [],update=Mock(),SourceAdapter=Mock(),publish_google_tabs=Mock())
-        env=dict(history=h,details=detail_api,load_workbook=Mock(),datetime=datetime,os=os,sys=types.SimpleNamespace(argv=['run','--depot','RAJAMPET','--selected-month','2026-06']),
+        range_api=types.SimpleNamespace(read_google_cache=Mock(return_value={}),
+            encode=lambda _: [['range-cache']],save_google_cache=Mock(),
+            periods_for_fys=lambda *_: [],update=Mock(),SourceAdapter=Mock(),publish_google_tab=Mock())
+        env=dict(history=h,details=detail_api,ranges=range_api,load_workbook=Mock(),datetime=datetime,os=os,sys=types.SimpleNamespace(argv=['run','--depot','RAJAMPET','--selected-month','2026-06']),
             m=model,v7=types.SimpleNamespace(matrix_with_target=lambda st:st),v10=Mock(),LAYOUT_VERSION='10',
             ORIGINAL_V7_MAIN=old_main,DETAIL_TITLE='Detail',make_xlsx_v11=Mock(),format_sheet_v11=formatter,
             _style_live_detail=Mock(),_ensure_dashboard_google_sheet=Mock(),_add_live_identity=Mock(),_finalize_live_workbook=Mock())
@@ -186,5 +190,7 @@ class HistoryTests(unittest.TestCase):
         model.login.assert_not_called(); old_main.assert_not_called()
         self.assertEqual(formatter.call_args.args[0],'existing-depot-id')
         self.assertEqual(h.decode(saved['cache'],'RAJAMPET')['months'],self.cache['months'])
+        range_api.read_google_cache.assert_called_once_with(svc,'existing-depot-id','RAJAMPET')
+        range_api.publish_google_tab.assert_called_once()
 
 if __name__=='__main__': unittest.main()
