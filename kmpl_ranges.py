@@ -203,7 +203,8 @@ def update(cache, periods, fetch, selected, checkpoint=lambda: None, include_upt
                     continue
                 calls.append((entity, period, scope))
                 try:
-                    snap = validate_snapshot(fetch(entity, period, scope), cache["depot"], entity, period, scope)
+                    snap = validate_snapshot(fetch(entity, period) if scope == "MONTH" else fetch(entity, period, "UPTO"),
+                                             cache["depot"], entity, period, scope)
                     groups[key] = copy.deepcopy(snap)
                     cache["errors"].get(period, {}).pop(key, None)
                 except Exception as exc:
@@ -318,7 +319,7 @@ def render_tab(wb, cache, selected, fys=None):
             style_row(r,header=True); r += 1
             for period in periods:
                 snap = (cache["months"].get(period,{}).get(f"{entity}_MONTH") or cache["months"].get(period,{}).get(entity))
-                error = cache["errors"].get(period,{}).get(entity)
+                error = cache["errors"].get(period,{}).get(f"{entity}_MONTH") or cache["errors"].get(period,{}).get(entity)
                 ws.cell(r,1,d.month_end(period).strftime("%b-%Y") if fy else entity.title())
                 if snap:
                     for c,n in enumerate(snap["counts"],2): ws.cell(r,c,n).number_format="#,##0"
@@ -346,7 +347,7 @@ def render_tab(wb, cache, selected, fys=None):
                     ws.cell(r,13,"Unavailable — no verified cumulative source")
                 style_row(r,selected_row=True); r += 1
             note("Source first three ranges = below 3.00 through the source 4.01–5.00 bucket. Highest range uses source 5.60–ABV. No FY sum of monthly populations.")
-            if fys and any(cache["months"].get(p,{}).get(entity,{}).get("counts",[0]*8)[7]>0 for p in periods):
+            if fys and any((cache["months"].get(p,{}).get(f"{entity}_MONTH") or cache["months"].get(p,{}).get(entity,{})).get("counts",[0]*8)[7]>0 for p in periods):
                 chart=LineChart()
                 chart.title=f"{entity.title()} · FY {fy} · range shares"
                 chart.y_axis.title="Share of monthly source population"
