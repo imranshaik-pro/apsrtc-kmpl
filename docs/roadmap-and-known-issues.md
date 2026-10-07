@@ -50,3 +50,12 @@ For a data defect, capture selected depot/date/FY, exact source endpoint/payload
 For a presentation change, retain the approved model data and section order, run the relevant contracts, render and inspect, version an approved change, then obtain production merge approval. Telegram API acceptance, user reading, Google HTML preview support and full report correctness are different checks.
 
 For Hub changes, verify the real originating response row and returned report URL, not only workflow success. For Apps Script, record the deployed version and existing URL/access settings separately from a Git merge. The documentation update itself does not run a report, send Telegram or deploy Apps Script.
+
+
+## Status update — 7 October 2026
+
+**Completed:** KMPL range Month/Upto reporting is merged through PR #12, with test hardening through PR #14. Monthly shows Vehicle Month/Upto and Driver Month/Upto from independent source snapshots. Annual shows monthly FY rows plus a source-backed final Upto/Cum row. Cumulative populations are never calculated by summing monthly counts.
+
+**Validation follow-up:** the KMPL range test suite passes. The review workflow separately exposed a failure inside `tests/test_report_details.py::HistoryAndViewTests`; `SourceContractTests` passes and `report_details.py` is unchanged from the pre-range baseline. Treat this as an independent test/validation issue until the exact failing test is reproduced on clean master. Do not alter report-details production logic merely to make the broad review green.
+
+**Future module retained:** Tyre Inventory Management remains a separate future operational module. B/C/F tyre statements are aggregate reporting and must not be treated as serial-level inventory. A future inventory design should track tyre master identity, lifecycle events, active fitment/position, retread cycle, stock snapshots, inspections, age/KM life, low stock, failures, cost/km and reconciliation back to aggregate B/C/F totals.
