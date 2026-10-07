@@ -197,7 +197,7 @@ def update(cache, periods, fetch, selected, checkpoint=lambda: None, include_upt
         for entity in ENDPOINTS:
             for scope in scopes:
                 key = f"{entity}_{scope}"
-                old = groups.get(key) or (groups.get(entity) if scope == "MONTH" else None)
+                old = (groups.get(entity) if scope == "MONTH" else groups.get(key))
                 if old and not old.get("provisional") and period != selected:
                     groups[key] = old
                     continue
@@ -206,6 +206,7 @@ def update(cache, periods, fetch, selected, checkpoint=lambda: None, include_upt
                     snap = validate_snapshot(fetch(entity, period) if scope == "MONTH" else fetch(entity, period, "UPTO"),
                                              cache["depot"], entity, period, scope)
                     groups[key] = copy.deepcopy(snap)
+                    if scope == "MONTH": groups[entity] = copy.deepcopy(snap)
                     cache["errors"].get(period, {}).pop(key, None)
                 except Exception as exc:
                     cache["errors"].setdefault(period, {})[key] = f"{type(exc).__name__}: {exc}"[:300]
