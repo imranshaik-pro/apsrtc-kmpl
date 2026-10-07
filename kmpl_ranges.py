@@ -15,10 +15,15 @@ from bs4 import BeautifulSoup
 import report_details as d
 
 CACHE_TITLE = "_KMPL_RANGE_HISTORY"
-SCHEMA = "kmpl-range-1"
+SCHEMA = "kmpl-range-2"
 MONTHLY_TITLE = "KMPL Range Distribution"
 ANNUAL_TITLE = "FY KMPL Range Trend"
 ENDPOINTS = {"VEHICLE": "vehlog_kmpldepot.php", "DRIVER": "drvlog_kmpldepot.php"}
+# APSRTC cumulative/Upto source families use the same action/yymm/rreg selection contract.
+# Driver cumulative depot endpoint is owner-verified; vehicle cumulative is derived from the supplied
+# vehlog_kmpl.php family and kept explicit here so Month and Upto snapshots never get conflated.
+UPTO_ENDPOINTS = {"VEHICLE": "vehlog_ckmpldepot.php", "DRIVER": "drvlog_ckmpldepot.php"}
+SCOPES = ("MONTH", "UPTO")
 LABELS = ("Below -3.00", "3.00 - 4.00", "4.01 - 5.00", "5.01 - 5.15",
           "5.16 - 5.30", "5.31 - 5.60", "5.60 - ABV")
 HEADER_KEYS = tuple(d.key(x) for x in LABELS) + ("GTOTAL",)
@@ -31,14 +36,18 @@ def count(value):
     return int(text)
 
 
-def parse_range(html, entity, depot, period, region):
-    if entity not in ENDPOINTS:
+def parse_range(html, entity, depot, period, region, scope="MONTH"):
+    endpoints = ENDPOINTS if scope == "MONTH" else UPTO_ENDPOINTS if scope == "UPTO" else None
+    if entity not in ENDPOINTS or endpoints is None:
         raise ValueError("Unknown range source")
     soup = BeautifulSoup(html, "html.parser")
     headings = [d.norm(h.get_text(" ", strip=True)) for h in soup.find_all(re.compile(r"^h[1-6]$"))]
     expected = d.month_end(period).strftime("%m/%Y")
-    if not any(re.search(rf"RANGE WISE {entity} HSD KMPL FOR THE MONTH OF:\s*{expected}\s*$", h)
-               for h in headings):
+    heading_patterns = [
+        rf"RANGE WISE {entity} HSD KMPL FOR THE MONTH OF:\\s*{expected}\\s*$",
+        rf"RANGE WISE {entity}.*(?:CUM|UPTO|UP TO).*{expected}\\s*$",
+    ] if scope == "UPTO" else [rf"RANGE WISE {entity} HSD KMPL FOR THE MONTH OF:\\s*{expected}\\s*$"]
+    if not any(re.search(pattern, h) for h in headings for pattern in heading_patterns):
         raise ValueError("Range source entity/month heading is not verified")
     choices = []
     for table in soup.find_all("table"):
@@ -85,10 +94,10 @@ def parse_range(html, entity, depot, period, region):
         selected = [row for row in rows if row[1] == d.norm(depot)]
         if len(selected) != 1:
             raise ValueError("No unique exact selected-depot range row")
-        choices.append(dict(depot=d.norm(depot), period=period, entity=entity, region=region,
+        choices.append(dict(depot=d.norm(depot), period=period, entity=entity, scope=scope, region=region,
                             headers=["SL No", "Depot", *[c.get_text(" ", strip=True) for c in second]],
                             rows=rows, regional_total=total, counts=selected[0][2:],
-                            source=f"{d.BASE}/med/{ENDPOINTS[entity]}"))
+                            source=f"{d.BASE}/med/{endpoints[entity]}"))
     if len(choices) != 1:
         layouts=[]
         for table in soup.find_all("table"):
@@ -103,13 +112,14 @@ class SourceAdapter:
         self.session, self.depot, self.region = session, depot, region
         self.today = today or datetime.now(d.IST).date()
 
-    def __call__(self, entity, period):
+    def __call__(self, entity, period, scope="MONTH"):
         if d.month_end(period).replace(day=1) > self.today:
             raise ValueError("Future range months are not requested")
         payload = dict(action="", yymm=period.replace("-", ""), rreg=self.region)
-        response = self.session.get(f"{d.BASE}/med/{ENDPOINTS[entity]}", params=payload, timeout=45)
+        endpoints = ENDPOINTS if scope == "MONTH" else UPTO_ENDPOINTS
+        response = self.session.get(f"{d.BASE}/med/{endpoints[entity]}", params=payload, timeout=45)
         response.raise_for_status()
-        snap = parse_range(response.text, entity, self.depot, period, self.region)
+        snap = parse_range(response.text, entity, self.depot, period, self.region, scope)
         snap.update(request=payload, fetched_at=datetime.now(d.IST).isoformat(timespec="seconds"),
                     provisional=d.month_end(period) >= self.today)
         return snap
