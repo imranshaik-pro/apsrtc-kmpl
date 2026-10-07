@@ -15,10 +15,13 @@ from bs4 import BeautifulSoup
 import report_details as d
 
 CACHE_TITLE = "_KMPL_RANGE_HISTORY"
-SCHEMA = "kmpl-range-1"
+SCHEMA = "kmpl-range-2"
 MONTHLY_TITLE = "KMPL Range Distribution"
 ANNUAL_TITLE = "FY KMPL Range Trend"
 ENDPOINTS = {"VEHICLE": "vehlog_kmpldepot.php", "DRIVER": "drvlog_kmpldepot.php"}
+UPTO_SELECTORS = {"VEHICLE": "vehlog_kmpl.php", "DRIVER": "drvlog_ckmpl.php"}
+UPTO_ENDPOINTS = {"VEHICLE": "vehlog_kmpldepot.php", "DRIVER": "drvlog_ckmpldepot.php"}
+SCOPES = ("MONTH", "UPTO")
 LABELS = ("Below -3.00", "3.00 - 4.00", "4.01 - 5.00", "5.01 - 5.15",
           "5.16 - 5.30", "5.31 - 5.60", "5.60 - ABV")
 HEADER_KEYS = tuple(d.key(x) for x in LABELS) + ("GTOTAL",)
@@ -31,7 +34,7 @@ def count(value):
     return int(text)
 
 
-def parse_range(html, entity, depot, period, region):
+def parse_range(html, entity, depot, period, region, scope="MONTH"):
     if entity not in ENDPOINTS:
         raise ValueError("Unknown range source")
     soup = BeautifulSoup(html, "html.parser")
@@ -85,10 +88,10 @@ def parse_range(html, entity, depot, period, region):
         selected = [row for row in rows if row[1] == d.norm(depot)]
         if len(selected) != 1:
             raise ValueError("No unique exact selected-depot range row")
-        choices.append(dict(depot=d.norm(depot), period=period, entity=entity, region=region,
+        choices.append(dict(depot=d.norm(depot), period=period, entity=entity, scope=scope, region=region,
                             headers=["SL No", "Depot", *[c.get_text(" ", strip=True) for c in second]],
                             rows=rows, regional_total=total, counts=selected[0][2:],
-                            source=f"{d.BASE}/med/{ENDPOINTS[entity]}"))
+                            source=f"{d.BASE}/med/{(ENDPOINTS if scope == 'MONTH' else UPTO_ENDPOINTS)[entity]}"))
     if len(choices) != 1:
         layouts=[]
         for table in soup.find_all("table"):
@@ -103,13 +106,18 @@ class SourceAdapter:
         self.session, self.depot, self.region = session, depot, region
         self.today = today or datetime.now(d.IST).date()
 
-    def __call__(self, entity, period):
+    def __call__(self, entity, period, scope="MONTH"):
         if d.month_end(period).replace(day=1) > self.today:
             raise ValueError("Future range months are not requested")
         payload = dict(action="", yymm=period.replace("-", ""), rreg=self.region)
-        response = self.session.get(f"{d.BASE}/med/{ENDPOINTS[entity]}", params=payload, timeout=45)
+        if scope not in SCOPES: raise ValueError("Unknown range scope")
+        if scope == "UPTO":
+            selector = self.session.get(f"{d.BASE}/med/{UPTO_SELECTORS[entity]}", timeout=45)
+            selector.raise_for_status()
+        endpoints = ENDPOINTS if scope == "MONTH" else UPTO_ENDPOINTS
+        response = self.session.get(f"{d.BASE}/med/{endpoints[entity]}", params=payload, timeout=45)
         response.raise_for_status()
-        snap = parse_range(response.text, entity, self.depot, period, self.region)
+        snap = parse_range(response.text, entity, self.depot, period, self.region, scope)
         snap.update(request=payload, fetched_at=datetime.now(d.IST).isoformat(timespec="seconds"),
                     provisional=d.month_end(period) >= self.today)
         return snap
@@ -119,9 +127,9 @@ def new_cache(depot):
     return dict(schema=SCHEMA, depot=d.norm(depot), months={}, errors={})
 
 
-def validate_snapshot(snap, depot, entity, period):
+def validate_snapshot(snap, depot, entity, period, scope="MONTH"):
     if (not isinstance(snap, dict) or snap.get("depot") != d.norm(depot)
-            or snap.get("entity") != entity or snap.get("period") != period):
+            or snap.get("entity") != entity or snap.get("period") != period or snap.get("scope", "MONTH") != scope):
         raise ValueError("Range snapshot identity mismatch")
     counts = snap.get("counts", [])
     if len(counts) != 8 or any(type(n) is not int or n < 0 for n in counts) or sum(counts[:7]) != counts[7]:
