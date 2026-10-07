@@ -124,13 +124,14 @@ class RangeTests(unittest.TestCase):
         wb=Workbook();wb.active.title="Core";wb.active["A1"]="=1+1"
         ws=k.render_tab(wb,cache,"2026-09");k.write_xlsx_cache(wb,cache)
         self.assertEqual(wb["Core"]["A1"].value,"=1+1");self.assertEqual(wb[k.CACHE_TITLE].sheet_state,"hidden")
-        self.assertEqual(ws["B8"].value,0);self.assertEqual(ws["I8"].value,81)
-        self.assertEqual(ws["K8"].value,'=IF(I8=0,"",J8/I8)')
-        self.assertEqual(ws["K8"].number_format,"0.0%")
+        vehicle_row=next(row[0].row for row in ws.iter_rows() if row[0].value=="Vehicle")
+        self.assertEqual(ws.cell(vehicle_row,2).value,0);self.assertEqual(ws.cell(vehicle_row,9).value,81)
+        self.assertEqual(ws.cell(vehicle_row,11).value,f'=IF(I{vehicle_row}=0,"",J{vehicle_row}/I{vehicle_row})')
+        self.assertEqual(ws.cell(vehicle_row,11).number_format,"0.0%")
         requests=d.google_requests(ws,17)
         records=next(r["updateCells"]["rows"] for r in requests if "updateCells" in r)
-        self.assertEqual(records[7]["values"][1]["userEnteredValue"],{"numberValue":0})
-        self.assertEqual(records[7]["values"][10]["userEnteredValue"],{"formulaValue":ws["K8"].value})
+        self.assertEqual(records[vehicle_row-1]["values"][1]["userEnteredValue"],{"numberValue":0})
+        self.assertEqual(records[vehicle_row-1]["values"][10]["userEnteredValue"],{"formulaValue":ws.cell(vehicle_row,11).value})
         self.assertEqual(ws.max_column,13);self.assertEqual(len(ws._images),1)
         self.assertIn("A3:C3",[str(m) for m in ws.merged_cells.ranges])
 
@@ -143,7 +144,9 @@ class RangeTests(unittest.TestCase):
         k.validate_snapshot(s,"PRODDUTUR","VEHICLE","2026-09")
         cache["months"]["2026-09"]={"VEHICLE":s}
         wb=Workbook();ws=k.render_tab(wb,cache,"2026-09")
-        self.assertEqual(ws["I8"].value,0);self.assertIn('IF(I8=0,""',ws["K8"].value)
+        vehicle_row=next(row[0].row for row in ws.iter_rows() if row[0].value=="Vehicle")
+        self.assertEqual(ws.cell(vehicle_row,9).value,0)
+        self.assertIn(f'IF(I{vehicle_row}=0,""',ws.cell(vehicle_row,11).value)
 
     def test_both_entry_points_and_annual_native_visibility(self):
         monthly=Path("monthly_vehicle_report.py").read_text();annual=Path("annual_kpi_runner_v11.py").read_text()
