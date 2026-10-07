@@ -171,10 +171,12 @@ def decode(rows, depot):
         raise ValueError("Range history identity mismatch")
     for period, groups in cache["months"].items():
         d.month_end(period)
-        for entity, snap in groups.items():
+        for key, snap in groups.items():
+            parts = key.rsplit("_", 1)
+            entity, scope = (parts[0], parts[1]) if len(parts) == 2 and parts[1] in SCOPES else (key, "MONTH")
             if entity not in ENDPOINTS:
                 raise ValueError("Unknown cached range entity")
-            validate_snapshot(snap, depot, entity, period)
+            validate_snapshot(snap, depot, entity, period, scope)
     cache.setdefault("errors", {})
     return cache
 
@@ -186,26 +188,29 @@ def periods_for_fys(fys, selected):
             if f"{year:04d}-{month:02d}" <= selected]
 
 
-def update(cache, periods, fetch, selected, checkpoint=lambda: None):
+def update(cache, periods, fetch, selected, checkpoint=lambda: None, include_upto=False):
     calls = []
     for period in periods:
         d.month_end(period)
         groups = cache["months"].setdefault(period, {})
+        scopes = SCOPES if include_upto and period == selected else ("MONTH",)
         for entity in ENDPOINTS:
-            old = groups.get(entity)
-            if old and not old.get("provisional") and period != selected:
-                continue
-            calls.append((entity, period))
-            try:
-                snap = validate_snapshot(fetch(entity, period), cache["depot"], entity, period)
-                groups[entity] = copy.deepcopy(snap)
-                cache["errors"].get(period, {}).pop(entity, None)
-            except Exception as exc:
-                cache["errors"].setdefault(period, {})[entity] = f"{type(exc).__name__}: {exc}"[:300]
-                print(f"RANGE_SOURCE_UNAVAILABLE {cache['depot']} {period} {entity}: {exc}")
-        checkpoint()  # Persistence errors must fail closed, outside source-error handling.
+            for scope in scopes:
+                key = f"{entity}_{scope}"
+                old = groups.get(key) or (groups.get(entity) if scope == "MONTH" else None)
+                if old and not old.get("provisional") and period != selected:
+                    groups[key] = old
+                    continue
+                calls.append((entity, period, scope))
+                try:
+                    snap = validate_snapshot(fetch(entity, period, scope), cache["depot"], entity, period, scope)
+                    groups[key] = copy.deepcopy(snap)
+                    cache["errors"].get(period, {}).pop(key, None)
+                except Exception as exc:
+                    cache["errors"].setdefault(period, {})[key] = f"{type(exc).__name__}: {exc}"[:300]
+                    print(f"RANGE_SOURCE_UNAVAILABLE {cache['depot']} {period} {entity} {scope}: {exc}")
+        checkpoint()
     return calls
-
 
 def read_google_cache(service, sid, depot):
     api = service.spreadsheets()
