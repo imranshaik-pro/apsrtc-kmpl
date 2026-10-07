@@ -530,7 +530,7 @@ def main_v11():
             continue
         upto_period = fy_periods[-1]
         ranges.update(range_cache, [upto_period],
-                      lambda entity, period: range_adapter(entity, period, "UPTO"),
+                      lambda entity, period, scope="MONTH": range_adapter(entity, period, scope),
                       upto_period, checkpoint=save_range_cache, include_upto=True)
     xlsx = make_xlsx_v11(display,mat,fys,detail_cache,range_cache)
     format_sheet_v11(sid,mat,fys)
