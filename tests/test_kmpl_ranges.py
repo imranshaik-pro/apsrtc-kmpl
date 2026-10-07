@@ -174,47 +174,50 @@ class RangeTests(unittest.TestCase):
                 self.assertEqual(values["endRowIndex"],domain["endRowIndex"])
                 self.assertEqual(ws.cell(domain["startRowIndex"]+1,1).value,"Month")
 
+    def test_month_and_upto_cache_are_independent(self):
+        cache = k.new_cache("PRODDUTUR")
+        calls = []
+        def fetch(entity, period, scope="MONTH"):
+            calls.append((entity, period, scope))
+            counts = [1,2,3,4,5,6,7,28] if scope == "MONTH" else [2,3,4,5,6,7,8,35]
+            return dict(depot="PRODDUTUR", period=period, entity=entity, scope=scope, region="YSRKADAPA",
+                        headers=["SL No","Depot",*k.LABELS,"G.Total"],
+                        rows=[[1,"PRODDUTUR",*counts]], regional_total=counts, counts=counts,
+                        source="fixture", provisional=False)
+        k.update(cache, ["2026-09"], fetch, "2026-09", include_upto=True)
+        groups = cache["months"]["2026-09"]
+        self.assertEqual(groups["VEHICLE_MONTH"]["counts"][-1], 28)
+        self.assertEqual(groups["VEHICLE_UPTO"]["counts"][-1], 35)
+        self.assertEqual(groups["DRIVER_MONTH"]["counts"][-1], 28)
+        self.assertEqual(groups["DRIVER_UPTO"]["counts"][-1], 35)
+        self.assertEqual(len(calls), 4)
+
+    def test_monthly_combined_table_and_annual_upto_row(self):
+        cache = k.new_cache("PRODDUTUR")
+        month=[1,2,3,4,5,6,7,28]; upto=[2,3,4,5,6,7,8,35]
+        for entity in k.ENDPOINTS:
+            for scope,counts in (("MONTH",month),("UPTO",upto)):
+                key=f"{entity}_{scope}"
+                cache["months"].setdefault("2026-09",{})[key]=dict(
+                    depot="PRODDUTUR",period="2026-09",entity=entity,scope=scope,region="YSRKADAPA",
+                    headers=["SL No","Depot",*k.LABELS,"G.Total"],rows=[[1,"PRODDUTUR",*counts]],
+                    regional_total=counts,counts=counts,source="fixture",provisional=False)
+        wb=Workbook(); ws=k.render_tab(wb,cache,"2026-09")
+        values=[[c.value for c in row] for row in ws.iter_rows()]
+        self.assertIn(["KMPL Range","Vehicle Month","Vehicle Upto","Driver Month","Driver Upto"],[r[:5] for r in values])
+        wb2=Workbook(); ws2=k.render_tab(wb2,cache,"2026-09",["2026-27"])
+        self.assertTrue(any(c.value=="Upto/Cum Sep-26" for row in ws2.iter_rows() for c in row))
+
+    def test_upto_source_contract_uses_verified_selector_and_result_pairs(self):
+        for entity in k.ENDPOINTS:
+            session=Mock()
+            session.get.side_effect=[Mock(text="selector"),Mock(text=html(entity))]
+            result=k.SourceAdapter(session,"PRODDUTUR","YSRKADAPA",date(2026,10,7))(entity,"2026-09","UPTO")
+            self.assertEqual(result["scope"],"UPTO")
+            first,second=session.get.call_args_list
+            self.assertEqual(first.args[0],f"{d.BASE}/med/{k.UPTO_SELECTORS[entity]}")
+            self.assertEqual(second.args[0],f"{d.BASE}/med/{k.UPTO_ENDPOINTS[entity]}")
+            self.assertEqual(second.kwargs["params"],{"action":"","yymm":"202609","rreg":"YSRKADAPA"})
+
 
 if __name__=="__main__":unittest.main()
-
-
-def test_month_and_upto_cache_are_independent():
-    cache = k.new_cache("Proddutur")
-    calls = []
-    def fetch(entity, period, scope="MONTH"):
-        calls.append((entity, period, scope))
-        counts = [1,2,3,4,5,6,7,28] if scope == "MONTH" else [2,3,4,5,6,7,8,35]
-        return dict(depot="Proddutur", period=period, entity=entity, scope=scope, region="YSRKADAPA",
-                    headers=["SL No","Depot",*k.LABELS,"G.Total"],
-                    rows=[[1,"Proddutur",*counts]], regional_total=counts, counts=counts,
-                    source="fixture", provisional=False)
-    k.update(cache, ["2026-09"], fetch, "2026-09", include_upto=True)
-    groups = cache["months"]["2026-09"]
-    assert groups["VEHICLE_MONTH"]["counts"][-1] == 28
-    assert groups["VEHICLE_UPTO"]["counts"][-1] == 35
-    assert groups["DRIVER_MONTH"]["counts"][-1] == 28
-    assert groups["DRIVER_UPTO"]["counts"][-1] == 35
-    assert len(calls) == 4
-
-
-def test_monthly_combined_table_and_annual_upto_row():
-    from openpyxl import Workbook
-    cache = k.new_cache("Proddutur")
-    month=[1,2,3,4,5,6,7,28]
-    upto=[2,3,4,5,6,7,8,35]
-    for entity in k.ENDPOINTS:
-        cache["months"].setdefault("2026-09",{})[f"{entity}_MONTH"] = dict(
-            depot="Proddutur",period="2026-09",entity=entity,scope="MONTH",region="YSRKADAPA",
-            headers=["SL No","Depot",*k.LABELS,"G.Total"],rows=[[1,"Proddutur",*month]],
-            regional_total=month,counts=month,source="fixture",provisional=False)
-        cache["months"]["2026-09"][f"{entity}_UPTO"] = dict(
-            depot="Proddutur",period="2026-09",entity=entity,scope="UPTO",region="YSRKADAPA",
-            headers=["SL No","Depot",*k.LABELS,"G.Total"],rows=[[1,"Proddutur",*upto]],
-            regional_total=upto,counts=upto,source="fixture",provisional=False)
-    wb=Workbook(); del wb[wb.sheetnames[0]]
-    ws=k.render_tab(wb,cache,"2026-09")
-    values=[[c.value for c in row] for row in ws.iter_rows()]
-    assert ["KMPL Range","Vehicle Month","Vehicle Upto","Driver Month","Driver Upto"] in [r[:5] for r in values]
-    wb2=Workbook(); del wb2[wb2.sheetnames[0]]
-    ws2=k.render_tab(wb2,cache,"2026-09",["2026-27"])
-    assert any(c.value=="Upto/Cum Sep-26" for row in ws2.iter_rows() for c in row)
