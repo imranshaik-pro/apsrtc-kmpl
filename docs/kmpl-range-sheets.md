@@ -56,3 +56,35 @@ Monthly attaches the new view/cache immediately before its existing branding/sav
 This review establishes repository implementation and isolated source/preview evidence. Existing production workbooks gain the tab when regenerated after release; an old downloaded XLSX does not update itself. This feature does not resolve the separately documented seven Proddutur historical engine Upto labels.
 
 Local validation on 3 October 2026: **82 affected tests passed**, including 16 new range tests and the existing 66 detail/template/history/dashboard/branding/presentation tests. Four September previews for Proddutur/Rajampet were imported and recalculated in Artifact Tool, with zero formula-error matches. Selected-depot shares matched independent source-count arithmetic; changing/restoring one source bucket proved share recalculation. All four changed views were rendered and inspected, including selected-month highlighting, source totals, logo placement, FY chart gaps and readable chart labels. Native Sheets typed-value/formula/chart requests are checked structurally; an authenticated native Sheets write/readback is not part of this read-only review.
+
+
+## 7 October 2026 post-merge conclusion
+
+PR #12 is merged to production history at `150555a55748090084d1eaa8da4a03adf0afa276` and the follow-up test hardening is merged through PR #14; the audited master after that follow-up is `92c3486add5ca87bff8cf1e31bd99946ffa52714`.
+
+The final owner-verified Month/Upto source contract is:
+
+| Population | Month selector/result | Upto/Cum selector/result | Selection |
+| --- | --- | --- | --- |
+| Vehicle | result `/med/vehlog_kmpldepot.php` | selector `/med/vehlog_kmpl.php` → result `/med/vehlog_kmpldepot.php` | `action=`, `yymm=YYYYMM`, `rreg=REGION` |
+| Driver | result `/med/drvlog_kmpldepot.php` | selector `/med/drvlog_ckmpl.php` → result `/med/drvlog_ckmpldepot.php` | same fields |
+
+A crucial source fact is that Vehicle Month and Vehicle Upto can land on the **same result path**. Scope therefore cannot be inferred from the result filename alone; the selector/source flow and stored `scope` identity are part of the contract. Never invent a `vehlog_ckmpldepot.php` endpoint.
+
+Monthly presentation is one selected-depot table: `KMPL Range | Vehicle Month | Vehicle Upto | Driver Month | Driver Upto`, using the seven source labels plus G.Total. Month and Upto are independent snapshots.
+
+Annual `FY KMPL Range Trend` starts at FY2025-26 for this feature. Each FY shows monthly rows April→March for a closed FY or April→selected month for the current FY, followed by a source-backed `Upto/Cum <Mon-YY>` row. FY2025-26 therefore ends with Mar-26 cumulative; the current FY ends with the selected month's cumulative. If the selection moves May→July→May, June/July may remain cached but the visible table returns to April→May and the final cumulative row is May. Charts use monthly rows, not the cumulative row.
+
+**Never sum monthly vehicle/driver range populations to create Upto/Cum.** The same vehicle or driver can occur in multiple monthly populations. Cumulative values must come from the verified cumulative source flow.
+
+### Cache and refresh rules
+
+`_KMPL_RANGE_HISTORY` remains independent of `_ANNUAL_HISTORY` and `_REPORT_DETAILS_HISTORY`. Cache identity includes depot, period, entity and Month/Upto scope. Closed non-selected history can be reused. The selected period and provisional/open snapshots are refreshed. A failed refresh can retain only the matching prior depot/period/entity/scope snapshot and must show stale/unavailable status; it must never borrow another month/depot/scope. Later cached months may remain stored while an earlier selected-month view hides them.
+
+### Release and investigation discipline
+
+Before changing an open feature branch, first re-read **current master, PR state, PR head, and recent master commits**. If the PR has already merged or a follow-up PR has superseded it, stop editing the stale branch and compare against master. This rule was added after redundant post-merge work was performed on PR #12's old branch.
+
+A review workflow failure is not automatically a feature regression. The 7 October review showed KMPL range tests passing while `test_report_details.py` HistoryAndViewTests failed. `report_details.py` on master has the same blob SHA (`323782d53e139d304f7e32f7217e31c54ace7d8b`) as the pre-PR-12 baseline `c18f918`; its source-contract tests also passed. Therefore the observed history/view failure is recorded as an **independent validation issue**, not evidence that Month/Upto code broke report-details production logic. Do not patch `report_details.py` until the exact failing test is reproduced and its cause is established on clean master.
+
+The master Docker build for `92c3486` completed successfully. Docker success confirms packaging/build execution, not every workbook/source contract; focused tests and source/output validation remain separate gates.
