@@ -172,8 +172,6 @@ class RangeTests(unittest.TestCase):
                 self.assertEqual(ws.cell(domain["startRowIndex"]+1,1).value,"Month")
 
 
-if __name__=="__main__":unittest.main()
-
 
 def test_month_and_upto_cache_are_independent():
     cache = k.new_cache("Proddutur")
@@ -215,3 +213,18 @@ def test_monthly_combined_table_and_annual_upto_row():
     wb2=Workbook(); del wb2[wb2.sheetnames[0]]
     ws2=k.render_tab(wb2,cache,"2026-09",["2026-27"])
     assert any(c.value=="Upto/Cum Sep-26" for row in ws2.iter_rows() for c in row)
+
+
+def test_upto_source_contracts_use_verified_selector_and_result_endpoints():
+    for entity in k.ENDPOINTS:
+        session=Mock()
+        response=Mock(); response.text=html(entity)
+        session.get.return_value=response
+        result=k.SourceAdapter(session,"PRODDUTUR","YSRKADAPA",date(2026,10,7))(entity,"2026-09","UPTO")
+        assert result["scope"]=="UPTO"
+        assert session.get.call_args_list[0].args[0] == f"{d.BASE}/med/{k.UPTO_SELECTORS[entity]}"
+        assert session.get.call_args_list[1].args[0] == f"{d.BASE}/med/{k.UPTO_ENDPOINTS[entity]}"
+        assert session.get.call_args_list[1].kwargs["params"] == {"action":"","yymm":"202609","rreg":"YSRKADAPA"}
+
+if __name__=="__main__":
+    unittest.main()
