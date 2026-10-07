@@ -73,3 +73,14 @@ Commit dates above use recorded UTC where specified. Operational date decisions 
 | [Detail tabs 37090754311](https://github.com/imranshaik-pro/apsrtc-kmpl/actions/runs/37090754311) | Both depots passed authenticated source transitions, immutable FY25-26 checks, native new-tab readback and full May Monthly/Annual previews. Private review files only; no production file writes, Hub callbacks or Telegram delivery. |
 
 Live run references are retained records, not reruns performed for this documentation review. Telegram API acceptance does not prove recipient reading. Local test data, earlier source capture, cached KMPL and newly fetched source data must remain identified separately.
+
+
+## 7 October 2026 — KMPL range Month/Upto release and review lesson
+
+PR #12 merged at `150555a55748090084d1eaa8da4a03adf0afa276`, adding source-backed Vehicle/Driver Month and Upto range reporting to Monthly and Annual KPI views. PR #14 followed with direct-unittest coverage hardening; master after that follow-up was `92c3486add5ca87bff8cf1e31bd99946ffa52714`, whose Docker build completed successfully.
+
+Owner verification established that Vehicle Upto uses selector `vehlog_kmpl.php` and result `vehlog_kmpldepot.php`; Driver Upto uses `drvlog_ckmpl.php` and `drvlog_ckmpldepot.php`. This corrected an earlier unsafe filename inference. The project rule is now explicit: never invent an endpoint from naming symmetry.
+
+During post-merge review, work briefly continued against PR #12's old feature branch before the merged master state was re-read. The corrective process is now documented: current master/PR/recent-commit state must be checked before modifying an existing feature branch.
+
+The range tests passed in the diagnostic workflow. A separate `report_details` HistoryAndViewTests group failed while its SourceContractTests passed. `report_details.py` itself is unchanged from the pre-PR-12 baseline, so the failure is tracked as an independent validation issue pending exact clean-master reproduction; no speculative production patch was made.
