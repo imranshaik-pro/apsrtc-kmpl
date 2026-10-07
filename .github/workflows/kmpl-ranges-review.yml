@@ -32,8 +32,10 @@ jobs:
         run: python -m py_compile kmpl_ranges.py verify_kmpl_ranges.py monthly_vehicle_report.py annual_kpi_runner_v11.py
       - name: Test KMPL ranges
         run: python -m unittest discover -s tests -p 'test_kmpl_ranges.py' -v
-      - name: Test report details
-        run: python -m unittest discover -s tests -p 'test_report_details.py' -v
+      - name: Test report detail source contracts
+        run: python -m unittest tests.test_report_details.SourceContractTests -v
+      - name: Test report detail history and views
+        run: python -m unittest tests.test_report_details.HistoryAndViewTests -v
       - name: Test annual history
         run: python -m unittest discover -s tests -p 'test_annual_history.py' -v
       - name: Test detail polish
