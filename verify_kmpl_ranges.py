@@ -82,8 +82,15 @@ def main():
         else:
             fetch=k.SourceAdapter(session,depot,"YSRKADAPA")
             periods=sorted(set(p for p in [f"{first_year-2}-04",f"{first_year-1}-04",f"{first_year}-05",f"{first_year}-07",args.month] if p<=args.month))
-        k.update(cache,periods,fetch,args.month)
-        if any(entity not in cache["months"].get(args.month,{}) for entity in k.ENDPOINTS):
+        if args.offline:
+            def scoped_fetch(entity, period, scope="MONTH"):
+                result=fetch(entity,period)
+                result["scope"]=scope
+                return result
+        else:
+            scoped_fetch=fetch
+        k.update(cache,periods,scoped_fetch,args.month,include_upto=True)
+        if any(f"{entity}_{scope}" not in cache["months"].get(args.month,{}) for entity in k.ENDPOINTS for scope in k.SCOPES):
             raise RuntimeError(f"{depot} selected month has unavailable range sources: {cache['errors']}")
         for annual in [False,True]:
             wb=Workbook();wb.remove(wb.active)
@@ -100,7 +107,7 @@ def main():
                 assert all(r['addChart']['chart']['spec']['basicChart']['headerCount']==1 for r in requests)
             else:
                 assert not saved[k.MONTHLY_TITLE]._charts
-        summary["depots"][depot]={"selected":{e:cache["months"][args.month][e]["counts"] for e in k.ENDPOINTS},
+        summary["depots"][depot]={"selected":{f"{e}_{scope}":cache["months"][args.month][f"{e}_{scope}"]["counts"] for e in k.ENDPOINTS for scope in k.SCOPES},
                                   "sampled_periods":periods,"source_errors":cache["errors"]}
         (output/f"{depot}_range_cache.json").write_text(json.dumps(cache,indent=2))
     (output/"summary.json").write_text(json.dumps(summary,indent=2))
