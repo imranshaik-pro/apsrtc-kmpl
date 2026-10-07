@@ -287,6 +287,22 @@ def render_tab(wb, cache, selected, fys=None):
         ws.row_dimensions[r].height = 34
         r += 1
 
+    if not fys:
+        note("Selected-depot source counts · Month and Upto/Cum are independent APSRTC source snapshots")
+        for c,label in enumerate(["KMPL Range","Vehicle Month","Vehicle Upto","Driver Month","Driver Upto"],1):
+            ws.cell(r,c,label)
+        style_row(r,header=True); r += 1
+        groups=cache["months"].get(selected,{})
+        snaps=[groups.get("VEHICLE_MONTH") or groups.get("VEHICLE"), groups.get("VEHICLE_UPTO"),
+               groups.get("DRIVER_MONTH") or groups.get("DRIVER"), groups.get("DRIVER_UPTO")]
+        for idx,label in enumerate(list(LABELS)+["G.Total"]):
+            ws.cell(r,1,label)
+            for c,snap in enumerate(snaps,2):
+                if snap: ws.cell(r,c,snap["counts"][idx]).number_format="#,##0"
+            style_row(r,selected_row=label=="G.Total"); r += 1
+        note("Upto/Cum values are source-backed and never calculated by summing monthly populations.")
+        r += 1
+
     for fy in (fys or [None]):
         periods = periods_for_fys([fy],selected) if fy else [selected]
         for entity in ENDPOINTS:
@@ -296,7 +312,7 @@ def render_tab(wb, cache, selected, fys=None):
             header_row = r
             style_row(r,header=True); r += 1
             for period in periods:
-                snap = cache["months"].get(period,{}).get(entity)
+                snap = (cache["months"].get(period,{}).get(f"{entity}_MONTH") or cache["months"].get(period,{}).get(entity))
                 error = cache["errors"].get(period,{}).get(entity)
                 ws.cell(r,1,d.month_end(period).strftime("%b-%Y") if fy else entity.title())
                 if snap:
@@ -311,6 +327,19 @@ def render_tab(wb, cache, selected, fys=None):
                 style_row(r,selected_row=period==selected)
                 r += 1
             last_data_row = r-1
+            if fys and periods:
+                upto_period=periods[-1]
+                upto=cache["months"].get(upto_period,{}).get(f"{entity}_UPTO")
+                ws.cell(r,1,"Upto/Cum "+d.month_end(upto_period).strftime("%b-%y"))
+                if upto:
+                    for c,n in enumerate(upto["counts"],2): ws.cell(r,c,n).number_format="#,##0"
+                    ws.cell(r,10,f"=SUM(B{r}:D{r})").number_format="#,##0"
+                    ws.cell(r,11,f'=IF(I{r}=0,"",J{r}/I{r})').number_format="0.0%"
+                    ws.cell(r,12,f'=IF(I{r}=0,"",H{r}/I{r})').number_format="0.0%"
+                    ws.cell(r,13,"Provisional — open month" if upto.get("provisional") else "Verified cumulative source")
+                else:
+                    ws.cell(r,13,"Unavailable — no verified cumulative source")
+                style_row(r,selected_row=True); r += 1
             note("Source first three ranges = below 3.00 through the source 4.01–5.00 bucket. Highest range uses source 5.60–ABV. No FY sum of monthly populations.")
             if fys and any(cache["months"].get(p,{}).get(entity,{}).get("counts",[0]*8)[7]>0 for p in periods):
                 chart=LineChart()
@@ -334,7 +363,7 @@ def render_tab(wb, cache, selected, fys=None):
             elif fys:
                 note("Chart unavailable: no verified non-zero population for this FY. Missing history has not been filled with zeros.")
             if not fys:
-                snap = cache["months"].get(selected,{}).get(entity)
+                snap = (cache["months"].get(selected,{}).get(f"{entity}_MONTH") or cache["months"].get(selected,{}).get(entity))
                 if snap:
                     note(f"Region {snap['region']} · {entity.title()} source table · Fetched {snap.get('fetched_at','not recorded')}")
                     for c,label in enumerate(snap["headers"],1): ws.cell(r,c,label)
@@ -414,7 +443,7 @@ def attach_monthly(wb, session, depot, region, selected, folder):
     from src.integrations.google_sheets import sheets_service
     existing=find_file(folder,f"{depot}_{selected}")
     cache=read_google_cache(sheets_service(),existing["id"],depot) if existing else new_cache(depot)
-    update(cache,[selected],SourceAdapter(session,depot,region),selected)
+    update(cache,[selected],SourceAdapter(session,depot,region),selected,include_upto=True)
     render_tab(wb,cache,selected)
     write_xlsx_cache(wb,cache)
     return cache
