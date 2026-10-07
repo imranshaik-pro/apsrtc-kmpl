@@ -173,3 +173,45 @@ class RangeTests(unittest.TestCase):
 
 
 if __name__=="__main__":unittest.main()
+
+
+def test_month_and_upto_cache_are_independent():
+    cache = k.new_cache("Proddutur")
+    calls = []
+    def fetch(entity, period, scope="MONTH"):
+        calls.append((entity, period, scope))
+        counts = [1,2,3,4,5,6,7,28] if scope == "MONTH" else [2,3,4,5,6,7,8,35]
+        return dict(depot="Proddutur", period=period, entity=entity, scope=scope, region="YSRKADAPA",
+                    headers=["SL No","Depot",*k.LABELS,"G.Total"],
+                    rows=[[1,"Proddutur",*counts]], regional_total=counts, counts=counts,
+                    source="fixture", provisional=False)
+    k.update(cache, ["2026-09"], fetch, "2026-09", include_upto=True)
+    groups = cache["months"]["2026-09"]
+    assert groups["VEHICLE_MONTH"]["counts"][-1] == 28
+    assert groups["VEHICLE_UPTO"]["counts"][-1] == 35
+    assert groups["DRIVER_MONTH"]["counts"][-1] == 28
+    assert groups["DRIVER_UPTO"]["counts"][-1] == 35
+    assert len(calls) == 4
+
+
+def test_monthly_combined_table_and_annual_upto_row():
+    from openpyxl import Workbook
+    cache = k.new_cache("Proddutur")
+    month=[1,2,3,4,5,6,7,28]
+    upto=[2,3,4,5,6,7,8,35]
+    for entity in k.ENDPOINTS:
+        cache["months"].setdefault("2026-09",{})[f"{entity}_MONTH"] = dict(
+            depot="Proddutur",period="2026-09",entity=entity,scope="MONTH",region="YSRKADAPA",
+            headers=["SL No","Depot",*k.LABELS,"G.Total"],rows=[[1,"Proddutur",*month]],
+            regional_total=month,counts=month,source="fixture",provisional=False)
+        cache["months"]["2026-09"][f"{entity}_UPTO"] = dict(
+            depot="Proddutur",period="2026-09",entity=entity,scope="UPTO",region="YSRKADAPA",
+            headers=["SL No","Depot",*k.LABELS,"G.Total"],rows=[[1,"Proddutur",*upto]],
+            regional_total=upto,counts=upto,source="fixture",provisional=False)
+    wb=Workbook(); del wb[wb.sheetnames[0]]
+    ws=k.render_tab(wb,cache,"2026-09")
+    values=[[c.value for c in row] for row in ws.iter_rows()]
+    assert ["KMPL Range","Vehicle Month","Vehicle Upto","Driver Month","Driver Upto"] in [r[:5] for r in values]
+    wb2=Workbook(); del wb2[wb2.sheetnames[0]]
+    ws2=k.render_tab(wb2,cache,"2026-09",["2026-27"])
+    assert any(c.value=="Upto/Cum Sep-26" for row in ws2.iter_rows() for c in row)
