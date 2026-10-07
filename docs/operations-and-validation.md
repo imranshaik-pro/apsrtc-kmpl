@@ -83,3 +83,24 @@ For an annual cache read/checksum/depot failure, stop; do not erase history. Mis
 For callback problems, distinguish missing hub_row, missing/mismatched credentials, rejected URL/row, handler collision and deployed-source divergence. PR #4 records the existing bounded correction; Git merge alone does not redeploy it.
 
 For a production rollback, review a revert of the specific release commit/PR under owner approval, retain generated historical evidence and verify the restored entry point. Do not force-push master or delete historical Sheets. This guide authorises no rollback/deployment by itself.
+
+
+## Repository-state gate before any new fix
+
+Before editing code for an existing PR or reported defect:
+
+1. Read current `master` SHA and recent master commits.
+2. Read the PR state, merge state and current head SHA.
+3. Compare the feature branch against current master.
+4. If the PR is already merged or a newer follow-up PR contains the work, stop editing the old branch and validate master instead.
+5. Record separately: code merged, CI/test evidence, Docker/deployment evidence, live source evidence, workbook evidence and external delivery evidence. None implies all the others.
+
+This gate is mandatory after the PR #12 review on 7 October 2026, where the feature merged while additional checks were still being performed on its feature branch.
+
+## KMPL range validation gate
+
+For a Month/Upto range change, run compilation and `tests/test_kmpl_ranges.py` first. Validate all four logical source flows (Vehicle Month/Upto and Driver Month/Upto), exact `action/yymm/rreg` selection, separate snapshot scope, combined Monthly table, Annual final cumulative row, selected-month refresh, May→July→May visible cutoff, stale preservation and the rule that cumulative is never a monthly sum.
+
+Then run preserved-consumer suites separately. If an unrelated suite fails, identify the exact failing class/test before changing production code. On 7 October, the range suite passed and `test_report_details.py` source-contract tests passed, while its HistoryAndViewTests group failed. Because `report_details.py` is unchanged from pre-PR-12 baseline, that result is tracked independently pending exact reproduction. It is not a reason to roll back the merged range feature.
+
+The review workflow should keep test families in separately named steps where practical so GitHub exposes which contract failed rather than reporting one opaque bundled validation failure.
