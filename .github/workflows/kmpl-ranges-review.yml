@@ -28,18 +28,23 @@ jobs:
           cache: pip
       - name: Install project dependencies
         run: pip install -r requirements.txt
-      - name: Validate range source, history and preserved report contracts
+      - name: Compile range/report modules
+        run: python -m py_compile kmpl_ranges.py verify_kmpl_ranges.py monthly_vehicle_report.py annual_kpi_runner_v11.py
+      - name: Test KMPL ranges
+        run: python -m unittest discover -s tests -p 'test_kmpl_ranges.py' -v
+      - name: Test report details
+        run: python -m unittest discover -s tests -p 'test_report_details.py' -v
+      - name: Test annual history
+        run: python -m unittest discover -s tests -p 'test_annual_history.py' -v
+      - name: Test detail polish
+        run: python -m unittest discover -s tests -p 'test_detail_polish.py' -v
+      - name: Test report branding
+        run: python -m unittest discover -s tests -p 'test_report_branding.py' -v
+      - name: Build offline range previews
         env:
           APSRTC_USERNAME: offline
           APSRTC_PASSWORD: offline
-        run: |
-          python -m py_compile kmpl_ranges.py verify_kmpl_ranges.py monthly_vehicle_report.py annual_kpi_runner_v11.py
-          python -m unittest discover -s tests -p 'test_kmpl_ranges.py' -v
-          python -m unittest discover -s tests -p 'test_report_details.py' -v
-          python -m unittest discover -s tests -p 'test_annual_history.py' -v
-          python -m unittest discover -s tests -p 'test_detail_polish.py' -v
-          python -m unittest discover -s tests -p 'test_report_branding.py' -v
-          python verify_kmpl_ranges.py --offline --output reports/range-review/owner-fixtures
+        run: python verify_kmpl_ranges.py --offline --output reports/range-review/owner-fixtures
       - name: Read both range sources and build isolated previews
         env:
           APSRTC_USERNAME: ${{ secrets.APSRTC_USERNAME }}
