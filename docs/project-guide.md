@@ -52,3 +52,12 @@ The [ledger](change-ledger.md) contains every one of the 295 commits reachable f
 The guides distinguish current code, owner requirements, recorded live validation and unresolved issues. The old README phase labels were an early daily-project plan; they were not certification of the later Hub, monthly, annual and source-completeness work. Private conversations or external changes without a retained record cannot be reconstructed from Git.
 
 For a future change, update the relevant rule, source contract, history entry and action status in the same review. Record the selected depot/period, tested commit, test scope, source/workbook evidence, merge state and any separate Apps Script deployment.
+
+
+## Current addendum — 7 October 2026
+
+The Monthly/Annual KMPL range extension is now production code: PR #12 merged at `150555a5` and its direct-unittest hardening followed through PR #14, with master `92c3486a` after that follow-up. Read [KMPL range sheets](kmpl-range-sheets.md) for the final Month/Upto contract and [operations and validation](operations-and-validation.md) for the mandatory repository-state gate.
+
+For future sessions, treat **current master** as the baseline before using an old PR branch. Check master SHA, recent commits, PR merged/open state and branch-vs-master diff before proposing or committing a fix. This prevents rebuilding functionality that has already merged.
+
+The separate `report_details` history/view validation failure discovered during the range review is not currently attributed to the range feature: the production module is unchanged from the pre-PR-12 baseline and its source-contract tests pass. Reproduce the exact failing history/view test on clean master before any code change.

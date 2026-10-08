@@ -105,3 +105,19 @@ For current months, provisional candidates come from daily data and depot events
 | Telegram | Daily full formatted text; monthly/annual completion/failure status and actual Google report link |
 
 [Google Drive integration](../src/integrations/google_drive.py) uses configured Google OAuth credentials. [Google Sheets integration](../src/integrations/google_sheets.py) supplies annual value/tab operations. Hub callback credentials are separate from event API credentials. None of their values belongs in documentation.
+
+
+## KMPL range Month/Upto source clarification — 7 October 2026
+
+For the Monthly/Annual KMPL range feature, preserve scope separately from URL identity.
+
+| Entity/scope | Verified flow |
+| --- | --- |
+| Vehicle Month | GET `/med/vehlog_kmpldepot.php?action=&yymm=YYYYMM&rreg=REGION` |
+| Vehicle Upto/Cum | GET selector `/med/vehlog_kmpl.php`, then GET `/med/vehlog_kmpldepot.php?action=&yymm=YYYYMM&rreg=REGION` |
+| Driver Month | GET `/med/drvlog_kmpldepot.php?action=&yymm=YYYYMM&rreg=REGION` |
+| Driver Upto/Cum | GET selector `/med/drvlog_ckmpl.php`, then GET `/med/drvlog_ckmpldepot.php?action=&yymm=YYYYMM&rreg=REGION` |
+
+The Vehicle result filename is shared by Month and Upto. Do not infer scope from filename and do not invent a vehicle `ckmpldepot` path. `action`, `yymm` and `rreg` retain the same selection names for these flows. Store and validate the requested scope with the snapshot.
+
+These population snapshots are non-additive across months. Annual cumulative range rows must use the cumulative source flow; they must never be reconstructed by summing monthly bucket counts.

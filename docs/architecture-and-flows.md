@@ -142,3 +142,12 @@ Standalone Vehicle 360 Hub/bot lookup is not implemented. The monthly workbook p
 - Annual report/incremental/v3–v10 files remain dependencies or older entry points; annual-kpi.yml selects v11.
 - Telegram scheduled polling, a Linux listener and Apps Script webhook/polling are alternative ingestion modes. The owner preferred Apps Script to avoid a continuously running server.
 - Docker/GHCR publishing is packaging; its success is not report/source/callback acceptance.
+
+
+## KMPL range Month/Upto flow — 7 October 2026
+
+Monthly request: selected depot/month → authenticated APSRTC session → Vehicle Month + Vehicle Upto + Driver Month + Driver Upto source flows → strict range parser/reconciliation → depot/scope-bound `_KMPL_RANGE_HISTORY` → combined `KMPL Range Distribution` view → existing Monthly save/upload boundary.
+
+Annual request: selected depot/month → determine FY2025-26 onward visible periods → reuse verified closed monthly snapshots and fetch missing/selected/provisional Month snapshots → fetch each displayed FY's final cumulative endpoint (March for closed FY; selected month for current FY) → cache independently by scope → render Vehicle and Driver FY panels with monthly rows plus final Upto/Cum row → charts reference monthly rows only → existing Annual publication boundary.
+
+Vehicle Upto selector and Month result share the `vehlog_kmpldepot.php` result path, so scope is carried explicitly; URL naming alone is insufficient. Driver Upto uses its distinct `drvlog_ckmpl.php`/ `drvlog_ckmpldepot.php` family. No cumulative row is produced by adding monthly populations.

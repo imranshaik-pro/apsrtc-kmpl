@@ -334,3 +334,16 @@ These commits were developed and verified on [PR #9](https://github.com/imransha
 | [15c399c](https://github.com/imranshaik-pro/apsrtc-kmpl/commit/15c399c5dc2ee2257ccda0fe6ae44270f44c1b72) | Apply final owner rule: FY count SUMs only, blank percentage totals; validate before approved release |
 
 The review's final documentation update records source/workbook/Sheets acceptance and the owner approval boundary. See [detail-tabs evidence](monthly-annual-detail-tabs.md).
+
+
+## Post-baseline release addendum — 7 October 2026
+
+The original numbered ledger above remains the historical 3 October baseline. Later production milestones relevant to the KMPL range work are:
+
+| UTC date | Commit | Recorded change |
+| --- | --- | --- |
+| 2026-10-07 | `150555a55748090084d1eaa8da4a03adf0afa276` | Merge PR #12: source-backed Vehicle/Driver Month and Upto KMPL range reporting in Monthly and Annual KPI |
+| 2026-10-07 | `fe4e2c212d9db68880fc4f0cf4199de95ffe3f21` | Ensure Month/Upto range tests run in direct unittest mode |
+| 2026-10-07 | `92c3486add5ca87bff8cf1e31bd99946ffa52714` | Merge PR #14: harden Month/Upto KMPL range tests |
+
+The PR #12 merge and PR #14 test follow-up supersede earlier open-branch descriptions of the range feature. Detailed source and validation conclusions are maintained in `kmpl-range-sheets.md` and `operations-and-validation.md`.
