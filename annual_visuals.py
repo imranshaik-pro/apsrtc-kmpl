@@ -110,8 +110,10 @@ def dashboard_model(display, fys, mat, selected):
     cell(12,0,"KPI / parameter",cs=4,fill=NAVY,color="FFFFFF",bold=True)
     for c,label in [(4,"Target"),(5,fys[0]+" Full FY"),(6,fys[1]+" Full FY"),(7,current+" YTD"),(8,"Δ vs target"),(9,"YTD status")]:
         cell(12,c,label,fill=NAVY,color="FFFFFF",bold=True,align="center",size=9)
+    core_kpis = {"HSD KMPL INCL AC","HSD KMPL EXCL AC","TOTAL LUB KMPL","AVG TYRE LIFE","NEW TYRE LIFE","RC TYRE LIFE","B.D RATE","MED CANCL."}
     missing_engines=[]; previous=None; r=13
     for name, years in data.items():
+        if name not in core_kpis: continue
         current_row=years.get(current,[""]*18)
         val=number(current_row[17]); target=number(current_row[3])
         if name.startswith("ENGINE:") and val is None:
@@ -158,8 +160,21 @@ def dashboard_model(display, fys, mat, selected):
             source_row=hr,points=count,series=len(series),labels=[x['label'] for x in series],
             targets=[x['target'] for x in series],row=12+idx*16,col=11,width=624,height=300))
     note=max(r+1,46)
-    if missing_engines:
-        cell(note,0,f"{len(missing_engines)} engine rows have no YTD source value. Exact labels and history remain in Detailed Data.",cs=19,size=10); note+=1
+    cell(note,0,"Key Findings & Recommended Actions",cs=19,fill=NAVY,color="FFFFFF",size=12,bold=True); note+=1
+    findings=[]
+    for name in ("HSD KMPL INCL AC","HSD KMPL EXCL AC","TOTAL LUB KMPL","B.D RATE","MED CANCL."):
+        row=data.get(name,{}).get(current,[""]*18); val,target=number(row[17]),number(row[3])
+        status,_=target_status(name,val,target)
+        if status=="BELOW TARGET":
+            direction="reduce" if name in {"B.D RATE","MED CANCL."} else "improve"
+            findings.append(f"ATTENTION — {name}: {target_delta(name,val,target)}. Prioritise actions that {direction} this KPI.")
+        elif status=="ON TARGET":
+            findings.append(f"POSITIVE — {name}: target is met; protect the operating practices supporting this result.")
+    if not findings:
+        findings.append("No source-target exception can be concluded from the focused KPIs; review Detailed Data for unavailable/no-target measures.")
+    for item in findings[:3]:
+        cell(note,0,item,cs=19,fill=PALE,size=10); note+=1
+    cell(note,0,"Detailed product, engine, tyre statements and KMPL range populations remain in their existing tabs for investigation; they are intentionally not duplicated here.",cs=19,size=10); note+=1
     cell(note,0,"— = missing source value; not zero. Full-year and YTD totals are not like-for-like comparisons.",cs=19,size=10)
     cell(note+1,0,"Tyre life: lakh km. Rates retain APSRTC units. Charts stop at the selected month; KMPL axis is not zero-based.",cs=19,size=10)
     cell(note+2,0,"Fuel/lubricant KMPL: higher is better. BD/MED: lower is better. MET/BELOW use source targets only.",cs=19,size=10)
