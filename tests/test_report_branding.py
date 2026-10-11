@@ -3,7 +3,7 @@ import unittest
 from io import BytesIO
 from zipfile import ZipFile
 from openpyxl import Workbook, load_workbook
-from report_branding import kmpl_number, style_monthly_workbook, LOGO_URL
+from report_branding import kmpl_number, style_monthly_workbook, add_monthly_management_dashboard, LOGO_URL
 from annual_visuals import dashboard_model, google_dashboard_requests, render_xlsx_dashboard
 
 
