@@ -365,8 +365,9 @@ def main():
 
     attach_monthly_tabs(workbook, session, display_name, region_code, args.month, folder_id)
     kmpl_ranges.attach_monthly(workbook, session, display_name, region_code, args.month, folder_id)
-    from report_branding import style_monthly_workbook
+    from report_branding import style_monthly_workbook, add_monthly_management_dashboard
     style_monthly_workbook(workbook)
+    add_monthly_management_dashboard(workbook, display_name, report_period, vehicle_data)
     workbook.save(xlsx_path)
     target_sheet_name = f"{display_name}_{args.month}"
     uploaded = upload_xlsx_as_google_sheet(xlsx_path, folder_id=folder_id, sheet_name=target_sheet_name)
