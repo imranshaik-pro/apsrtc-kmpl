@@ -89,7 +89,7 @@ def dashboard_model(display, fys, mat, selected):
         model["cells"].append(dict(r=r,c=c,text=text,rs=rs,cs=cs,fill=fill,color=color,size=size,bold=bold,align=align,fmt=fmt))
     period = period_label(selected); current = fys[-1]
     endmon = datetime.strptime(selected, "%Y-%m").strftime("%b")
-    cell(0,0,"APSRTC  ANNUAL KPI",cs=13,fill=NAVY,color="FFFFFF",size=20,bold=True)
+    cell(0,0,"APSRTC  ANNUAL KPI — EXECUTIVE SCORECARD",cs=13,fill=NAVY,color="FFFFFF",size=20,bold=True)
     cell(1,0,f"{display} DEPOT    Reporting through {period}",cs=13,size=14,bold=True)
     cell(2,0,f"FY {fys[0]} and {fys[1]}: full-year Upto     FY {current}: April–{endmon} YTD",cs=19,size=10)
     cards=[("HSD KMPL INCL AC","HSD INCL. AC · YTD KMPL",BLUE),
@@ -106,7 +106,7 @@ def dashboard_model(display, fys, mat, selected):
         cell(7,col,status,cs=4,fill=PALE,color=semantic,bold=True,align="center",size=10)
         cell(8,col,target_delta(key,val,target),cs=4,fill=PALE,size=9,align="center")
         cell(9,col,f"FY {current} · Apr–{endmon}",cs=4,fill=PALE,size=9,align="center")
-    cell(11,0,"KPI summary",cs=10,size=13,bold=True)
+    cell(11,0,"Management KPI focus",cs=10,size=13,bold=True)
     cell(12,0,"KPI / parameter",cs=4,fill=NAVY,color="FFFFFF",bold=True)
     for c,label in [(4,"Target"),(5,fys[0]+" Full FY"),(6,fys[1]+" Full FY"),(7,current+" YTD"),(8,"Δ vs target"),(9,"YTD status")]:
         cell(12,c,label,fill=NAVY,color="FFFFFF",bold=True,align="center",size=9)
