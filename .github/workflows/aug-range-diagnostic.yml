@@ -51,6 +51,15 @@ jobs:
             print("COOKIES",path,sorted(s.cookies.keys()))
           for month in ("202608","202609"):
             for entity in ("VEHICLE","DRIVER"):
+              ep=k.ENDPOINTS[entity]
+              q=s.get(f"{d.BASE}/med/{ep}",params={"action":"","yymm":month,"rreg":"YSRKADAPA"},timeout=45)
+              soup=BeautifulSoup(q.text,"html.parser")
+              print("STRUCT",month,entity,"DEPOT_IN_HTML","PRODDUTUR" in q.text,"AJAX",["ajax","DataTable","fetch(","XMLHttpRequest","$.get"].__str__(),[(w,w.lower() in q.text.lower()) for w in ("ajax","datatable","fetch(","xmlhttprequest","$.get")])
+              print("SCRIPTS",month,entity,[(x.get("src"),x.get_text(" ",strip=True)[:450]) for x in soup.find_all("script")][:18])
+              print("TABLE_HTML",month,entity,str(soup.find("table"))[-900:])
+              print("RESPONSE_BODY",month,entity,soup.get_text(" ",strip=True)[-900:])
+          for month in ("202608","202609"):
+            for entity in ("VEHICLE","DRIVER"):
               endpoint=k.ENDPOINTS[entity]
               base=f"{d.BASE}/med/{endpoint}"
               query=f"action=&yymm={month}&rreg=YSRKADAPA"
