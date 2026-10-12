@@ -23,7 +23,7 @@ jobs:
           from monthly_vehicle_report import login
           s=login()
           from urllib.parse import urljoin
-          def b(v):
+          def bucket(v):
             if v<3:return 0
             if v<=4:return 1
             if v<=5:return 2
@@ -31,23 +31,31 @@ jobs:
             if v<=5.30:return 4
             if v<=5.60:return 5
             return 6
-          for entity,ep in (("VEHICLE","vehlog_kmplveh.php"),("DRIVER","drvlog_kmpldrv.php")):
-            q=s.get(f"{d.BASE}/med/{ep}",params={"action":"","yymm":"202608","rreg":"PRODDUTUR"},timeout=45);soup=BeautifulSoup(q.text,"html.parser")
-            vals=[];zero=[]
+          def rows(entity,month):
+            ep="vehlog_kmplveh.php" if entity=="VEHICLE" else "drvlog_kmpldrv.php"
+            q=s.get(f"{d.BASE}/med/{ep}",params={"action":"","yymm":month,"rreg":"PRODDUTUR"},timeout=45)
+            soup=BeautifulSoup(q.text,"html.parser"); out=[]
             for tr in soup.find("table").find_all("tr"):
-              cells=tr.find_all("td")
-              if not cells:continue
+              c=tr.find_all("td")
+              if not c: continue
               try:
-                if entity=="VEHICLE":
-                  v=float(cells[13].get_text(strip=True)); km=float(cells[6].get_text(strip=True)); ident=cells[2].get_text(" ",strip=True)
-                else:
-                  v=float(cells[-1].get_text(strip=True)); km=float(cells[-3].get_text(strip=True)); ident=cells[1].get_text(" ",strip=True)
-                vals.append((v,km,ident))
-                if v==0:zero.append((ident,km,[c.get_text(" ",strip=True) for c in cells]))
-              except:pass
-            for name,pred in (("ALL",lambda x:True),("KM_POSITIVE",lambda x:x[1]>0),("HSD_KMPL_POSITIVE",lambda x:x[0]>0)):
-              a=[0]*7;used=[x for x in vals if pred(x)]
-              for v,km,_ in used:a[b(v)]+=1
-              print("EXACT_BUCKETS",entity,name,a,sum(a))
-            print("ZERO_DETAIL",entity,zero)
+                if entity=="VEHICLE": ident=c[2].get_text(" ",strip=True); kms=float(c[6].get_text(strip=True)); hsd=float(c[12].get_text(strip=True)); v=float(c[13].get_text(strip=True))
+                else: ident=c[1].get_text(" ",strip=True); kms=float(c[-3].get_text(strip=True)); hsd=float(c[-2].get_text(strip=True)); v=float(c[-1].get_text(strip=True))
+                out.append((ident,kms,hsd,v))
+              except: pass
+            return out
+          for month in ("202607","202608","202609"):
+            for entity in ("VEHICLE","DRIVER"):
+              vals=rows(entity,month)
+              print("DETAIL_SUMMARY",month,entity,"rows",len(vals),"kms0",sum(x[1]==0 for x in vals),"hsd0",sum(x[2]==0 for x in vals),"kmpl0",sum(x[3]==0 for x in vals))
+              for name,pred in (("ALL",lambda x:True),("KMS_POS",lambda x:x[1]>0),("HSD_POS",lambda x:x[2]>0),("BOTH_POS",lambda x:x[1]>0 and x[2]>0)):
+                use=[x for x in vals if pred(x)]; bins=[0]*7
+                for x in use: bins[bucket(x[3])]+=1
+                print("DETAIL_BUCKETS",month,entity,name,bins,sum(bins))
+              # Probe source aggregate repeatedly in a fresh authenticated session to distinguish deterministic emptiness from transient response.
+              ep="vehlog_kmpldepot.php" if entity=="VEHICLE" else "drvlog_kmpldepot.php"
+              q=s.get(f"{d.BASE}/med/{ep}",params={"action":"","yymm":month,"rreg":"YSRKADAPA"},timeout=45)
+              soup=BeautifulSoup(q.text,"html.parser")
+              trs=soup.find("table").find_all("tr") if soup.find("table") else []
+              print("AGG_ROWS",month,entity,len(trs),[[c.get_text(" ",strip=True) for c in tr.find_all(["td","th"])] for tr in trs[-3:]])
           PY
