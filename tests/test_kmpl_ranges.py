@@ -136,7 +136,7 @@ class RangeTests(unittest.TestCase):
         with self.assertRaises(ValueError):k.decode(k.encode(cache),"RAJAMPET")
         rows=k.encode(cache);rows[1][0]+="x"
         with self.assertRaises(ValueError):k.decode(rows,"PRODDUTUR")
-        cache["months"]["2026-09"]["VEHICLE"]["counts"][0]=False
+        cache["months"]["2026-09"]["VEHICLE_MONTH"]["counts"][0]=False
         with self.assertRaises(ValueError):k.decode(k.encode(cache),"PRODDUTUR")
 
     def test_checkpoint_failure_is_not_swallowed(self):
@@ -145,8 +145,8 @@ class RangeTests(unittest.TestCase):
 
     def test_provisional_history_refetched_and_missing_entity_repaired(self):
         cache=k.new_cache("PRODDUTUR");k.update(cache,["2026-05","2026-09"],snap,"2026-09")
-        cache["months"]["2026-05"]["VEHICLE"]["provisional"]=True
-        del cache["months"]["2026-05"]["DRIVER"]
+        cache["months"]["2026-05"]["VEHICLE_MONTH"]["provisional"]=True
+        del cache["months"]["2026-05"]["DRIVER_MONTH"]
         self.assertEqual(len(k.update(cache,["2026-05","2026-09"],snap,"2026-09")),4)
 
     def test_workbook_preserves_core_formulas_cache_and_native_types(self):
@@ -171,7 +171,7 @@ class RangeTests(unittest.TestCase):
             if row[1]=="PRODDUTUR":row[2:]=[0]*8
         s["regional_total"]=[sum(row[i+2] for row in s["rows"]) for i in range(8)]
         k.validate_snapshot(s,"PRODDUTUR","VEHICLE","2026-09")
-        cache["months"]["2026-09"]={"VEHICLE":s}
+        cache["months"]["2026-09"]={"VEHICLE_MONTH":s}
         wb=Workbook();ws=k.render_tab(wb,cache,"2026-09")
         self.assertEqual(ws["I8"].value,0);self.assertIn('IF(I8=0,""',ws["K8"].value)
 
