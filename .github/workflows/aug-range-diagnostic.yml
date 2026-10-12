@@ -23,13 +23,37 @@ jobs:
           from monthly_vehicle_report import login
           s=login()
           from urllib.parse import urljoin
-          candidates=["vehlog_kmplveh.php","drvlog_kmpldrv.php","drvlog_kmplveh.php","drvlog_kmpldriver.php"]
-          for ep in candidates:
+          def bucket(v):
+            if v < 3.00:return 0
+            if v <= 4.00:return 1
+            if v <= 5.00:return 2
+            if v <= 5.15:return 3
+            if v <= 5.30:return 4
+            if v <= 5.60:return 5
+            return 6
+          for entity,ep in (("VEHICLE","vehlog_kmplveh.php"),("DRIVER","drvlog_kmpldrv.php")):
+            q=s.get(f"{d.BASE}/med/{ep}",params={"action":"","yymm":"202608","rreg":"PRODDUTUR"},timeout=45)
+            soup=BeautifulSoup(q.text,"html.parser");table=soup.find("table")
+            rows=[]
+            for tr in table.find_all("tr"):
+              cells=[c.get_text(" ",strip=True) for c in tr.find_all(["th","td"],recursive=False)]
+              if cells: rows.append(cells)
+            print("DRILL_HEADERS",entity,rows[:3])
+            vals=[]
+            for row in rows:
+              try:
+                v=float(row[-3] if entity=="VEHICLE" else row[-1])
+                vals.append(v)
+              except: pass
+            for mode,keep in (("ALL",lambda v:True),("POSITIVE",lambda v:v>0)):
+              counts=[0]*7
+              used=[v for v in vals if keep(v)]
+              for v in used:counts[bucket(v)]+=1
+              print("DRILL_BUCKETS",entity,mode,counts,sum(counts),"ZEROS",sum(v==0 for v in vals),"VALUES",len(vals))
+          for ep in ("vehlog_ckmplveh.php","drvlog_ckmpldrv.php"):
             try:
               q=s.get(f"{d.BASE}/med/{ep}",params={"action":"","yymm":"202608","rreg":"PRODDUTUR"},timeout=45)
               soup=BeautifulSoup(q.text,"html.parser")
-              print("DRILL",ep,"STATUS",q.status_code,"LEN",len(q.text),"ROWS",[len(t.find_all("tr")) for t in soup.find_all("table")],
-                    "HEAD",[d.norm(h.get_text(" ",strip=True)) for h in soup.find_all(re.compile(r"^h[1-6]$"))],
-                    "TEXT",soup.get_text(" ",strip=True)[:1000])
-            except Exception as e: print("DRILL_ERROR",ep,repr(e))
+              print("UPTO_DRILL",ep,q.status_code,len(q.text),[len(t.find_all("tr")) for t in soup.find_all("table")],soup.get_text(" ",strip=True)[:700])
+            except Exception as e:print("UPTO_DRILL_ERROR",ep,repr(e))
           PY
