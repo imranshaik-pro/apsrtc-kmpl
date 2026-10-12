@@ -453,6 +453,9 @@ def main_v11():
             history.migrate(cache,values,previous)
             print('HISTORY MIGRATED: existing monthly values retained without a full rebuild')
     else:
+        # Bootstrap a new Annual dashboard directly from an empty durable history
+        # view. Never invoke the legacy rebuild path, which can refetch/overwrite
+        # historical periods outside the v11 checkpoint contract.
         empty=m.new_store(fys); m.seed(empty)
         xlsx=make_xlsx_v11(display,v7.matrix_with_target(empty),fys)
         existing=m.upload_xlsx_as_google_sheet(xlsx,folder,name)
