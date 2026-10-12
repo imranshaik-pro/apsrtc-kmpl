@@ -1,0 +1,27 @@
+name: Management Dashboard Review
+on:
+  push:
+    branches:
+      - feature/management-decision-dashboards
+  pull_request:
+    paths:
+      - 'report_branding.py'
+      - 'annual_visuals.py'
+      - 'monthly_vehicle_report.py'
+      - 'tests/test_report_branding.py'
+      - '.github/workflows/management-dashboard-review.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install presentation test dependencies
+        run: pip install openpyxl pillow pandas
+      - name: Compile changed Python modules
+        run: python -m py_compile report_branding.py annual_visuals.py monthly_vehicle_report.py tests/test_report_branding.py
+      - name: Run management dashboard regressions
+        run: python -m unittest tests.test_report_branding -v

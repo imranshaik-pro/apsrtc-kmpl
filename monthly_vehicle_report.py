@@ -233,8 +233,10 @@ def main():
         date_obj = datetime(year, month, day_num); print(f"Fetching {date_obj.strftime('%d/%m/%Y')}...")
         for vehicle_no, data in fetch_daily_data(session, date_obj, vehicle_depot).items():
             if vehicle_no not in vehicle_data:
-                vehicle_data[vehicle_no] = {"op_type": data.get("operation_type", ""), "engine": data.get("engine_type", ""), "days": {}, "up_to_day_latest": None}
+                vehicle_data[vehicle_no] = {"op_type": data.get("operation_type", ""), "engine": data.get("engine_type", ""), "days": {}, "up_to_day_latest": None, "total_kms": 0.0, "total_hsd": 0.0}
             vehicle_data[vehicle_no]["days"][day_num] = data.get("kmpl")
+            vehicle_data[vehicle_no]["total_kms"] += float(data.get("total_kms") or 0)
+            vehicle_data[vehicle_no]["total_hsd"] += float(data.get("hsd") or 0)
             if data.get("up_to_day_kmpl") is not None: vehicle_data[vehicle_no]["up_to_day_latest"] = data.get("up_to_day_kmpl")
     if not vehicle_data: print("NO_DATA: No vehicle data found."); return 1
 
@@ -365,8 +367,9 @@ def main():
 
     attach_monthly_tabs(workbook, session, display_name, region_code, args.month, folder_id)
     kmpl_ranges.attach_monthly(workbook, session, display_name, region_code, args.month, folder_id)
-    from report_branding import style_monthly_workbook
+    from report_branding import style_monthly_workbook, add_monthly_management_dashboard
     style_monthly_workbook(workbook)
+    add_monthly_management_dashboard(workbook, display_name, report_period, vehicle_data)
     workbook.save(xlsx_path)
     target_sheet_name = f"{display_name}_{args.month}"
     uploaded = upload_xlsx_as_google_sheet(xlsx_path, folder_id=folder_id, sheet_name=target_sheet_name)
