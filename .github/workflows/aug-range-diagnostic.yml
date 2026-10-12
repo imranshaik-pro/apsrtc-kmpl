@@ -22,53 +22,19 @@ jobs:
           import kmpl_ranges as k
           from monthly_vehicle_report import login
           s=login()
-          for entity in ("VEHICLE","DRIVER"):
-            for scope in ("MONTH","UPTO"):
-              path=(k.UPTO_SELECTORS[entity] if scope=="UPTO" else ("vehlog_kmpl.php" if entity=="VEHICLE" else "drvlog_kmpl.php"))
-              q=s.get(f"{d.BASE}/med/{path}",timeout=45)
-              soup=BeautifulSoup(q.text,"html.parser")
-              print("FORM_PAGE",entity,scope,path,"FORMS",len(soup.find_all("form")))
-              for form in soup.find_all("form"):
-                print("FORM",entity,scope,"method",form.get("method"),"action",form.get("action"),"inputs",[(x.get("name"),x.get("type"),x.get("value") if x.get("type") in ("hidden","submit") else None) for x in form.find_all("input")],"selects",[(x.get("name"),[(o.get("value"),o.get_text(" ",strip=True)) for o in x.find_all("option")[:4]]) for x in form.find_all("select")])
-          for path in ("vehlog_kmpl.php","drvlog_kmpl.php","drvlog_ckmpl.php"):
-            q=s.get(f"{d.BASE}/med/{path}",timeout=45)
-            soup=BeautifulSoup(q.text,"html.parser")
-            print("PAGE",path,"TITLE",soup.title.get_text(" ",strip=True) if soup.title else None)
-            for tag in soup.find_all(["input","select","button","a"]):
-              if tag.name=="a" and not any(t in str(tag.get("href","")).lower() for t in ("kmpl","log")):continue
-              print("CONTROL",path,tag.name,"name",tag.get("name"),"id",tag.get("id"),"type",tag.get("type"),"value",tag.get("value"),"href",tag.get("href"),"onclick",str(tag.get("onclick"))[:200],"options",[(o.get("value"),o.get_text(" ",strip=True)) for o in tag.find_all("option")[:6]])
-            for sc in soup.find_all("script"):
-              txt=sc.get_text(" ",strip=True)
-              if any(x in txt.lower() for x in ("yymm","rreg","action","submit","kmpldepot")):
-                print("SCRIPT",path,txt[:2500])
-          for path in ("vehlog_kmpl.php","drvlog_kmpl.php","drvlog_ckmpl.php","vehlog_kmpldepot.php?action=&yymm=202609&rreg=YSRKADAPA"):
-            q=s.get(f"{d.BASE}/med/{path}",timeout=45)
-            soup=BeautifulSoup(q.text,"html.parser")
-            for tag in soup(["script","style"]):tag.decompose()
-            txt=soup.get_text(" ",strip=True)
-            print("BODY",path,"LEN",len(txt),"START",txt[:1600],"END",txt[-500:])
-            print("LINKS",path,[(a.get_text(" ",strip=True),a.get("href")) for a in soup.find_all("a",href=True)[:18]])
-            print("COOKIES",path,sorted(s.cookies.keys()))
-          import time
-          for entity in ("VEHICLE","DRIVER"):
-            ep=k.ENDPOINTS[entity]; url=f"{d.BASE}/med/{ep}"
-            for fresh in range(1,7):
-              if fresh>1:
-                s=login()
-              for headers_name,headers in [
-                ("DEFAULT",{}),
-                ("BROWSER",{"User-Agent":"Mozilla/5.0","Referer":f"{d.BASE}/med/{'vehlog_kmpl.php' if entity=='VEHICLE' else 'drvlog_kmpl.php'}","Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Connection":"close"})
-              ]:
-                q=s.get(url,params={"action":"","yymm":"202608","rreg":"YSRKADAPA"},headers=headers,timeout=45)
-                soup=BeautifulSoup(q.text,"html.parser")
-                rows=max([len(t.find_all("tr")) for t in soup.find_all("table")] or [0])
-                print("HTTP_PROBE",entity,fresh,headers_name,"ROWS",rows,"LEN",len(q.text),"STATUS",q.status_code,
-                      "RESP_HEADERS",{x:q.headers.get(x) for x in ("Server","Date","Content-Length","Connection","Keep-Alive","Set-Cookie")},
-                      "REQ_HEADERS",{x:q.request.headers.get(x) for x in ("User-Agent","Referer","Accept","Connection","Cookie")})
-                if rows>2:
-                  try:
-                    z=k.parse_range(q.text,entity,"PRODDUTUR","2026-08","YSRKADAPA","MONTH")
-                    print("HTTP_SUCCESS",entity,fresh,headers_name,z["counts"])
-                  except Exception as e: print("HTTP_PARSE_FAIL",entity,str(e))
-              time.sleep(1)
+          from urllib.parse import urljoin
+          for entity,endpoint in k.ENDPOINTS.items():
+            selector=endpoint.replace("kmpldepot.php","kmpl1.php")
+            selurl=f"{d.BASE}/med/{selector}"
+            q=s.get(selurl,timeout=45);soup=BeautifulSoup(q.text,"html.parser")
+            print("PARENT_SELECTOR",entity,selector,"FORMS",[(x.get("action"),x.get("method"),[(y.get("name"),y.get("value")) for y in x.find_all(["input","select"])]) for x in soup.find_all("form")])
+            if soup.find("form"):
+              parent=urljoin(selurl,soup.find("form").get("action"))
+              p=s.post(parent,data={"yymm":"202608"},timeout=45);ps=BeautifulSoup(p.text,"html.parser")
+              print("PARENT_POST",entity,parent,"ROWS",[len(t.find_all("tr")) for t in ps.find_all("table")],"LINKS",[(a.get_text(" ",strip=True),a.get("href")) for a in ps.find_all("a",href=True) if "YSR" in (a.get_text()+" "+a.get("href","")).upper()])
+            r=s.get(f"{d.BASE}/med/{endpoint}",params={"action":"","yymm":"202608","rreg":"YSRKADAPA"},timeout=45);rs=BeautifulSoup(r.text,"html.parser")
+            print("AFTER_PARENT",entity,"ROWS",[len(t.find_all("tr")) for t in rs.find_all("table")],"LEN",len(r.text))
+            try:
+              z=k.parse_range(r.text,entity,"PRODDUTUR","2026-08","YSRKADAPA","MONTH");print("AFTER_PARENT_VALID",entity,z["counts"])
+            except Exception as e:print("AFTER_PARENT_INVALID",entity,str(e)[:250])
           PY
