@@ -175,3 +175,45 @@ The repaired PRODDUTUR August 2026 report was executed from `master` using the p
 - Delivery state for this incident is therefore: **implemented → tested → workbook verified → merged → documented → production Drive refreshed → published Drive copy read back and verified**.
 
 The one-purpose publication workflow `.github/workflows/publish-proddutur-aug-repair.yml` was introduced to make this release independently auditable. It publishes only PRODDUTUR August 2026 and fails if the Drive-exported workbook does not contain exactly the four approved totals.
+
+
+## 2026-10-13 — Annual KPI propagation repair and PRODDUTUR August acceptance
+
+### Request
+After the Monthly PRODDUTUR August 2026 KMPL range repair was published and read back successfully, the next requirement was to prove that the corrected range source also reaches the **Annual KPI**. The acceptance case was PRODDUTUR, selected month August 2026, FY 2026-27. Success required a real Annual run and Drive read-back; inheritance from Monthly was not to be assumed.
+
+### What the Annual verification exposed
+The Annual path is independent of the Monthly Google Sheet for much of its history. It maintains durable Annual history and a separate KMPL range-history cache, so the Monthly fix only provides corrected shared source logic; Annual still needed its own end-to-end validation.
+
+Three Annual-specific defects were found during that validation:
+
+1. **Eager range-source login:** v11 instantiated the APSRTC range adapter even when cached Annual history required no range fetch. This violated the checkpoint/cache contract and broke the no-refetch regression test. The adapter is now initialized lazily only when a range period genuinely needs source retrieval.
+2. **Missing engine-source disclosure regression:** the management dashboard intentionally excludes dynamic engine rows from the core KPI summary, but a refactor also removed the completeness warning when engine source rows were unavailable. The warning was restored without promoting dynamic engine rows into the management KPI table.
+3. **Invalid Google Sheets chart payload:** the Annual Google renderer sent `pointSize` inside `basicChart.series`. The Google Sheets API does not accept that field at that location and rejected the final `batchUpdate` with HTTP 400. The unsupported field was removed while preserving the line-series data, target axis and colors.
+
+### Verification
+Acceptance workflow run `38291670551` completed successfully after the fixes.
+
+Regression suites before the live run:
+- Annual history: **12/12 passed**.
+- Annual dashboard: **10/10 passed**.
+- KMPL range source/parser: **20/20 passed**.
+
+The live PRODDUTUR August source retrieval again produced:
+- Vehicle Month: **83** records.
+- Driver Month: **167** records.
+- Vehicle Upto/Cumulative: **84** records.
+- Driver Upto/Cumulative: **193** records.
+
+The Annual dashboard was successfully updated in Google Drive as `PRODDUTUR_ANNUAL_KPI_DASHBOARD`, file ID `1usBGLbct9X5xjCqWt_mHLpBR4UvWqLVJY2nYg8zIi7k`. The verification then read the **published Drive sheet** through the Sheets API, not a local workbook.
+
+Published `FY KMPL Range Trend` August 2026 rows were verified as:
+- Vehicle Month: buckets `0, 2, 48, 19, 8, 5, 1`, G.Total **83**, source status `Verified source`.
+- Driver Month: buckets `0, 4, 105, 35, 13, 8, 2`, G.Total **167**, source status `Verified source`.
+- Cumulative rows are deliberately labelled `Upto/Cum Aug-26` with `See cumulative source bands — not comparable` instead of forcing the cumulative populations into monthly bucket columns. The source retrieval itself verified Vehicle Upto **84** and Driver Upto **193**.
+
+### Delivery state
+For the Annual KPI acceptance case the state is now: **shared Monthly source fixed → Annual regressions discovered → Annual code fixed → all regression suites passed → PRODDUTUR Aug-2026 Annual run succeeded → production Annual Google Sheet updated → published Annual range trend read back and verified → incident documented**.
+
+### Engineering rule retained
+A Monthly source repair must never be assumed to propagate to Annual merely because code is shared. Annual has its own cache/history/rendering/publication contracts and requires an independent acceptance run. Google Sheets formatting requests are also part of production correctness: a workbook can contain valid data and still fail delivery if the API rendering payload is invalid.
