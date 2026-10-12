@@ -94,6 +94,18 @@ class RangeTests(unittest.TestCase):
         self.assertEqual(result["counts"],[0,0,1,0,0,0,1,2])
         self.assertEqual(result["source_method"],"DEPOT_DETAIL_FALLBACK")
 
+    def test_cumulative_vehicle_and_driver_detail_fallback(self):
+        for entity in ("VEHICLE","DRIVER"):
+            if entity=="VEHICLE":
+                head="<h3>APSRTC PRODDUTUR MTD-598 (REVENUE VEHICLES) AS ON:August-2026</h3>"
+                row="<td>1</td><td>PRODDUTUR</td><td>04Z0361</td>"+("<td>x</td>"*10)+"<td>5.55</td>"
+            else:
+                head="<h3>DRIVER-WISE HSD KMPL UP TO THE MONTH OF: 08/2026</h3>"
+                row="<td>1</td><td>411856</td><td>Driver</td><td>5.55</td>"
+            result=k.parse_cumulative_detail(head+"<table><tr>"+row+"</tr></table>",entity,"PRODDUTUR","2026-08","YSRKADAPA")
+            self.assertEqual(result["counts"][-1],1)
+            self.assertEqual(result["scope"],"UPTO")
+
     def test_persistent_header_only_response_fails_closed(self):
         soup = BeautifulSoup(html(), "html.parser")
         for row in list(soup.find("table").find_all("tr"))[2:]:
