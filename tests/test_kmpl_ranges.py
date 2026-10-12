@@ -66,6 +66,36 @@ class RangeTests(unittest.TestCase):
             with self.assertRaises(ValueError):k.SourceAdapter(session,"PRODDUTUR","YSRKADAPA",date(2026,8,20))(entity,"2026-09")
             session.get.assert_not_called()
 
+    def test_transient_header_only_response_recovers_without_inventing_counts(self):
+        from unittest.mock import patch
+        empty = html().split("<tbody>")[0] if "<tbody>" in html() else html().replace("<tr><td>1</td>", "<tr><td>1</td>")
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(html(), "html.parser")
+        table = soup.find("table")
+        for row in list(table.find_all("tr"))[2:]:
+            row.decompose()
+        empty = str(soup)
+        session = Mock()
+        bad = Mock(text=empty)
+        good = Mock(text=html())
+        session.get.side_effect = [bad, good]
+        with patch("kmpl_ranges.time.sleep") as sleep:
+            result = k.SourceAdapter(session, "PRODDUTUR", "YSRKADAPA", date(2026,10,12))("VEHICLE","2026-09")
+        self.assertEqual(result["counts"], [0,2,39,18,9,9,4,81])
+        self.assertEqual(session.get.call_count, 2)
+        sleep.assert_called_once_with(2)
+
+    def test_persistent_header_only_response_fails_closed(self):
+        soup = BeautifulSoup(html(), "html.parser")
+        for row in list(soup.find("table").find_all("tr"))[2:]:
+            row.decompose()
+        session = Mock()
+        session.get.return_value.text = str(soup)
+        with patch("kmpl_ranges.time.sleep"):
+            with self.assertRaisesRegex(ValueError, "Expected one verified range table"):
+                k.SourceAdapter(session, "PRODDUTUR", "YSRKADAPA", date(2026,10,12))("VEHICLE","2026-09")
+        self.assertEqual(session.get.call_count, 4)
+
     def test_fy_rollover_cutoff_and_no_future_months(self):
         self.assertEqual(k.periods_for_fys(["2025-26"],"2026-03"),[f"2025-{m:02d}" for m in range(4,13)]+["2026-01","2026-02","2026-03"])
         self.assertEqual(k.periods_for_fys(["2026-27"],"2026-05"),["2026-04","2026-05"])
