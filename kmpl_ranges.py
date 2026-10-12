@@ -138,6 +138,45 @@ def parse_vehicle_month_detail(html, depot, period, region):
                 source=f"{d.BASE}/med/vehlog_kmplveh.php", source_method="DEPOT_DETAIL_FALLBACK")
 
 
+def parse_driver_month_detail(html, depot, period, region):
+    soup = BeautifulSoup(html, "html.parser")
+    table = soup.find("table")
+    if not table:
+        raise ValueError("Driver detail fallback has no source table")
+    by_driver = {}
+    for tr in table.find_all("tr"):
+        cells = tr.find_all("td")
+        if not cells:
+            continue
+        try:
+            driver = d.norm(cells[1].get_text(" ", strip=True))
+            kmpl = float(cells[-1].get_text(strip=True).replace(",", ""))
+        except (ValueError, IndexError):
+            continue
+        if not driver:
+            continue
+        if driver in by_driver and by_driver[driver] != kmpl:
+            raise ValueError("Driver detail fallback has conflicting duplicate driver rows")
+        by_driver[driver] = kmpl
+    if not by_driver:
+        raise ValueError("Driver detail fallback has no source rows")
+    bins = [0] * 7
+    for value in by_driver.values():
+        if value < 3.00: i = 0
+        elif value <= 4.00: i = 1
+        elif value <= 5.00: i = 2
+        elif value <= 5.15: i = 3
+        elif value <= 5.30: i = 4
+        elif value <= 5.60: i = 5
+        else: i = 6
+        bins[i] += 1
+    counts = bins + [sum(bins)]
+    return dict(depot=d.norm(depot), period=period, entity="DRIVER", scope="MONTH", region=region,
+                headers=["SL No", "Depot", *LABELS, "G.Total"],
+                rows=[[1, d.norm(depot), *counts]], regional_total=counts, counts=counts,
+                source=f"{d.BASE}/med/drvlog_kmpldrv.php", source_method="DEPOT_DETAIL_FALLBACK")
+
+
 class SourceAdapter:
     def __init__(self, session, depot, region, today=None):
         self.session, self.depot, self.region = session, depot, region
@@ -168,13 +207,15 @@ class SourceAdapter:
                 if "Expected one verified range table" not in str(exc):
                     raise
                 if attempt == 3:
-                    if entity == "VEHICLE" and scope == "MONTH":
-                        detail = self.session.get(f"{d.BASE}/med/vehlog_kmplveh.php",
+                    if scope == "MONTH" and entity in ("VEHICLE", "DRIVER"):
+                        detail_ep = "vehlog_kmplveh.php" if entity == "VEHICLE" else "drvlog_kmpldrv.php"
+                        detail = self.session.get(f"{d.BASE}/med/{detail_ep}",
                                                   params={"action":"","yymm":period.replace("-",""),"rreg":d.norm(self.depot)},
                                                   timeout=45)
                         detail.raise_for_status()
-                        snap = parse_vehicle_month_detail(detail.text, self.depot, period, self.region)
-                        print(f"RANGE_DETAIL_FALLBACK {self.depot} {period} VEHICLE MONTH rows={snap['counts'][-1]}")
+                        parser = parse_vehicle_month_detail if entity == "VEHICLE" else parse_driver_month_detail
+                        snap = parser(detail.text, self.depot, period, self.region)
+                        print(f"RANGE_DETAIL_FALLBACK {self.depot} {period} {entity} MONTH rows={snap['counts'][-1]}")
                         break
                     raise
                 print(f"RANGE_EMPTY_RESPONSE_RETRY {self.depot} {period} {entity} {scope} attempt={attempt+1}")
