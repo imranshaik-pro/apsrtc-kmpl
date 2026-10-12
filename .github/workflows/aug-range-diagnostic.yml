@@ -1,0 +1,42 @@
+name: August Range Source Diagnostic
+on:
+  push:
+    branches: [fix/aug-2026-range-source]
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    env:
+      APSRTC_USERNAME: ${{ secrets.APSRTC_USERNAME }}
+      APSRTC_PASSWORD: ${{ secrets.APSRTC_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: pip install -r requirements.txt
+      - name: Inspect safe August range structures
+        run: |
+          python - <<'PY'
+          import re
+          from bs4 import BeautifulSoup
+          import report_details as d
+          import kmpl_ranges as k
+          from monthly_vehicle_report import login
+          s=login()
+          for entity in ("VEHICLE","DRIVER"):
+            for scope in ("MONTH","UPTO"):
+              if scope=="UPTO":
+                q=s.get(f"{d.BASE}/med/{k.UPTO_SELECTORS[entity]}",timeout=45); q.raise_for_status()
+                print("SELECTOR",entity,scope,q.url,[d.norm(h.get_text(" ",strip=True)) for h in BeautifulSoup(q.text,"html.parser").find_all(re.compile(r"^h[1-6]$"))])
+              ep=(k.ENDPOINTS if scope=="MONTH" else k.UPTO_ENDPOINTS)[entity]
+              r=s.get(f"{d.BASE}/med/{ep}",params={"action":"","yymm":"202608","rreg":"YSRKADAPA"},timeout=45);r.raise_for_status()
+              soup=BeautifulSoup(r.text,"html.parser")
+              print("RESULT",entity,scope,r.url)
+              print("HEADINGS",[d.norm(h.get_text(" ",strip=True)) for h in soup.find_all(re.compile(r"^h[1-6]$"))])
+              for ti,t in enumerate(soup.find_all("table")):
+                rows=[]
+                for tr in t.find_all("tr"):
+                  cells=tr.find_all(["th","td"],recursive=False)
+                  if cells: rows.append([c.get_text(" ",strip=True) for c in cells])
+                if rows:
+                  print("TABLE",ti,"ROWS",len(rows),"FIRST",rows[:3],"LAST",rows[-2:])
+          PY
