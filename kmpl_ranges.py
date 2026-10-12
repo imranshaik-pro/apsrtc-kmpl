@@ -46,7 +46,7 @@ def parse_range(html, entity, depot, period, region, scope="MONTH"):
     cumulative_date = d.month_end(period).strftime("%B-%Y")
     kind = "FOR" if scope == "MONTH" else "UPTO"
     dates = re.escape(expected) if scope == "MONTH" else f"(?:{re.escape(expected)}|{re.escape(cumulative_date)})"
-    heading_pattern = rf"RANGE WISE {entity} HSD KMPL {kind} THE MONTH OF:\\s*{dates}\\s*$"
+    heading_pattern = rf"RANGE WISE {entity} HSD KMPL {kind} THE MONTH OF:\s*{dates}\s*$"
     if not any(re.search(heading_pattern, h, re.I) for h in headings):
         raise ValueError("Range source entity/month heading is not verified")
     labels = UPTO_LABELS[entity] if scope == "UPTO" else LABELS
