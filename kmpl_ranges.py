@@ -165,8 +165,17 @@ class SourceAdapter:
                 snap = parse_range(response.text, entity, self.depot, period, self.region, scope)
                 break
             except ValueError as exc:
-                if ("Expected one verified range table" not in str(exc)
-                        or attempt == 3):
+                if "Expected one verified range table" not in str(exc):
+                    raise
+                if attempt == 3:
+                    if entity == "VEHICLE" and scope == "MONTH":
+                        detail = self.session.get(f"{d.BASE}/med/vehlog_kmplveh.php",
+                                                  params={"action":"","yymm":period.replace("-",""),"rreg":d.norm(self.depot)},
+                                                  timeout=45)
+                        detail.raise_for_status()
+                        snap = parse_vehicle_month_detail(detail.text, self.depot, period, self.region)
+                        print(f"RANGE_DETAIL_FALLBACK {self.depot} {period} VEHICLE MONTH rows={snap['counts'][-1]}")
+                        break
                     raise
                 print(f"RANGE_EMPTY_RESPONSE_RETRY {self.depot} {period} {entity} {scope} attempt={attempt+1}")
         snap.update(request=payload, fetched_at=datetime.now(d.IST).isoformat(timespec="seconds"),
