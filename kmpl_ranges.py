@@ -43,8 +43,11 @@ def parse_range(html, entity, depot, period, region, scope="MONTH"):
     soup = BeautifulSoup(html, "html.parser")
     headings = [d.norm(h.get_text(" ", strip=True)) for h in soup.find_all(re.compile(r"^h[1-6]$"))]
     expected = d.month_end(period).strftime("%m/%Y")
-    if not any(re.search(rf"RANGE WISE {entity} HSD KMPL FOR THE MONTH OF:\s*{expected}\s*$", h)
-               for h in headings):
+    cumulative_date = d.month_end(period).strftime("%B-%Y")
+    kind = "FOR" if scope == "MONTH" else "UPTO"
+    dates = re.escape(expected) if scope == "MONTH" else f"(?:{re.escape(expected)}|{re.escape(cumulative_date)})"
+    heading_pattern = rf"RANGE WISE {entity} HSD KMPL {kind} THE MONTH OF:\\s*{dates}\\s*$"
+    if not any(re.search(heading_pattern, h, re.I) for h in headings):
         raise ValueError("Range source entity/month heading is not verified")
     labels = UPTO_LABELS[entity] if scope == "UPTO" else LABELS
     keys = tuple(d.key(x) for x in labels) + ("GTOTAL",)
