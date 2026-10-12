@@ -51,6 +51,16 @@ jobs:
             print("COOKIES",path,sorted(s.cookies.keys()))
           for month in ("202608","202609"):
             for entity in ("VEHICLE","DRIVER"):
+              endpoint=k.ENDPOINTS[entity]
+              base=f"{d.BASE}/med/{endpoint}"
+              query=f"action=&yymm={month}&rreg=YSRKADAPA"
+              for kind in ("PARAMS","LITERAL","LITERAL","PARAMS"):
+                if kind=="PARAMS":q=s.get(base,params={"action":"","yymm":month,"rreg":"YSRKADAPA"},timeout=45)
+                else:q=s.get(base+"?"+query,timeout=45)
+                soup=BeautifulSoup(q.text,"html.parser")
+                print("REQUEST_VARIANT",month,entity,kind,"ROWS",[len(t.find_all("tr")) for t in soup.find_all("table")],"URL",q.url,"LEN",len(q.text))
+          for month in ("202608","202609"):
+            for entity in ("VEHICLE","DRIVER"):
               for scope in ("MONTH","UPTO"):
                 selector=k.UPTO_SELECTORS[entity] if scope=="UPTO" else ("vehlog_kmpl.php" if entity=="VEHICLE" else "drvlog_kmpl.php")
                 s.get(f"{d.BASE}/med/{selector}",timeout=45).raise_for_status()
