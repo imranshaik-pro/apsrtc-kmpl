@@ -182,6 +182,59 @@ def parse_driver_month_detail(html, depot, period, region):
                 source=f"{d.BASE}/med/drvlog_kmpldrv.php", source_method="DEPOT_DETAIL_FALLBACK")
 
 
+def parse_cumulative_detail(html, entity, depot, period, region):
+    """Count APSRTC cumulative drill-down records in their own source bands."""
+    soup = BeautifulSoup(html, "html.parser")
+    headings = [d.norm(h.get_text(" ", strip=True)) for h in soup.find_all(re.compile(r"^h[1-6]$"))]
+    stamp = d.month_end(period).strftime("%B-%Y")
+    expected = d.month_end(period).strftime("%m/%Y")
+    if entity == "VEHICLE":
+        valid = any("MTD-598" in h and stamp.upper() in h for h in headings)
+    else:
+        valid = any("DRIVER-WISE HSD KMPL UP TO THE MONTH OF:" in h
+                    and expected in h for h in headings)
+    if not valid:
+        raise ValueError("Cumulative detail heading is not verified")
+    table = soup.find("table")
+    if not table:
+        raise ValueError("Cumulative detail source has no table")
+    values, identities = [], set()
+    for tr in table.find_all("tr"):
+        cells = tr.find_all("td", recursive=False)
+        if not cells:
+            continue
+        try:
+            number = int(cells[0].get_text(strip=True))
+            ident = d.norm(cells[2 if entity == "VEHICLE" else 1].get_text(" ",strip=True))
+            kmpl = float(cells[13 if entity == "VEHICLE" else 3].get_text(strip=True).replace(",",""))
+        except (ValueError, IndexError):
+            continue
+        if number <= 0 or not ident or ident in identities:
+            raise ValueError("Cumulative detail contains invalid or duplicate identity")
+        identities.add(ident)
+        values.append(kmpl)
+    if not values:
+        raise ValueError("Cumulative detail has no valid source rows")
+    labels = UPTO_LABELS[entity]
+    bins = [0] * len(labels)
+    for v in values:
+        if v <= 2.00: i=0
+        elif v <= 3.00: i=1
+        elif v <= 4.00: i=2
+        elif v <= 5.00: i=3
+        elif entity == "DRIVER" and v <= 5.10: i=4
+        elif v <= 5.30: i=5 if entity == "DRIVER" else 4
+        elif v <= 6.00: i=6 if entity == "DRIVER" else 5
+        else: i=7 if entity == "DRIVER" else 6
+        bins[i] += 1
+    counts = bins + [len(values)]
+    return dict(depot=d.norm(depot), period=period, entity=entity, scope="UPTO", region=region,
+                headers=["SL No","Depot",*labels,"G.Total"],
+                rows=[[1,d.norm(depot),*counts]],regional_total=counts,counts=counts,
+                source=f"{d.BASE}/med/{'vehlog_ckmplveh.php' if entity == 'VEHICLE' else 'drvlog_ckmpldrv.php'}",
+                source_method="CUMULATIVE_DEPOT_DETAIL_FALLBACK")
+
+
 class SourceAdapter:
     def __init__(self, session, depot, region, today=None):
         self.session, self.depot, self.region = session, depot, region
@@ -212,6 +265,15 @@ class SourceAdapter:
                 if "Expected one verified range table" not in str(exc):
                     raise
                 if attempt == 3:
+                    if scope == "UPTO":
+                        ep = "vehlog_ckmplveh.php" if entity == "VEHICLE" else "drvlog_ckmpldrv.php"
+                        detail = self.session.get(f"{d.BASE}/med/{ep}",
+                                                  params={"action":"","yymm":period.replace("-",""),"rreg":d.norm(self.depot)},
+                                                  timeout=45)
+                        detail.raise_for_status()
+                        snap = parse_cumulative_detail(detail.text,entity,self.depot,period,self.region)
+                        print(f"RANGE_DETAIL_FALLBACK {self.depot} {period} {entity} UPTO rows={snap['counts'][-1]}")
+                        break
                     if scope == "MONTH" and entity in ("VEHICLE", "DRIVER"):
                         detail_ep = "vehlog_kmplveh.php" if entity == "VEHICLE" else "drvlog_kmpldrv.php"
                         detail = self.session.get(f"{d.BASE}/med/{detail_ep}",
