@@ -9,6 +9,7 @@ import copy
 import hashlib
 import json
 import re
+import time
 from datetime import date, datetime
 
 from bs4 import BeautifulSoup
@@ -115,9 +116,23 @@ class SourceAdapter:
             selector = self.session.get(f"{d.BASE}/med/{UPTO_SELECTORS[entity]}", timeout=45)
             selector.raise_for_status()
         endpoints = ENDPOINTS if scope == "MONTH" else UPTO_ENDPOINTS
-        response = self.session.get(f"{d.BASE}/med/{endpoints[entity]}", params=payload, timeout=45)
-        response.raise_for_status()
-        snap = parse_range(response.text, entity, self.depot, period, self.region, scope)
+        # APSRTC intermittently returns HTTP 200 with the correct range headers
+        # but no depot rows. Retry only that incomplete source response; never
+        # accept missing rows, fabricate counts, or relax reconciliation checks.
+        url = f"{d.BASE}/med/{endpoints[entity]}"
+        for attempt, delay in enumerate((0, 2, 5, 10)):
+            if delay:
+                time.sleep(delay)
+            response = self.session.get(url, params=payload, timeout=45)
+            response.raise_for_status()
+            try:
+                snap = parse_range(response.text, entity, self.depot, period, self.region, scope)
+                break
+            except ValueError as exc:
+                if ("Expected one verified range table" not in str(exc)
+                        or attempt == 3):
+                    raise
+                print(f"RANGE_EMPTY_RESPONSE_RETRY {self.depot} {period} {entity} {scope} attempt={attempt+1}")
         snap.update(request=payload, fetched_at=datetime.now(d.IST).isoformat(timespec="seconds"),
                     provisional=d.month_end(period) >= self.today)
         return snap
