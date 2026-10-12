@@ -1,0 +1,60 @@
+name: August 2026 Dashboard Output Validation
+on:
+  push:
+    branches:
+      - validation/aug-2026-dashboard-output
+jobs:
+  monthly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      APSRTC_USERNAME: ${{ secrets.APSRTC_USERNAME }}
+      APSRTC_PASSWORD: ${{ secrets.APSRTC_PASSWORD }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+      VEHICLE_EVENTS_API_URL: ${{ secrets.VEHICLE_EVENTS_API_URL }}
+      VEHICLE_EVENTS_API_KEY: ${{ secrets.VEHICLE_EVENTS_API_KEY }}
+      MONTHLY_DRIVE_FOLDER_ID: 1O6rKH39INogYxsNI9IepEO9UJq1MMnPj
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Generate PRODDUTUR August 2026 monthly workbook
+        run: python monthly_vehicle_report.py --depot PRODDUTUR --month 2026-08
+      - name: Upload monthly Excel for visual inspection
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: august-2026-proddutur-monthly
+          path: reports/*.xlsx
+          retention-days: 7
+          if-no-files-found: ignore
+  annual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      APSRTC_USERNAME: ${{ secrets.APSRTC_USERNAME }}
+      APSRTC_PASSWORD: ${{ secrets.APSRTC_PASSWORD }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+      KPI_DRIVE_FOLDER_ID: 1uQlJJcrv7TbKAXtkFtrrCqZac31aWqL9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - name: Generate PRODDUTUR August 2026 annual workbook
+        run: python annual_kpi_runner_v11.py --depot PRODDUTUR --years 2026-27 --selected-month 2026-08
+      - name: Upload annual Excel for visual inspection
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: august-2026-proddutur-annual
+          path: reports/*ANNUAL_KPI*.xlsx
+          retention-days: 7
+          if-no-files-found: ignore
