@@ -54,6 +54,7 @@ jobs:
                 print("DETAIL_BUCKETS",month,entity,name,bins,sum(bins))
               if month=="202609" and entity=="DRIVER":
                 print("SEP_DRIVER_3_4",[(x[0],x[1],x[2],x[3]) for x in vals if 3<=x[3]<=4])
+                print("SEP_DRIVER_DUP_METRICS",[(x[0],y[0],x[1:]) for i,x in enumerate(vals) for y in vals[i+1:] if x[1:]==y[1:]])
               # Probe source aggregate repeatedly in a fresh authenticated session to distinguish deterministic emptiness from transient response.
               ep="vehlog_kmpldepot.php" if entity=="VEHICLE" else "drvlog_kmpldepot.php"
               q=s.get(f"{d.BASE}/med/{ep}",params={"action":"","yymm":month,"rreg":"YSRKADAPA"},timeout=45)
