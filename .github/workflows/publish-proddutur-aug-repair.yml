@@ -1,0 +1,74 @@
+name: Publish verified PRODDUTUR August repair
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/publish-proddutur-aug-repair.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  publish-and-readback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      APSRTC_USERNAME: ${{ secrets.APSRTC_USERNAME }}
+      APSRTC_PASSWORD: ${{ secrets.APSRTC_PASSWORD }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+      VEHICLE_EVENTS_API_URL: ${{ secrets.VEHICLE_EVENTS_API_URL }}
+      VEHICLE_EVENTS_API_KEY: ${{ secrets.VEHICLE_EVENTS_API_KEY }}
+      MONTHLY_DRIVE_FOLDER_ID: 1O6rKH39INogYxsNI9IepEO9UJq1MMnPj
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Test range source contracts
+        run: python -m unittest discover -s tests -p 'test_kmpl_ranges.py' -v
+      - name: Generate and publish August PRODDUTUR
+        shell: bash
+        run: |
+          set -o pipefail
+          python monthly_vehicle_report.py --depot PRODDUTUR --month 2026-08 | tee publish.log
+          SHEET_ID="$(grep 'GOOGLE_SHEET_ID:' publish.log | tail -1 | sed 's/.*GOOGLE_SHEET_ID: //')"
+          REPORT_URL="$(grep -Eo 'https://(docs|drive)\.google\.com/[^[:space:]]+' publish.log | tail -1)"
+          test -n "$SHEET_ID"
+          test -n "$REPORT_URL"
+          echo "SHEET_ID=$SHEET_ID" >> "$GITHUB_ENV"
+          echo "REPORT_URL=$REPORT_URL" >> "$GITHUB_ENV"
+      - name: Export published Drive sheet and verify exact range totals
+        run: |
+          python - <<'PY'
+          import io,os
+          from googleapiclient.http import MediaIoBaseDownload
+          from openpyxl import load_workbook
+          from src.integrations.google_drive import drive_service, XLSX_MIME
+          req=drive_service().files().export_media(fileId=os.environ["SHEET_ID"],mimeType=XLSX_MIME)
+          buf=io.BytesIO(); dl=MediaIoBaseDownload(buf,req); done=False
+          while not done: _,done=dl.next_chunk()
+          open("published-readback.xlsx","wb").write(buf.getvalue())
+          wb=load_workbook("published-readback.xlsx",data_only=True)
+          ws=wb["KMPL Range Distribution"]
+          rows=list(ws.iter_rows(values_only=True))
+          totals=[row[1] for row in rows if row[0]=="G.Total"]
+          print("PUBLISHED_RANGE_TOTALS",totals[:4])
+          expected=[83,167,84,193]
+          assert totals[:4]==expected, f"Published Drive sheet totals {totals[:4]} != {expected}"
+          print("PUBLISHED_DRIVE_VERIFIED",os.environ["SHEET_ID"],os.environ["REPORT_URL"])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: proddutur-aug-production-readback
+          path: |
+            reports/*.xlsx
+            published-readback.xlsx
+            publish.log
+          if-no-files-found: ignore
+          retention-days: 14
