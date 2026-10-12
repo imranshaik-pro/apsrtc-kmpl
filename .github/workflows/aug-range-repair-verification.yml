@@ -35,13 +35,16 @@ jobs:
           assert paths, "Missing August workbook"
           wb=openpyxl.load_workbook(paths[0],read_only=True)
           ws=wb[MONTHLY_TITLE]
-          for row in ws.iter_rows(values_only=True):
-            if row[0]=="G.Total":
-              print("SOURCE_RANGE_TOTALS",row[:5])
-              assert isinstance(row[1],int) and row[1]>0, "Vehicle Month unavailable"
-              assert isinstance(row[3],int) and row[3]>0, "Driver Month unavailable"
-              break
-          else: raise AssertionError("Missing range total row")
+          rows=list(ws.iter_rows(values_only=True))
+          totals=[row[1] for row in rows if row[0]=="G.Total"]
+          print("SOURCE_RANGE_TOTALS",totals[:4])
+          assert len(totals)>=4, "Missing four independent range tables"
+          assert isinstance(totals[0],int) and totals[0]>0, "Vehicle Month unavailable"
+          assert isinstance(totals[1],int) and totals[1]>0, "Driver Month unavailable"
+          assert isinstance(totals[2],int) and totals[2]>0, "Vehicle Upto unavailable"
+          assert isinstance(totals[3],int) and totals[3]>0, "Driver Upto unavailable"
+          assert any(row[0]=="5.01 - 5.10" for row in rows), "Driver cumulative bands missing"
+          assert any(row[0]=="5.01 - 5.30" for row in rows), "Vehicle cumulative bands missing"
           PY
       - name: Upload validated workbook and log
         if: always()
