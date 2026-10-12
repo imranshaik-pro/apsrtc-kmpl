@@ -49,58 +49,26 @@ jobs:
             print("BODY",path,"LEN",len(txt),"START",txt[:1600],"END",txt[-500:])
             print("LINKS",path,[(a.get_text(" ",strip=True),a.get("href")) for a in soup.find_all("a",href=True)[:18]])
             print("COOKIES",path,sorted(s.cookies.keys()))
-          for month in ("202608","202609"):
-            for entity in ("VEHICLE","DRIVER"):
-              ep=k.ENDPOINTS[entity]
-              q=s.get(f"{d.BASE}/med/{ep}",params={"action":"","yymm":month,"rreg":"YSRKADAPA"},timeout=45)
-              soup=BeautifulSoup(q.text,"html.parser")
-              print("STRUCT",month,entity,"DEPOT_IN_HTML","PRODDUTUR" in q.text,"AJAX",["ajax","DataTable","fetch(","XMLHttpRequest","$.get"].__str__(),[(w,w.lower() in q.text.lower()) for w in ("ajax","datatable","fetch(","xmlhttprequest","$.get")])
-              print("SCRIPTS",month,entity,[(x.get("src"),x.get_text(" ",strip=True)[:450]) for x in soup.find_all("script")][:18])
-              print("TABLE_HTML",month,entity,str(soup.find("table"))[-900:])
-              print("RESPONSE_BODY",month,entity,soup.get_text(" ",strip=True)[-900:])
-          for month in ("202608","202609"):
-            for entity in ("VEHICLE","DRIVER"):
-              endpoint=k.ENDPOINTS[entity]
-              base=f"{d.BASE}/med/{endpoint}"
-              query=f"action=&yymm={month}&rreg=YSRKADAPA"
-              for kind in ("PARAMS","LITERAL","LITERAL","PARAMS"):
-                if kind=="PARAMS":q=s.get(base,params={"action":"","yymm":month,"rreg":"YSRKADAPA"},timeout=45)
-                else:q=s.get(base+"?"+query,timeout=45)
+          import time
+          for entity in ("VEHICLE","DRIVER"):
+            ep=k.ENDPOINTS[entity]; url=f"{d.BASE}/med/{ep}"
+            for fresh in range(1,7):
+              if fresh>1:
+                s=login()
+              for headers_name,headers in [
+                ("DEFAULT",{}),
+                ("BROWSER",{"User-Agent":"Mozilla/5.0","Referer":f"{d.BASE}/med/{'vehlog_kmpl.php' if entity=='VEHICLE' else 'drvlog_kmpl.php'}","Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","Connection":"close"})
+              ]:
+                q=s.get(url,params={"action":"","yymm":"202608","rreg":"YSRKADAPA"},headers=headers,timeout=45)
                 soup=BeautifulSoup(q.text,"html.parser")
-                print("REQUEST_VARIANT",month,entity,kind,"ROWS",[len(t.find_all("tr")) for t in soup.find_all("table")],"URL",q.url,"LEN",len(q.text))
-          for month in ("202608","202609"):
-            for entity in ("VEHICLE","DRIVER"):
-              for scope in ("MONTH","UPTO"):
-                selector=k.UPTO_SELECTORS[entity] if scope=="UPTO" else ("vehlog_kmpl.php" if entity=="VEHICLE" else "drvlog_kmpl.php")
-                s.get(f"{d.BASE}/med/{selector}",timeout=45).raise_for_status()
-                endpoint=(k.ENDPOINTS if scope=="MONTH" else k.UPTO_ENDPOINTS)[entity]
-                for attempt in range(1,4):
-                  q=s.get(f"{d.BASE}/med/{endpoint}",params={"action":"","yymm":month,"rreg":"YSRKADAPA"},timeout=45)
-                  soup=BeautifulSoup(q.text,"html.parser")
-                  rows=[len(t.find_all("tr")) for t in soup.find_all("table")]
-                  print("RETRY_PROBE",month,entity,scope,attempt,"ROWS",rows,"LEN",len(q.text))
-                  if max(rows or [0])>2:
-                    print("RETRY_SAMPLE",month,entity,scope,[[c.get_text(" ",strip=True) for c in tr.find_all(["th","td"],recursive=False)] for tr in soup.find("table").find_all("tr")[-2:]])
-                    break
-          for month in ("202609","202608","202607"):
-            print("COMPARISON_MONTH",month)
-            for entity in ("VEHICLE","DRIVER"):
-              for scope in ("MONTH","UPTO"):
-                if scope=="UPTO":
-                  q=s.get(f"{d.BASE}/med/{k.UPTO_SELECTORS[entity]}",timeout=45);q.raise_for_status()
-                ep=(k.ENDPOINTS if scope=="MONTH" else k.UPTO_ENDPOINTS)[entity]
-                r=s.get(f"{d.BASE}/med/{ep}",params={"action":"","yymm":month,"rreg":"YSRKADAPA"},timeout=45);r.raise_for_status()
-                soup=BeautifulSoup(r.text,"html.parser")
-                headings=[d.norm(h.get_text(" ",strip=True)) for h in soup.find_all(re.compile(r"^h[1-6]$"))]
-                tables=soup.find_all("table")
-                data=[t.find_all("tr") for t in tables]
-                print("COMPARE",month,entity,scope,"HEADINGS",headings,"ROWS",[len(x) for x in data],"TEXTLEN",len(r.text),"URL",r.url)
-                for ti,rows in enumerate(data):
-                  if len(rows)>2:
-                    print("DATA_SAMPLE",month,entity,scope,ti,[[c.get_text(" ",strip=True) for c in tr.find_all(["th","td"],recursive=False)][:3] for tr in rows[2:4]])
-                try:
-                  z=k.parse_range(r.text,entity,"PRODDUTUR",month[:4]+"-"+month[4:],"YSRKADAPA",scope)
-                  print("PARSED",month,entity,scope,z["counts"])
-                except Exception as e:
-                  print("PARSE_ERROR",month,entity,scope,str(e)[:180])
+                rows=max([len(t.find_all("tr")) for t in soup.find_all("table")] or [0])
+                print("HTTP_PROBE",entity,fresh,headers_name,"ROWS",rows,"LEN",len(q.text),"STATUS",q.status_code,
+                      "RESP_HEADERS",{x:q.headers.get(x) for x in ("Server","Date","Content-Length","Connection","Keep-Alive","Set-Cookie")},
+                      "REQ_HEADERS",{x:q.request.headers.get(x) for x in ("User-Agent","Referer","Accept","Connection","Cookie")})
+                if rows>2:
+                  try:
+                    z=k.parse_range(q.text,entity,"PRODDUTUR","2026-08","YSRKADAPA","MONTH")
+                    print("HTTP_SUCCESS",entity,fresh,headers_name,z["counts"])
+                  except Exception as e: print("HTTP_PARSE_FAIL",entity,str(e))
+              time.sleep(1)
           PY
