@@ -143,7 +143,7 @@ def parse_driver_month_detail(html, depot, period, region):
     table = soup.find("table")
     if not table:
         raise ValueError("Driver detail fallback has no source table")
-    by_driver = {}
+    values = []
     for tr in table.find_all("tr"):
         cells = tr.find_all("td")
         if not cells:
@@ -153,15 +153,12 @@ def parse_driver_month_detail(html, depot, period, region):
             kmpl = float(cells[-1].get_text(strip=True).replace(",", ""))
         except (ValueError, IndexError):
             continue
-        if not driver:
-            continue
-        if driver in by_driver and by_driver[driver] != kmpl:
-            raise ValueError("Driver detail fallback has conflicting duplicate driver rows")
-        by_driver[driver] = kmpl
-    if not by_driver:
+        if driver:
+            values.append(kmpl)
+    if not values:
         raise ValueError("Driver detail fallback has no source rows")
     bins = [0] * 7
-    for value in by_driver.values():
+    for value in values:
         if value < 3.00: i = 0
         elif value <= 4.00: i = 1
         elif value <= 5.00: i = 2
