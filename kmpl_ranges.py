@@ -244,9 +244,6 @@ class SourceAdapter:
             raise ValueError("Future range months are not requested")
         payload = dict(action="", yymm=period.replace("-", ""), rreg=self.region)
         if scope not in SCOPES: raise ValueError("Unknown range scope")
-        if scope == "UPTO":
-            selector = self.session.get(f"{d.BASE}/med/{UPTO_SELECTORS[entity]}", timeout=45)
-            selector.raise_for_status()
         endpoints = ENDPOINTS if scope == "MONTH" else UPTO_ENDPOINTS
         # APSRTC intermittently returns HTTP 200 with the correct range headers
         # but no depot rows. Retry only that incomplete source response; never
@@ -255,13 +252,16 @@ class SourceAdapter:
         for attempt, delay in enumerate((0, 2, 5, 10)):
             if delay:
                 time.sleep(delay)
-            response = self.session.get(url, params=payload, timeout=45)
-            response.raise_for_status()
             try:
+                response = self.session.get(url, params=payload, timeout=45)
+                response.raise_for_status()
                 snap = parse_range(response.text, entity, self.depot, period, self.region, scope)
                 break
-            except ValueError as exc:
-                if "Expected one verified range table" not in str(exc):
+            except Exception as exc:
+                import requests
+                transient = isinstance(exc, requests.exceptions.RequestException)
+                empty = isinstance(exc, ValueError) and "Expected one verified range table" in str(exc)
+                if not (transient or empty):
                     raise
                 if attempt == 3:
                     if scope == "UPTO":
