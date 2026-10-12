@@ -22,21 +22,25 @@ jobs:
           import kmpl_ranges as k
           from monthly_vehicle_report import login
           s=login()
-          for entity in ("VEHICLE","DRIVER"):
-            for scope in ("MONTH","UPTO"):
-              if scope=="UPTO":
-                q=s.get(f"{d.BASE}/med/{k.UPTO_SELECTORS[entity]}",timeout=45); q.raise_for_status()
-                print("SELECTOR",entity,scope,q.url,[d.norm(h.get_text(" ",strip=True)) for h in BeautifulSoup(q.text,"html.parser").find_all(re.compile(r"^h[1-6]$"))])
-              ep=(k.ENDPOINTS if scope=="MONTH" else k.UPTO_ENDPOINTS)[entity]
-              r=s.get(f"{d.BASE}/med/{ep}",params={"action":"","yymm":"202608","rreg":"YSRKADAPA"},timeout=45);r.raise_for_status()
-              soup=BeautifulSoup(r.text,"html.parser")
-              print("RESULT",entity,scope,r.url)
-              print("HEADINGS",[d.norm(h.get_text(" ",strip=True)) for h in soup.find_all(re.compile(r"^h[1-6]$"))])
-              for ti,t in enumerate(soup.find_all("table")):
-                rows=[]
-                for tr in t.find_all("tr"):
-                  cells=tr.find_all(["th","td"],recursive=False)
-                  if cells: rows.append([c.get_text(" ",strip=True) for c in cells])
-                if rows:
-                  print("TABLE",ti,"ROWS",len(rows),"FIRST",rows[:3],"LAST",rows[-2:])
+          for month in ("202609","202608","202607"):
+            print("COMPARISON_MONTH",month)
+            for entity in ("VEHICLE","DRIVER"):
+              for scope in ("MONTH","UPTO"):
+                if scope=="UPTO":
+                  q=s.get(f"{d.BASE}/med/{k.UPTO_SELECTORS[entity]}",timeout=45);q.raise_for_status()
+                ep=(k.ENDPOINTS if scope=="MONTH" else k.UPTO_ENDPOINTS)[entity]
+                r=s.get(f"{d.BASE}/med/{ep}",params={"action":"","yymm":month,"rreg":"YSRKADAPA"},timeout=45);r.raise_for_status()
+                soup=BeautifulSoup(r.text,"html.parser")
+                headings=[d.norm(h.get_text(" ",strip=True)) for h in soup.find_all(re.compile(r"^h[1-6]$"))]
+                tables=soup.find_all("table")
+                data=[t.find_all("tr") for t in tables]
+                print("COMPARE",month,entity,scope,"HEADINGS",headings,"ROWS",[len(x) for x in data],"TEXTLEN",len(r.text),"URL",r.url)
+                for ti,rows in enumerate(data):
+                  if len(rows)>2:
+                    print("DATA_SAMPLE",month,entity,scope,ti,[[c.get_text(" ",strip=True) for c in tr.find_all(["th","td"],recursive=False)][:3] for tr in rows[2:4]])
+                try:
+                  z=k.parse_range(r.text,entity,"PRODDUTUR",month[:4]+"-"+month[4:],"YSRKADAPA",scope)
+                  print("PARSED",month,entity,scope,z["counts"])
+                except Exception as e:
+                  print("PARSE_ERROR",month,entity,scope,str(e)[:180])
           PY
