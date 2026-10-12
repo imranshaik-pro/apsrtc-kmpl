@@ -290,7 +290,7 @@ def google_dashboard_requests(sid,model):
         r=s['source_row']; count=s['points']+1
         source=lambda c:{"sourceRange":{"sources":[region(r,c,count)]}}
         basic={"chartType":"LINE","headerCount":1,"legendPosition":"BOTTOM_LEGEND",
-               "domains":[{"domain":source(19)}],"series":[{"series":source(20+j),"targetAxis":"LEFT_AXIS","pointSize":0 if s["targets"][j] else 4,"color":rgb([BLUE,GREEN,ORANGE,NEUTRAL][j%4])} for j in range(s['series'])],
+               "domains":[{"domain":source(19)}],"series":[{"series":source(20+j),"targetAxis":"LEFT_AXIS","color":rgb([BLUE,GREEN,ORANGE,NEUTRAL][j%4])} for j in range(s['series'])],
                "axis":[{"position":"LEFT_AXIS","title":s['unit']}],"lineSmoothing":False}
         chart={"spec":{"title":s['title'],"fontName":"Arial","hiddenDimensionStrategy":"SHOW_ALL","basicChart":basic},
                "position":{"overlayPosition":{"anchorCell":{"sheetId":sid,"rowIndex":s['row'],"columnIndex":s['col']},"widthPixels":s['width'],"heightPixels":s['height']}}}
