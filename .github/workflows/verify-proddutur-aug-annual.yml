@@ -1,0 +1,69 @@
+name: Verify PRODDUTUR Aug 2026 Annual KPI
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/verify-proddutur-aug-annual.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  annual-verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      APSRTC_USERNAME: ${{ secrets.APSRTC_USERNAME }}
+      APSRTC_PASSWORD: ${{ secrets.APSRTC_PASSWORD }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+      KPI_DRIVE_FOLDER_ID: 1uQlJJcrv7TbKAXtkFtrrCqZac31aWqL9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Test annual and range contracts
+        run: |
+          python -m unittest discover -s tests -p 'test_annual_history.py' -v
+          python -m unittest discover -s tests -p 'test_annual_dashboard_v2.py' -v
+          python -m unittest discover -s tests -p 'test_kmpl_ranges.py' -v
+      - name: Run Annual KPI through August 2026
+        shell: bash
+        run: |
+          set -o pipefail
+          python annual_kpi_runner_v11.py --depot PRODDUTUR --years 2026-27 --selected-month 2026-08 | tee annual.log
+          SID="$(grep 'GOOGLE_SHEET_ID:' annual.log | tail -1 | sed 's/.*GOOGLE_SHEET_ID: //')"
+          test -n "$SID"
+          echo "SID=$SID" >> "$GITHUB_ENV"
+      - name: Read back Annual KPI from Drive and verify August range history
+        run: |
+          python - <<'PY'
+          import os
+          from src.integrations.google_drive import drive_service
+          svc=drive_service()
+          sid=os.environ["SID"]
+          meta=svc.files().get(fileId=sid,fields="id,name,webViewLink,modifiedTime").execute()
+          from googleapiclient.discovery import build
+          from src.integrations.google_drive import _credentials
+          sheets=build("sheets","v4",credentials=_credentials(),cache_discovery=False)
+          vals=sheets.spreadsheets().values().get(spreadsheetId=sid,range="'FY KMPL Range Trend'!A1:Z250").execute().get("values",[])
+          print("ANNUAL_FILE",meta)
+          for row in vals:
+              if any("2026-08" in str(v) or "Aug" in str(v) for v in row):
+                  print("AUG_RANGE_ROW",row)
+          flat=[str(v) for row in vals for v in row]
+          assert any("2026-08" in v or "Aug" in v for v in flat), "August 2026 absent from Annual range trend"
+          print("ANNUAL_AUG_RANGE_PRESENT",sid)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: proddutur-aug-annual-verification
+          path: annual.log
+          if-no-files-found: ignore
+          retention-days: 14
