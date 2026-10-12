@@ -101,9 +101,9 @@ class RangeTests(unittest.TestCase):
         session = Mock()
         session.get.return_value.text = str(soup)
         with patch("kmpl_ranges.time.sleep"):
-            with self.assertRaisesRegex(ValueError, "Expected one verified range table"):
+            with self.assertRaisesRegex(ValueError, "Vehicle detail fallback"):
                 k.SourceAdapter(session, "PRODDUTUR", "YSRKADAPA", date(2026,10,12))("VEHICLE","2026-09")
-        self.assertEqual(session.get.call_count, 4)
+        self.assertEqual(session.get.call_count, 5)
 
     def test_fy_rollover_cutoff_and_no_future_months(self):
         self.assertEqual(k.periods_for_fys(["2025-26"],"2026-03"),[f"2025-{m:02d}" for m in range(4,13)]+["2026-01","2026-02","2026-03"])
