@@ -49,6 +49,20 @@ jobs:
             print("BODY",path,"LEN",len(txt),"START",txt[:1600],"END",txt[-500:])
             print("LINKS",path,[(a.get_text(" ",strip=True),a.get("href")) for a in soup.find_all("a",href=True)[:18]])
             print("COOKIES",path,sorted(s.cookies.keys()))
+          for month in ("202608","202609"):
+            for entity in ("VEHICLE","DRIVER"):
+              for scope in ("MONTH","UPTO"):
+                selector=k.UPTO_SELECTORS[entity] if scope=="UPTO" else ("vehlog_kmpl.php" if entity=="VEHICLE" else "drvlog_kmpl.php")
+                s.get(f"{d.BASE}/med/{selector}",timeout=45).raise_for_status()
+                endpoint=(k.ENDPOINTS if scope=="MONTH" else k.UPTO_ENDPOINTS)[entity]
+                for attempt in range(1,4):
+                  q=s.get(f"{d.BASE}/med/{endpoint}",params={"action":"","yymm":month,"rreg":"YSRKADAPA"},timeout=45)
+                  soup=BeautifulSoup(q.text,"html.parser")
+                  rows=[len(t.find_all("tr")) for t in soup.find_all("table")]
+                  print("RETRY_PROBE",month,entity,scope,attempt,"ROWS",rows,"LEN",len(q.text))
+                  if max(rows or [0])>2:
+                    print("RETRY_SAMPLE",month,entity,scope,[[c.get_text(" ",strip=True) for c in tr.find_all(["th","td"],recursive=False)] for tr in soup.find("table").find_all("tr")[-2:]])
+                    break
           for month in ("202609","202608","202607"):
             print("COMPARISON_MONTH",month)
             for entity in ("VEHICLE","DRIVER"):
