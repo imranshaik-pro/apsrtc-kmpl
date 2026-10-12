@@ -1,0 +1,80 @@
+name: August Range Source Diagnostic
+on:
+  push:
+    branches: [fix/aug-2026-range-source]
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    env:
+      APSRTC_USERNAME: ${{ secrets.APSRTC_USERNAME }}
+      APSRTC_PASSWORD: ${{ secrets.APSRTC_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: pip install -r requirements.txt
+      - name: Inspect safe August range structures
+        run: |
+          python - <<'PY'
+          import re
+          from bs4 import BeautifulSoup
+          import report_details as d
+          import kmpl_ranges as k
+          from monthly_vehicle_report import login
+          s=login()
+          from urllib.parse import urljoin
+          def bucket(v):
+            if v<3:return 0
+            if v<=4:return 1
+            if v<=5:return 2
+            if v<=5.15:return 3
+            if v<=5.30:return 4
+            if v<=5.60:return 5
+            return 6
+          def rows(entity,month):
+            ep="vehlog_kmplveh.php" if entity=="VEHICLE" else "drvlog_kmpldrv.php"
+            q=s.get(f"{d.BASE}/med/{ep}",params={"action":"","yymm":month,"rreg":"PRODDUTUR"},timeout=45)
+            soup=BeautifulSoup(q.text,"html.parser"); out=[]
+            for tr in soup.find("table").find_all("tr"):
+              c=tr.find_all("td")
+              if not c: continue
+              try:
+                if entity=="VEHICLE": ident=c[2].get_text(" ",strip=True); kms=float(c[6].get_text(strip=True)); hsd=float(c[12].get_text(strip=True)); v=float(c[13].get_text(strip=True))
+                else: ident=c[1].get_text(" ",strip=True); kms=float(c[-3].get_text(strip=True)); hsd=float(c[-2].get_text(strip=True)); v=float(c[-1].get_text(strip=True))
+                out.append((ident,kms,hsd,v))
+              except: pass
+            return out
+          print("UPTO_DISCOVERY_BEGIN")
+          for ep in ("vehlog_ckmplveh.php","drvlog_ckmpldrv.php","vehlog_ckmpldepot.php","drvlog_ckmpldepot.php"):
+            try:
+              for query in (None,{"action":"","yymm":"202608","rreg":"PRODDUTUR" if ep.endswith(("ckmplveh.php","ckmpldrv.php")) else "YSRKADAPA"}):
+                res=s.get(f"{d.BASE}/med/{ep}",params=query,timeout=45)
+                soup=BeautifulSoup(res.text,"html.parser")
+                heads=[h.get_text(" ",strip=True) for h in soup.find_all(re.compile("^h[1-6]$"))]
+                links=[a.get("href") for a in soup.find_all("a",href=True) if "kmpl" in a.get("href","").lower()]
+                tabs=soup.find_all("table")
+                print("UPTO_PROBE",ep,"query",bool(query),"status",res.status_code,"length",len(res.content),"heads",heads[:5],"links",links[:12],"tables",len(tabs))
+                for table in tabs[:2]:
+                  trs=table.find_all("tr")
+                  print("UPTO_TABLE",ep,"rows",len(trs),"first",[[c.get_text(" ",strip=True) for c in tr.find_all(["td","th"])] for tr in trs[:3]],"last",[[c.get_text(" ",strip=True) for c in tr.find_all(["td","th"])] for tr in trs[-2:]])
+            except Exception as exc:
+              print("UPTO_PROBE_ERROR",ep,type(exc).__name__,str(exc)[:140])
+          print("UPTO_DISCOVERY_END")
+          for month in ("202607","202608","202609"):
+            for entity in ("VEHICLE","DRIVER"):
+              vals=rows(entity,month)
+              print("DETAIL_SUMMARY",month,entity,"rows",len(vals),"kms0",sum(x[1]==0 for x in vals),"hsd0",sum(x[2]==0 for x in vals),"kmpl0",sum(x[3]==0 for x in vals))
+              for name,pred in (("ALL",lambda x:True),("KMS_POS",lambda x:x[1]>0),("HSD_POS",lambda x:x[2]>0),("BOTH_POS",lambda x:x[1]>0 and x[2]>0)):
+                use=[x for x in vals if pred(x)]; bins=[0]*7
+                for x in use: bins[bucket(x[3])]+=1
+                print("DETAIL_BUCKETS",month,entity,name,bins,sum(bins))
+              if month=="202609" and entity=="DRIVER":
+                print("SEP_DRIVER_3_4",[(x[0],x[1],x[2],x[3]) for x in vals if 3<=x[3]<=4])
+                print("SEP_DRIVER_DUP_METRICS",[(x[0],y[0],x[1:]) for i,x in enumerate(vals) for y in vals[i+1:] if x[1:]==y[1:]])
+              # Probe source aggregate repeatedly in a fresh authenticated session to distinguish deterministic emptiness from transient response.
+              ep="vehlog_kmpldepot.php" if entity=="VEHICLE" else "drvlog_kmpldepot.php"
+              q=s.get(f"{d.BASE}/med/{ep}",params={"action":"","yymm":month,"rreg":"YSRKADAPA"},timeout=45)
+              soup=BeautifulSoup(q.text,"html.parser")
+              trs=soup.find("table").find_all("tr") if soup.find("table") else []
+              print("AGG_ROWS",month,entity,len(trs),[[c.get_text(" ",strip=True) for c in tr.find_all(["td","th"])] for tr in trs[-3:]])
+          PY

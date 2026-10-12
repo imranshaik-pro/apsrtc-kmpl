@@ -84,3 +84,28 @@ Owner verification established that Vehicle Upto uses selector `vehlog_kmpl.php`
 During post-merge review, work briefly continued against PR #12's old feature branch before the merged master state was re-read. The corrective process is now documented: current master/PR/recent-commit state must be checked before modifying an existing feature branch.
 
 The range tests passed in the diagnostic workflow. A separate `report_details` HistoryAndViewTests group failed while its SourceContractTests passed. `report_details.py` itself is unchanged from the pre-PR-12 baseline, so the failure is tracked as an independent validation issue pending exact clean-master reproduction; no speculative production patch was made.
+
+
+## 2026-10-12 — PRODDUTUR August range-source incident
+
+- Symptom: August 2026 KMPL Range Distribution rendered blank Month/Upto populations although the main monthly vehicle report had valid operational data.
+- Regional aggregate endpoints `vehlog_kmpldepot.php` and `drvlog_kmpldepot.php` repeatedly returned HTTP 200 and correct headers but only the two header rows for July, August and September in live diagnostics.
+- Earlier workflow “success” was reclassified: the job completed, but its source-review log also showed empty aggregate tables. Workflow success was not evidence of populated source data.
+- Retrying the aggregate and replaying the parent month selector did not restore rows; those hypotheses were disproved.
+- Stable depot drill-down sources were found: `vehlog_kmplveh.php` and `drvlog_kmpldrv.php`.
+- Vehicle detail parsing initially appeared inconsistent because a diagnostic used `recursive=False` and dropped a nested linked vehicle cell, shifting columns. Correct DOM indexing fixed that diagnostic error.
+- September vehicle detail, filtered to positive operated KM, exactly reproduced the previously verified aggregate: [0,2,39,18,9,9,4] = 81. This is the evidence gate for the vehicle Month fallback.
+- August vehicle detail currently produces 83 operated vehicles. Zero-operated-KM records are excluded, consistent with the verified September aggregate behavior.
+- Driver detail is record-level: repeated driver identities can occur, and distinct drivers can also have identical KM/HSD/KMPL metrics. Therefore metric deduplication and blind driver-ID deduplication are both unsafe. Month fallback counts valid source rows.
+- Upto/Cumulative remains separate. Driver Upto uses a different eight-band classification and must not be coerced into the seven Month bands. Vehicle Upto is not claimed repaired by the Month fallback.
+- Principle retained: missing source data is never converted to zero and no range population is fabricated.
+
+
+## 2026-10-12 — Cumulative range repair
+
+- Identified actual vehicle cumulative selector `vehlog_ckmpl.php` and aggregate `vehlog_ckmpldepot.php`; previous configuration incorrectly reused monthly vehicle sources.
+- Driver cumulative aggregate `drvlog_ckmpldepot.php` was correctly identified but rejected because the parser required the monthly heading and seven monthly bands.
+- APSRTC cumulative classifications are distinct: vehicle has seven cumulative bands (Below 2, 2.01–3, 3.01–4, 4.01–5, 5.01–5.30, 5.31–6, Above 6); driver has eight cumulative bands with 5.01–5.10 and 5.11–5.30 split.
+- Regional cumulative aggregate pages intermittently return only header rows. Depot cumulative drilldowns `vehlog_ckmplveh.php` and `drvlog_ckmpldrv.php` expose record-level KMPL. Driver cumulative source contained 193 rows for August PRODDUTUR; the workbook independently verified this source population.
+- Repeated source identities are retained as source records rather than deduplicated without an APSRTC rule. Month and Upto are rendered in separate tables with exact source headings, not silently combined.
+- No cumulative count is constructed by summing monthly counts.

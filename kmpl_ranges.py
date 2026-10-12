@@ -9,6 +9,7 @@ import copy
 import hashlib
 import json
 import re
+import time
 from datetime import date, datetime
 
 from bs4 import BeautifulSoup
@@ -19,12 +20,14 @@ SCHEMA = "kmpl-range-2"
 MONTHLY_TITLE = "KMPL Range Distribution"
 ANNUAL_TITLE = "FY KMPL Range Trend"
 ENDPOINTS = {"VEHICLE": "vehlog_kmpldepot.php", "DRIVER": "drvlog_kmpldepot.php"}
-UPTO_SELECTORS = {"VEHICLE": "vehlog_kmpl.php", "DRIVER": "drvlog_ckmpl.php"}
-UPTO_ENDPOINTS = {"VEHICLE": "vehlog_kmpldepot.php", "DRIVER": "drvlog_ckmpldepot.php"}
+UPTO_SELECTORS = {"VEHICLE": "vehlog_ckmpl.php", "DRIVER": "drvlog_ckmpl.php"}
+UPTO_ENDPOINTS = {"VEHICLE": "vehlog_ckmpldepot.php", "DRIVER": "drvlog_ckmpldepot.php"}
 SCOPES = ("MONTH", "UPTO")
 LABELS = ("Below -3.00", "3.00 - 4.00", "4.01 - 5.00", "5.01 - 5.15",
           "5.16 - 5.30", "5.31 - 5.60", "5.60 - ABV")
 HEADER_KEYS = tuple(d.key(x) for x in LABELS) + ("GTOTAL",)
+UPTO_LABELS = {"VEHICLE": ("Below -2.00", "2.01 -3.00", "3.01 -4.00", "4.01 - 5.00", "5.01 - 5.30", "5.31 - 6.00", "6.01 - ABV"), "DRIVER": ("Below -2.00", "2.01 -3.00", "3.01 -4.00", "4.01 - 5.00", "5.01 - 5.10", "5.11 - 5.30", "5.31 - 6.00", "6.01 - ABV")}
+
 
 
 def count(value):
@@ -40,9 +43,15 @@ def parse_range(html, entity, depot, period, region, scope="MONTH"):
     soup = BeautifulSoup(html, "html.parser")
     headings = [d.norm(h.get_text(" ", strip=True)) for h in soup.find_all(re.compile(r"^h[1-6]$"))]
     expected = d.month_end(period).strftime("%m/%Y")
-    if not any(re.search(rf"RANGE WISE {entity} HSD KMPL FOR THE MONTH OF:\s*{expected}\s*$", h)
-               for h in headings):
+    cumulative_date = d.month_end(period).strftime("%B-%Y")
+    kind = "FOR" if scope == "MONTH" else "UPTO"
+    dates = re.escape(expected) if scope == "MONTH" else f"(?:{re.escape(expected)}|{re.escape(cumulative_date)})"
+    heading_pattern = rf"RANGE WISE {entity} HSD KMPL {kind} THE MONTH OF:\s*{dates}\s*$"
+    if not any(re.search(heading_pattern, h, re.I) for h in headings):
         raise ValueError("Range source entity/month heading is not verified")
+    labels = UPTO_LABELS[entity] if scope == "UPTO" else LABELS
+    keys = tuple(d.key(x) for x in labels) + ("GTOTAL",)
+    width = len(keys) + 2
     choices = []
     for table in soup.find_all("table"):
         trs = table.find_all("tr")
@@ -50,22 +59,22 @@ def parse_range(html, entity, depot, period, region, scope="MONTH"):
             continue
         first = trs[0].find_all(["th", "td"], recursive=False)
         second = trs[1].find_all(["th", "td"], recursive=False)
-        if len(first) != 3 or len(second) != 8:
+        if len(first) != 3 or len(second) != len(keys):
             continue
         if (d.key(first[0].get_text()) != "SLNO" or d.key(first[1].get_text()) not in ("REGION", "DEPOT")
                 or first[0].get("rowspan") != "2" or first[1].get("rowspan") != "2"
-                or first[2].get("colspan") != "8"
+                or first[2].get("colspan") != str(len(keys))
                 or d.key(first[2].get_text()) != f"KMPLRANGEWISENOOF{entity}S"
-                or tuple(d.key(c.get_text(" ", strip=True)) for c in second) != HEADER_KEYS):
+                or tuple(d.key(c.get_text(" ", strip=True)) for c in second) != keys):
             continue
         rows, seen, total = [], set(), None
         for tr in trs[2:]:
             cells = tr.find_all(["td", "th"], recursive=False)
-            if len(cells) != 10:
+            if len(cells) != width:
                 raise ValueError("Range row width does not match source headings")
             values = [c.get_text(" ", strip=True) for c in cells]
             counts = [count(v) for v in values[2:]]
-            if sum(counts[:7]) != counts[7]:
+            if sum(counts[:-1]) != counts[-1]:
                 raise ValueError("Range row does not reconcile to G.Total")
             name = d.norm(values[1])
             if name == "TOTAL":
@@ -83,7 +92,7 @@ def parse_range(html, entity, depot, period, region, scope="MONTH"):
                         raise ValueError("Range drilldown depot/month does not match its row")
                 seen.add(name)
                 rows.append([int(values[0]), name, *counts])
-        if not rows or total is None or any(sum(row[i+2] for row in rows) != total[i] for i in range(8)):
+        if not rows or total is None or any(sum(row[i+2] for row in rows) != total[i] for i in range(len(keys))):
             raise ValueError("Regional range totals do not reconcile")
         selected = [row for row in rows if row[1] == d.norm(depot)]
         if len(selected) != 1:
@@ -97,8 +106,132 @@ def parse_range(html, entity, depot, period, region, scope="MONTH"):
         for table in soup.find_all("table"):
             layouts.append([[dict(text=c.get_text(" ",strip=True),key=d.key(c.get_text()),rowspan=c.get("rowspan"),colspan=c.get("colspan"))
                              for c in tr.find_all(["th","td"],recursive=False)] for tr in table.find_all("tr")[:2]])
-        raise ValueError("Expected one verified range table; empty/login pages are unavailable; expected="+str((entity,HEADER_KEYS))+"; headers="+json.dumps(layouts))
+        raise ValueError("Expected one verified range table; empty/login pages are unavailable; expected="+str((entity,keys))+"; headers="+json.dumps(layouts))
     return choices[0]
+
+
+def parse_vehicle_month_detail(html, depot, period, region):
+    soup = BeautifulSoup(html, "html.parser")
+    table = soup.find("table")
+    if not table:
+        raise ValueError("Vehicle detail fallback has no source table")
+    values = []
+    for tr in table.find_all("tr"):
+        cells = tr.find_all("td")
+        if not cells:
+            continue
+        try:
+            kms = float(cells[6].get_text(strip=True).replace(",", ""))
+            kmpl = float(cells[13].get_text(strip=True).replace(",", ""))
+        except (ValueError, IndexError):
+            continue
+        if kms > 0:
+            values.append(kmpl)
+    if not values:
+        raise ValueError("Vehicle detail fallback has no positive-KM source rows")
+    bins = [0] * 7
+    for value in values:
+        if value < 3.00: i = 0
+        elif value <= 4.00: i = 1
+        elif value <= 5.00: i = 2
+        elif value <= 5.15: i = 3
+        elif value <= 5.30: i = 4
+        elif value <= 5.60: i = 5
+        else: i = 6
+        bins[i] += 1
+    counts = bins + [sum(bins)]
+    return dict(depot=d.norm(depot), period=period, entity="VEHICLE", scope="MONTH", region=region,
+                headers=["SL No", "Depot", *LABELS, "G.Total"],
+                rows=[[1, d.norm(depot), *counts]], regional_total=counts, counts=counts,
+                source=f"{d.BASE}/med/vehlog_kmplveh.php", source_method="DEPOT_DETAIL_FALLBACK")
+
+
+def parse_driver_month_detail(html, depot, period, region):
+    soup = BeautifulSoup(html, "html.parser")
+    table = soup.find("table")
+    if not table:
+        raise ValueError("Driver detail fallback has no source table")
+    values = []
+    for tr in table.find_all("tr"):
+        cells = tr.find_all("td")
+        if not cells:
+            continue
+        try:
+            driver = d.norm(cells[1].get_text(" ", strip=True))
+            kmpl = float(cells[-1].get_text(strip=True).replace(",", ""))
+        except (ValueError, IndexError):
+            continue
+        if driver:
+            values.append(kmpl)
+    if not values:
+        raise ValueError("Driver detail fallback has no source rows")
+    bins = [0] * 7
+    for value in values:
+        if value < 3.00: i = 0
+        elif value <= 4.00: i = 1
+        elif value <= 5.00: i = 2
+        elif value <= 5.15: i = 3
+        elif value <= 5.30: i = 4
+        elif value <= 5.60: i = 5
+        else: i = 6
+        bins[i] += 1
+    counts = bins + [sum(bins)]
+    return dict(depot=d.norm(depot), period=period, entity="DRIVER", scope="MONTH", region=region,
+                headers=["SL No", "Depot", *LABELS, "G.Total"],
+                rows=[[1, d.norm(depot), *counts]], regional_total=counts, counts=counts,
+                source=f"{d.BASE}/med/drvlog_kmpldrv.php", source_method="DEPOT_DETAIL_FALLBACK")
+
+
+def parse_cumulative_detail(html, entity, depot, period, region):
+    """Count APSRTC cumulative drill-down records in their own source bands."""
+    soup = BeautifulSoup(html, "html.parser")
+    headings = [d.norm(h.get_text(" ", strip=True)) for h in soup.find_all(re.compile(r"^h[1-6]$"))]
+    stamp = d.month_end(period).strftime("%B-%Y")
+    expected = d.month_end(period).strftime("%m/%Y")
+    if entity == "VEHICLE":
+        valid = any("MTD-598" in h and stamp.upper() in h for h in headings)
+    else:
+        valid = any("DRIVER-WISE HSD KMPL UP TO THE MONTH OF:" in h
+                    and expected in h for h in headings)
+    if not valid:
+        raise ValueError("Cumulative detail heading is not verified")
+    table = soup.find("table")
+    if not table:
+        raise ValueError("Cumulative detail source has no table")
+    values = []
+    for tr in table.find_all("tr"):
+        cells = tr.find_all("td", recursive=False)
+        if not cells:
+            continue
+        try:
+            number = int(cells[0].get_text(strip=True))
+            ident = d.norm(cells[2 if entity == "VEHICLE" else 1].get_text(" ",strip=True))
+            kmpl = float(cells[13 if entity == "VEHICLE" else 3].get_text(strip=True).replace(",",""))
+        except (ValueError, IndexError):
+            continue
+        if number <= 0 or not ident:
+            raise ValueError("Cumulative detail contains invalid source identity")
+        values.append(kmpl)
+    if not values:
+        raise ValueError("Cumulative detail has no valid source rows")
+    labels = UPTO_LABELS[entity]
+    bins = [0] * len(labels)
+    for v in values:
+        if v <= 2.00: i=0
+        elif v <= 3.00: i=1
+        elif v <= 4.00: i=2
+        elif v <= 5.00: i=3
+        elif entity == "DRIVER" and v <= 5.10: i=4
+        elif v <= 5.30: i=5 if entity == "DRIVER" else 4
+        elif v <= 6.00: i=6 if entity == "DRIVER" else 5
+        else: i=7 if entity == "DRIVER" else 6
+        bins[i] += 1
+    counts = bins + [len(values)]
+    return dict(depot=d.norm(depot), period=period, entity=entity, scope="UPTO", region=region,
+                headers=["SL No","Depot",*labels,"G.Total"],
+                rows=[[1,d.norm(depot),*counts]],regional_total=counts,counts=counts,
+                source=f"{d.BASE}/med/{'vehlog_ckmplveh.php' if entity == 'VEHICLE' else 'drvlog_ckmpldrv.php'}",
+                source_method="CUMULATIVE_DEPOT_DETAIL_FALLBACK")
 
 
 class SourceAdapter:
@@ -106,18 +239,59 @@ class SourceAdapter:
         self.session, self.depot, self.region = session, depot, region
         self.today = today or datetime.now(d.IST).date()
 
+    def _get_detail(self, endpoint, period):
+        import requests
+        url=f"{d.BASE}/med/{endpoint}"
+        params={"action":"","yymm":period.replace("-",""),"rreg":d.norm(self.depot)}
+        for attempt in range(3):
+            try:
+                response=self.session.get(url,params=params,timeout=45)
+                response.raise_for_status()
+                return response
+            except requests.exceptions.RequestException:
+                if attempt==2: raise
+                time.sleep(2*(attempt+1))
+
     def __call__(self, entity, period, scope="MONTH"):
         if d.month_end(period).replace(day=1) > self.today:
             raise ValueError("Future range months are not requested")
         payload = dict(action="", yymm=period.replace("-", ""), rreg=self.region)
         if scope not in SCOPES: raise ValueError("Unknown range scope")
-        if scope == "UPTO":
-            selector = self.session.get(f"{d.BASE}/med/{UPTO_SELECTORS[entity]}", timeout=45)
-            selector.raise_for_status()
         endpoints = ENDPOINTS if scope == "MONTH" else UPTO_ENDPOINTS
-        response = self.session.get(f"{d.BASE}/med/{endpoints[entity]}", params=payload, timeout=45)
-        response.raise_for_status()
-        snap = parse_range(response.text, entity, self.depot, period, self.region, scope)
+        # APSRTC intermittently returns HTTP 200 with the correct range headers
+        # but no depot rows. Retry only that incomplete source response; never
+        # accept missing rows, fabricate counts, or relax reconciliation checks.
+        url = f"{d.BASE}/med/{endpoints[entity]}"
+        for attempt, delay in enumerate((0, 2, 5, 10)):
+            if delay:
+                time.sleep(delay)
+            try:
+                response = self.session.get(url, params=payload, timeout=45)
+                response.raise_for_status()
+                snap = parse_range(response.text, entity, self.depot, period, self.region, scope)
+                break
+            except Exception as exc:
+                import requests
+                transient = isinstance(exc, requests.exceptions.RequestException)
+                empty = isinstance(exc, ValueError) and "Expected one verified range table" in str(exc)
+                if not (transient or empty):
+                    raise
+                if attempt == 3:
+                    if scope == "UPTO":
+                        ep = "vehlog_ckmplveh.php" if entity == "VEHICLE" else "drvlog_ckmpldrv.php"
+                        detail = self._get_detail(ep, period)
+                        snap = parse_cumulative_detail(detail.text,entity,self.depot,period,self.region)
+                        print(f"RANGE_DETAIL_FALLBACK {self.depot} {period} {entity} UPTO rows={snap['counts'][-1]}")
+                        break
+                    if scope == "MONTH" and entity in ("VEHICLE", "DRIVER"):
+                        detail_ep = "vehlog_kmplveh.php" if entity == "VEHICLE" else "drvlog_kmpldrv.php"
+                        detail = self._get_detail(detail_ep, period)
+                        parser = parse_vehicle_month_detail if entity == "VEHICLE" else parse_driver_month_detail
+                        snap = parser(detail.text, self.depot, period, self.region)
+                        print(f"RANGE_DETAIL_FALLBACK {self.depot} {period} {entity} MONTH rows={snap['counts'][-1]}")
+                        break
+                    raise
+                print(f"RANGE_EMPTY_RESPONSE_RETRY {self.depot} {period} {entity} {scope} attempt={attempt+1}")
         snap.update(request=payload, fetched_at=datetime.now(d.IST).isoformat(timespec="seconds"),
                     provisional=d.month_end(period) >= self.today)
         return snap
@@ -131,22 +305,23 @@ def validate_snapshot(snap, depot, entity, period, scope="MONTH"):
     if (not isinstance(snap, dict) or snap.get("depot") != d.norm(depot)
             or snap.get("entity") != entity or snap.get("period") != period or snap.get("scope", "MONTH") != scope):
         raise ValueError("Range snapshot identity mismatch")
+    n = len(UPTO_LABELS[entity]) if scope == "UPTO" else len(LABELS)
     counts = snap.get("counts", [])
-    if len(counts) != 8 or any(type(n) is not int or n < 0 for n in counts) or sum(counts[:7]) != counts[7]:
+    if len(counts) != n+1 or any(type(v) is not int or v < 0 for v in counts) or sum(counts[:-1]) != counts[-1]:
         raise ValueError("Invalid cached range counts")
     rows = snap.get("rows", [])
-    names = [r[1] for r in rows if isinstance(r, list) and len(r) == 10]
+    names = [r[1] for r in rows if isinstance(r, list) and len(r) == n+3]
     if len(names) != len(rows) or len(set(names)) != len(names):
         raise ValueError("Invalid cached range depot rows")
     for row in rows:
         if (type(row[0]) is not int or not isinstance(row[1], str)
-                or any(type(n) is not int or n < 0 for n in row[2:]) or sum(row[2:9]) != row[9]):
+                or any(type(v) is not int or v < 0 for v in row[2:]) or sum(row[2:-1]) != row[-1]):
             raise ValueError("Invalid cached range row totals")
     chosen = [row[2:] for row in rows if row[1] == d.norm(depot)]
     total = snap.get("regional_total", [])
-    if chosen != [counts] or total != [sum(r[i+2] for r in rows) for i in range(8)]:
+    if chosen != [counts] or total != [sum(r[i+2] for r in rows) for i in range(n+1)]:
         raise ValueError("Cached regional/depot range totals mismatch")
-    if len(snap.get("headers", [])) != 10:
+    if len(snap.get("headers", [])) != n+3:
         raise ValueError("Cached range headings missing")
     return snap
 
@@ -294,19 +469,22 @@ def render_tab(wb, cache, selected, fys=None):
         r += 1
 
     if not fys:
-        note("Selected-depot source counts · Month and Upto/Cum are independent APSRTC source snapshots")
-        for c,label in enumerate(["KMPL Range","Vehicle Month","Vehicle Upto","Driver Month","Driver Upto"],1):
-            ws.cell(r,c,label)
-        style_row(r,header=True); r += 1
-        groups=cache["months"].get(selected,{})
-        snaps=[groups.get("VEHICLE_MONTH") or groups.get("VEHICLE"), groups.get("VEHICLE_UPTO"),
-               groups.get("DRIVER_MONTH") or groups.get("DRIVER"), groups.get("DRIVER_UPTO")]
-        for idx,label in enumerate(list(LABELS)+["G.Total"]):
-            ws.cell(r,1,label)
-            for c,snap in enumerate(snaps,2):
-                if snap: ws.cell(r,c,snap["counts"][idx]).number_format="#,##0"
-            style_row(r,selected_row=label=="G.Total"); r += 1
-        note("Upto/Cum values are source-backed and never calculated by summing monthly populations.")
+        note("Month and cumulative source bands differ; each table uses exact APSRTC headings.")
+        groups = cache["months"].get(selected,{})
+        for scope in SCOPES:
+            for entity in ENDPOINTS:
+                labels = LABELS if scope == "MONTH" else UPTO_LABELS[entity]
+                snap = groups.get(f"{entity}_{scope}") or (groups.get(entity) if scope == "MONTH" else None)
+                note(f"{entity.title()} {scope.title()} · source-defined bands · " +
+                     ("Verified" if snap else "Unavailable — no verified source"))
+                ws.cell(r,1,"KMPL Range")
+                ws.cell(r,2,"Population")
+                style_row(r,header=True); r += 1
+                for idx,label in enumerate([*labels,"G.Total"]):
+                    ws.cell(r,1,label)
+                    if snap: ws.cell(r,2,snap["counts"][idx]).number_format="#,##0"
+                    style_row(r,selected_row=label=="G.Total"); r += 1
+        note("Upto/Cum values are source-backed; never sum monthly populations or relabel cumulative buckets.")
         r += 1
 
     for fy in (fys or [None]):
@@ -337,14 +515,14 @@ def render_tab(wb, cache, selected, fys=None):
                 upto_period=periods[-1]
                 upto=cache["months"].get(upto_period,{}).get(f"{entity}_UPTO")
                 ws.cell(r,1,"Upto/Cum "+d.month_end(upto_period).strftime("%b-%y"))
-                if upto:
+                if upto and len(upto["counts"]) == len(LABELS)+1 and tuple(upto["headers"][2:-1]) == tuple(LABELS):
                     for c,n in enumerate(upto["counts"],2): ws.cell(r,c,n).number_format="#,##0"
                     ws.cell(r,10,f"=SUM(B{r}:D{r})").number_format="#,##0"
                     ws.cell(r,11,f'=IF(I{r}=0,"",J{r}/I{r})').number_format="0.0%"
                     ws.cell(r,12,f'=IF(I{r}=0,"",H{r}/I{r})').number_format="0.0%"
                     ws.cell(r,13,"Provisional — open month" if upto.get("provisional") else "Verified cumulative source")
                 else:
-                    ws.cell(r,13,"Unavailable — no verified cumulative source")
+                    ws.cell(r,13,"See cumulative source bands — not comparable" if upto else "Unavailable — no verified cumulative source")
                 style_row(r,selected_row=True); r += 1
             note("Source first three ranges = below 3.00 through the source 4.01–5.00 bucket. Highest range uses source 5.60–ABV. No FY sum of monthly populations.")
             if fys and any((cache["months"].get(p,{}).get(f"{entity}_MONTH") or cache["months"].get(p,{}).get(entity,{})).get("counts",[0]*8)[7]>0 for p in periods):

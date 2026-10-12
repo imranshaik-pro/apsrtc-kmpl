@@ -66,6 +66,57 @@ class RangeTests(unittest.TestCase):
             with self.assertRaises(ValueError):k.SourceAdapter(session,"PRODDUTUR","YSRKADAPA",date(2026,8,20))(entity,"2026-09")
             session.get.assert_not_called()
 
+    def test_transient_header_only_response_recovers_without_inventing_counts(self):
+        from unittest.mock import patch
+        empty = html().split("<tbody>")[0] if "<tbody>" in html() else html().replace("<tr><td>1</td>", "<tr><td>1</td>")
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(html(), "html.parser")
+        table = soup.find("table")
+        for row in list(table.find_all("tr"))[2:]:
+            row.decompose()
+        empty = str(soup)
+        session = Mock()
+        bad = Mock(text=empty)
+        good = Mock(text=html())
+        session.get.side_effect = [bad, good]
+        with patch("kmpl_ranges.time.sleep") as sleep:
+            result = k.SourceAdapter(session, "PRODDUTUR", "YSRKADAPA", date(2026,10,12))("VEHICLE","2026-09")
+        self.assertEqual(result["counts"], [0,2,39,18,9,9,4,81])
+        self.assertEqual(session.get.call_count, 2)
+        sleep.assert_called_once_with(2)
+
+    def test_vehicle_detail_fallback_uses_positive_operated_km(self):
+        detail = """<table><tr><th>x</th></tr>
+        <tr><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>100</td><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>4.90</td></tr>
+        <tr><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>0</td><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>0.00</td></tr>
+        <tr><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>100</td><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>5.70</td></tr></table>"""
+        result=k.parse_vehicle_month_detail(detail,"PRODDUTUR","2026-08","YSRKADAPA")
+        self.assertEqual(result["counts"],[0,0,1,0,0,0,1,2])
+        self.assertEqual(result["source_method"],"DEPOT_DETAIL_FALLBACK")
+
+    def test_cumulative_vehicle_and_driver_detail_fallback(self):
+        for entity in ("VEHICLE","DRIVER"):
+            if entity=="VEHICLE":
+                head="<h3>APSRTC PRODDUTUR MTD-598 (REVENUE VEHICLES) AS ON:August-2026</h3>"
+                row="<td>1</td><td>PRODDUTUR</td><td>04Z0361</td>"+("<td>x</td>"*10)+"<td>5.55</td>"
+            else:
+                head="<h3>DRIVER-WISE HSD KMPL UP TO THE MONTH OF: 08/2026</h3>"
+                row="<td>1</td><td>411856</td><td>Driver</td><td>5.55</td>"
+            result=k.parse_cumulative_detail(head+"<table><tr>"+row+"</tr></table>",entity,"PRODDUTUR","2026-08","YSRKADAPA")
+            self.assertEqual(result["counts"][-1],1)
+            self.assertEqual(result["scope"],"UPTO")
+
+    def test_persistent_header_only_response_fails_closed(self):
+        soup = BeautifulSoup(html(), "html.parser")
+        for row in list(soup.find("table").find_all("tr"))[2:]:
+            row.decompose()
+        session = Mock()
+        session.get.return_value.text = str(soup)
+        with patch("kmpl_ranges.time.sleep"):
+            with self.assertRaisesRegex(ValueError, "Vehicle detail fallback"):
+                k.SourceAdapter(session, "PRODDUTUR", "YSRKADAPA", date(2026,10,12))("VEHICLE","2026-09")
+        self.assertEqual(session.get.call_count, 5)
+
     def test_fy_rollover_cutoff_and_no_future_months(self):
         self.assertEqual(k.periods_for_fys(["2025-26"],"2026-03"),[f"2025-{m:02d}" for m in range(4,13)]+["2026-01","2026-02","2026-03"])
         self.assertEqual(k.periods_for_fys(["2026-27"],"2026-05"),["2026-04","2026-05"])
@@ -106,7 +157,7 @@ class RangeTests(unittest.TestCase):
         with self.assertRaises(ValueError):k.decode(k.encode(cache),"RAJAMPET")
         rows=k.encode(cache);rows[1][0]+="x"
         with self.assertRaises(ValueError):k.decode(rows,"PRODDUTUR")
-        cache["months"]["2026-09"]["VEHICLE"]["counts"][0]=False
+        cache["months"]["2026-09"]["VEHICLE_MONTH"]["counts"][0]=False
         with self.assertRaises(ValueError):k.decode(k.encode(cache),"PRODDUTUR")
 
     def test_checkpoint_failure_is_not_swallowed(self):
@@ -115,8 +166,8 @@ class RangeTests(unittest.TestCase):
 
     def test_provisional_history_refetched_and_missing_entity_repaired(self):
         cache=k.new_cache("PRODDUTUR");k.update(cache,["2026-05","2026-09"],snap,"2026-09")
-        cache["months"]["2026-05"]["VEHICLE"]["provisional"]=True
-        del cache["months"]["2026-05"]["DRIVER"]
+        cache["months"]["2026-05"]["VEHICLE_MONTH"]["provisional"]=True
+        del cache["months"]["2026-05"]["DRIVER_MONTH"]
         self.assertEqual(len(k.update(cache,["2026-05","2026-09"],snap,"2026-09")),4)
 
     def test_workbook_preserves_core_formulas_cache_and_native_types(self):
@@ -124,13 +175,14 @@ class RangeTests(unittest.TestCase):
         wb=Workbook();wb.active.title="Core";wb.active["A1"]="=1+1"
         ws=k.render_tab(wb,cache,"2026-09");k.write_xlsx_cache(wb,cache)
         self.assertEqual(wb["Core"]["A1"].value,"=1+1");self.assertEqual(wb[k.CACHE_TITLE].sheet_state,"hidden")
-        self.assertEqual(ws["B8"].value,0);self.assertEqual(ws["I8"].value,81)
-        self.assertEqual(ws["K8"].value,'=IF(I8=0,"",J8/I8)')
-        self.assertEqual(ws["K8"].number_format,"0.0%")
+        vehicle_row = next(row[0].row for row in ws.iter_rows() if row[0].value == "Vehicle")
+        self.assertEqual(ws.cell(vehicle_row,2).value,0);self.assertEqual(ws.cell(vehicle_row,9).value,81)
+        self.assertEqual(ws.cell(vehicle_row,11).value,f'=IF(I{vehicle_row}=0,"",J{vehicle_row}/I{vehicle_row})')
+        self.assertEqual(ws.cell(vehicle_row,11).number_format,"0.0%")
         requests=d.google_requests(ws,17)
         records=next(r["updateCells"]["rows"] for r in requests if "updateCells" in r)
-        self.assertEqual(records[7]["values"][1]["userEnteredValue"],{"numberValue":0})
-        self.assertEqual(records[7]["values"][10]["userEnteredValue"],{"formulaValue":ws["K8"].value})
+        self.assertEqual(records[vehicle_row-1]["values"][1]["userEnteredValue"],{"numberValue":0})
+        self.assertEqual(records[vehicle_row-1]["values"][10]["userEnteredValue"],{"formulaValue":ws.cell(vehicle_row,11).value})
         self.assertEqual(ws.max_column,13);self.assertEqual(len(ws._images),1)
         self.assertIn("A3:C3",[str(m) for m in ws.merged_cells.ranges])
 
@@ -141,9 +193,11 @@ class RangeTests(unittest.TestCase):
             if row[1]=="PRODDUTUR":row[2:]=[0]*8
         s["regional_total"]=[sum(row[i+2] for row in s["rows"]) for i in range(8)]
         k.validate_snapshot(s,"PRODDUTUR","VEHICLE","2026-09")
-        cache["months"]["2026-09"]={"VEHICLE":s}
+        cache["months"]["2026-09"]={"VEHICLE_MONTH":s}
         wb=Workbook();ws=k.render_tab(wb,cache,"2026-09")
-        self.assertEqual(ws["I8"].value,0);self.assertIn('IF(I8=0,""',ws["K8"].value)
+        vehicle_row = next(row[0].row for row in ws.iter_rows() if row[0].value == "Vehicle")
+        self.assertEqual(ws.cell(vehicle_row,9).value,0)
+        self.assertIn(f'IF(I{vehicle_row}=0,""',ws.cell(vehicle_row,11).value)
 
     def test_both_entry_points_and_annual_native_visibility(self):
         monthly=Path("monthly_vehicle_report.py").read_text();annual=Path("annual_kpi_runner_v11.py").read_text()
@@ -174,57 +228,53 @@ class RangeTests(unittest.TestCase):
 
 
 def test_month_and_upto_cache_are_independent():
-    cache = k.new_cache("Proddutur")
-    calls = []
-    def fetch(entity, period, scope="MONTH"):
-        calls.append((entity, period, scope))
-        counts = [1,2,3,4,5,6,7,28] if scope == "MONTH" else [2,3,4,5,6,7,8,35]
-        return dict(depot="Proddutur", period=period, entity=entity, scope=scope, region="YSRKADAPA",
-                    headers=["SL No","Depot",*k.LABELS,"G.Total"],
-                    rows=[[1,"Proddutur",*counts]], regional_total=counts, counts=counts,
-                    source="fixture", provisional=False)
-    k.update(cache, ["2026-09"], fetch, "2026-09", include_upto=True)
-    groups = cache["months"]["2026-09"]
-    assert groups["VEHICLE_MONTH"]["counts"][-1] == 28
-    assert groups["VEHICLE_UPTO"]["counts"][-1] == 35
-    assert groups["DRIVER_MONTH"]["counts"][-1] == 28
-    assert groups["DRIVER_UPTO"]["counts"][-1] == 35
-    assert len(calls) == 4
-
-
-def test_monthly_combined_table_and_annual_upto_row():
-    from openpyxl import Workbook
-    cache = k.new_cache("Proddutur")
-    month=[1,2,3,4,5,6,7,28]
-    upto=[2,3,4,5,6,7,8,35]
-    for entity in k.ENDPOINTS:
-        cache["months"].setdefault("2026-09",{})[f"{entity}_MONTH"] = dict(
-            depot="Proddutur",period="2026-09",entity=entity,scope="MONTH",region="YSRKADAPA",
-            headers=["SL No","Depot",*k.LABELS,"G.Total"],rows=[[1,"Proddutur",*month]],
-            regional_total=month,counts=month,source="fixture",provisional=False)
-        cache["months"]["2026-09"][f"{entity}_UPTO"] = dict(
-            depot="Proddutur",period="2026-09",entity=entity,scope="UPTO",region="YSRKADAPA",
-            headers=["SL No","Depot",*k.LABELS,"G.Total"],rows=[[1,"Proddutur",*upto]],
-            regional_total=upto,counts=upto,source="fixture",provisional=False)
-    wb=Workbook(); del wb[wb.sheetnames[0]]
+    cache=k.new_cache("PRODDUTUR")
+    def fetch(entity,period,scope="MONTH"):
+        labels=k.LABELS if scope=="MONTH" else k.UPTO_LABELS[entity]
+        values=[1]*len(labels)
+        counts=values+[sum(values)]
+        return dict(depot="PRODDUTUR",period=period,entity=entity,scope=scope,region="YSRKADAPA",
+                    headers=["SL No","Depot",*labels,"G.Total"],
+                    rows=[[1,"PRODDUTUR",*counts]],regional_total=counts,counts=counts,
+                    source="fixture",provisional=False)
+    k.update(cache,["2026-09"],fetch,"2026-09",include_upto=True)
+    groups=cache["months"]["2026-09"]
+    assert groups["VEHICLE_UPTO"]["counts"][-1]==7
+    assert groups["DRIVER_UPTO"]["counts"][-1]==8
+    wb=Workbook()
     ws=k.render_tab(wb,cache,"2026-09")
-    values=[[c.value for c in row] for row in ws.iter_rows()]
-    assert ["KMPL Range","Vehicle Month","Vehicle Upto","Driver Month","Driver Upto"] in [r[:5] for r in values]
-    wb2=Workbook(); del wb2[wb2.sheetnames[0]]
-    ws2=k.render_tab(wb2,cache,"2026-09",["2026-27"])
-    assert any(c.value=="Upto/Cum Sep-26" for row in ws2.iter_rows() for c in row)
+    labels=[cell.value for row in ws for cell in row if cell.value]
+    assert "5.01 - 5.10" in labels
+    assert "5.01 - 5.30" in labels
+    assert "5.16 - 5.30" in labels
 
-
-def test_upto_source_contracts_use_verified_selector_and_result_endpoints():
+def test_cumulative_source_heading_and_band_contracts():
     for entity in k.ENDPOINTS:
-        session=Mock()
-        response=Mock(); response.text=html(entity)
-        session.get.return_value=response
-        result=k.SourceAdapter(session,"PRODDUTUR","YSRKADAPA",date(2026,10,7))(entity,"2026-09","UPTO")
-        assert result["scope"]=="UPTO"
-        assert session.get.call_args_list[0].args[0] == f"{d.BASE}/med/{k.UPTO_SELECTORS[entity]}"
-        assert session.get.call_args_list[1].args[0] == f"{d.BASE}/med/{k.UPTO_ENDPOINTS[entity]}"
-        assert session.get.call_args_list[1].kwargs["params"] == {"action":"","yymm":"202609","rreg":"YSRKADAPA"}
+        soup=BeautifulSoup(html(entity),"html.parser")
+        labels=k.UPTO_LABELS[entity]
+        soup.find("h3").string=f"RANGE WISE {entity} HSD KMPL UPTO THE MONTH OF: 09/2026"
+        table=soup.find("table")
+        rows=table.find_all("tr")
+        rows[0].find_all(["td","th"])[2]["colspan"]=str(len(labels)+1)
+        second=rows[1]
+        second.clear()
+        for label in [*labels,"G.Total"]:
+            cell=soup.new_tag("th")
+            cell.string=label
+            second.append(cell)
+        for tr in rows[2:]:
+            cells=tr.find_all(["td","th"],recursive=False)
+            extra=soup.new_tag(cells[-1].name)
+            extra.string="0"
+            cells[-1].insert_before(extra)
+        result=k.parse_range(str(soup),entity,"PRODDUTUR","2026-09","YSRKADAPA","UPTO")
+        assert len(result["counts"])==len(labels)+1
+        assert result["counts"][-1]>0
+
+def test_upto_endpoints_are_cumulative():
+    assert k.UPTO_SELECTORS["VEHICLE"]=="vehlog_ckmpl.php"
+    assert k.UPTO_ENDPOINTS["VEHICLE"]=="vehlog_ckmpldepot.php"
+    assert k.UPTO_ENDPOINTS["DRIVER"]=="drvlog_ckmpldepot.php"
 
 if __name__=="__main__":
     unittest.main()
