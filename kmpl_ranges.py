@@ -239,6 +239,19 @@ class SourceAdapter:
         self.session, self.depot, self.region = session, depot, region
         self.today = today or datetime.now(d.IST).date()
 
+    def _get_detail(self, endpoint, period):
+        import requests
+        url=f"{d.BASE}/med/{endpoint}"
+        params={"action":"","yymm":period.replace("-",""),"rreg":d.norm(self.depot)}
+        for attempt in range(3):
+            try:
+                response=self.session.get(url,params=params,timeout=45)
+                response.raise_for_status()
+                return response
+            except requests.exceptions.RequestException:
+                if attempt==2: raise
+                time.sleep(2*(attempt+1))
+
     def __call__(self, entity, period, scope="MONTH"):
         if d.month_end(period).replace(day=1) > self.today:
             raise ValueError("Future range months are not requested")
@@ -266,19 +279,13 @@ class SourceAdapter:
                 if attempt == 3:
                     if scope == "UPTO":
                         ep = "vehlog_ckmplveh.php" if entity == "VEHICLE" else "drvlog_ckmpldrv.php"
-                        detail = self.session.get(f"{d.BASE}/med/{ep}",
-                                                  params={"action":"","yymm":period.replace("-",""),"rreg":d.norm(self.depot)},
-                                                  timeout=45)
-                        detail.raise_for_status()
+                        detail = self._get_detail(ep, period)
                         snap = parse_cumulative_detail(detail.text,entity,self.depot,period,self.region)
                         print(f"RANGE_DETAIL_FALLBACK {self.depot} {period} {entity} UPTO rows={snap['counts'][-1]}")
                         break
                     if scope == "MONTH" and entity in ("VEHICLE", "DRIVER"):
                         detail_ep = "vehlog_kmplveh.php" if entity == "VEHICLE" else "drvlog_kmpldrv.php"
-                        detail = self.session.get(f"{d.BASE}/med/{detail_ep}",
-                                                  params={"action":"","yymm":period.replace("-",""),"rreg":d.norm(self.depot)},
-                                                  timeout=45)
-                        detail.raise_for_status()
+                        detail = self._get_detail(detail_ep, period)
                         parser = parse_vehicle_month_detail if entity == "VEHICLE" else parse_driver_month_detail
                         snap = parser(detail.text, self.depot, period, self.region)
                         print(f"RANGE_DETAIL_FALLBACK {self.depot} {period} {entity} MONTH rows={snap['counts'][-1]}")
