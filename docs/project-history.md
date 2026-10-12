@@ -109,3 +109,54 @@ The range tests passed in the diagnostic workflow. A separate `report_details` H
 - Regional cumulative aggregate pages intermittently return only header rows. Depot cumulative drilldowns `vehlog_ckmplveh.php` and `drvlog_ckmpldrv.php` expose record-level KMPL. Driver cumulative source contained 193 rows for August PRODDUTUR; the workbook independently verified this source population.
 - Repeated source identities are retained as source records rather than deduplicated without an APSRTC rule. Month and Upto are rendered in separate tables with exact source headings, not silently combined.
 - No cumulative count is constructed by summing monthly counts.
+
+
+## 2026-10-12 — PRODDUTUR August KMPL range repair: request-to-result record
+
+### Owner request
+The requested outcome was not merely to make the report command succeed. For PRODDUTUR August 2026, the generated workbook had to contain real APSRTC-backed **Vehicle Month, Driver Month, Vehicle Upto/Cumulative and Driver Upto/Cumulative range populations**. Blank populations, invented zeroes, monthly values relabelled as Upto, or cumulative values reconstructed by summing monthly populations were explicitly unacceptable. The investigation also had to establish why PRODDUTUR was blank by comparing the working and failing source paths rather than hiding the problem with a cosmetic workaround.
+
+### What was wrong
+The report could complete while the Range Distribution cells remained blank. APSRTC regional range endpoints intermittently returned HTTP 200, the expected heading and column headers, but no depot data rows. Therefore HTTP success and workflow success were insufficient evidence that a usable range table had been received.
+
+There were also two deterministic cumulative-contract defects in our code. Vehicle Upto was configured against the monthly vehicle endpoint instead of the cumulative source. Driver Upto used the correct cumulative family, but our parser still required the monthly heading and seven monthly buckets; the real Driver Upto source has eight cumulative buckets. The renderer also assumed Month and Upto shared one bucket schema, which could mislabel cumulative values even if retrieval succeeded.
+
+### Root cause and evidence
+1. **Intermittent APSRTC aggregate response:** the regional Month and cumulative pages can return header-only tables. Replaying selectors and simple retries did not reliably restore rows.
+2. **Wrong Vehicle Upto source mapping:** the actual cumulative selector/result pair is `vehlog_ckmpl.php` / `vehlog_ckmpldepot.php`, not the monthly `vehlog_kmpl.php` / `vehlog_kmpldepot.php` pair.
+3. **Different cumulative schemas:** Vehicle Upto has seven cumulative bands; Driver Upto has eight and splits 5.01–5.10 from 5.11–5.30. These are not the Month bands.
+4. **Stable depot-level evidence exists:** when aggregate tables are header-only, APSRTC depot drilldowns expose record-level KMPL: Month via `vehlog_kmplveh.php` / `drvlog_kmpldrv.php`; cumulative via `vehlog_ckmplveh.php` / `drvlog_ckmpldrv.php`.
+5. **Vehicle/driver records cannot be blindly deduplicated:** source identities may repeat and equal metrics can legitimately belong to different records. The fallback therefore preserves valid source rows instead of inventing a deduplication rule.
+
+### Implemented fix
+- Corrected Vehicle Upto to the genuine cumulative endpoint family.
+- Added scope/entity-specific source contracts instead of forcing cumulative responses through the Month parser.
+- Added the exact Vehicle and Driver cumulative bucket definitions.
+- Added bounded retry handling for transient APSRTC disconnects and removed an unnecessary cumulative selector request that created another failure point.
+- Added verified depot-detail fallback counting when an aggregate page is header-only. The fallback bins the source KMPL records into the exact source-defined Month or cumulative ranges.
+- Kept fail-closed behavior: if neither verified aggregate nor verified detail data is available, the workbook reports the source as unavailable rather than substituting zero.
+- Changed the workbook presentation so Month and Upto/Cumulative are separate source-defined tables. Cumulative populations are never shown under Month labels and are never calculated by adding monthly populations.
+
+### Delivered result and verification
+The final live August PRODDUTUR regeneration passed the workbook-level gate with four independent source populations:
+
+| Distribution | Verified G.Total |
+| --- | ---: |
+| Vehicle Month | 83 |
+| Driver Month | 167 |
+| Vehicle Upto/Cumulative | 84 |
+| Driver Upto/Cumulative | 193 |
+
+The same run passed all 20 focused parser/source tests and asserted that both Vehicle and Driver cumulative-specific bands physically exist in the generated workbook. Verification run: https://github.com/imranshaik-pro/apsrtc-kmpl/actions/runs/38258969198. The repair was merged through PR #17 as squash commit `6464fe1268e9542880353ac4e3679c2c67e64846`.
+
+### Delivery status
+The validated workbook from the repair run was uploaded as a **GitHub Actions artifact** named `proddutur-aug-range-repair`. The repair verification workflow does **not** contain a Google Drive upload step. Therefore this incident record does not claim that the newly validated August workbook was uploaded to the production Drive folder. Code merge, CI artifact publication, and production/Drive workbook publication are separate states and must continue to be reported separately.
+
+### Regression rules retained
+- A green command/workflow is not sufficient; workbook cells must be asserted.
+- HTTP 200 is not sufficient; expected source rows and source identity must be verified.
+- Month and Upto/Cumulative are independent source contracts.
+- Do not infer endpoints from filename symmetry without live source evidence.
+- Do not convert missing source data to zero.
+- Do not sum monthly populations to manufacture Upto/Cumulative.
+- Do not deduplicate source records without a verified APSRTC identity rule.
