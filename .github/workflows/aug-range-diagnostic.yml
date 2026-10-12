@@ -45,9 +45,9 @@ jobs:
               except: pass
             return out
           print("UPTO_DISCOVERY_BEGIN")
-          for ep in ("vehlog_kmpl.php","vehlog_ckmpl.php","vehlog_ckmpldepot.php","vehlog_kmpldepot.php","drvlog_ckmpl.php","drvlog_ckmpldepot.php"):
+          for ep in ("vehlog_ckmplveh.php","drvlog_ckmpldrv.php","vehlog_ckmpldepot.php","drvlog_ckmpldepot.php"):
             try:
-              for query in (None,{"action":"","yymm":"202608","rreg":"YSRKADAPA"}):
+              for query in (None,{"action":"","yymm":"202608","rreg":"PRODDUTUR" if ep.endswith(("ckmplveh.php","ckmpldrv.php")) else "YSRKADAPA"}):
                 res=s.get(f"{d.BASE}/med/{ep}",params=query,timeout=45)
                 soup=BeautifulSoup(res.text,"html.parser")
                 heads=[h.get_text(" ",strip=True) for h in soup.find_all(re.compile("^h[1-6]$"))]
