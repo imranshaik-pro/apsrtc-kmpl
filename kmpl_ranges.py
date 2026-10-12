@@ -102,6 +102,42 @@ def parse_range(html, entity, depot, period, region, scope="MONTH"):
     return choices[0]
 
 
+def parse_vehicle_month_detail(html, depot, period, region):
+    soup = BeautifulSoup(html, "html.parser")
+    table = soup.find("table")
+    if not table:
+        raise ValueError("Vehicle detail fallback has no source table")
+    values = []
+    for tr in table.find_all("tr"):
+        cells = tr.find_all("td")
+        if not cells:
+            continue
+        try:
+            kms = float(cells[6].get_text(strip=True).replace(",", ""))
+            kmpl = float(cells[13].get_text(strip=True).replace(",", ""))
+        except (ValueError, IndexError):
+            continue
+        if kms > 0:
+            values.append(kmpl)
+    if not values:
+        raise ValueError("Vehicle detail fallback has no positive-KM source rows")
+    bins = [0] * 7
+    for value in values:
+        if value < 3.00: i = 0
+        elif value <= 4.00: i = 1
+        elif value <= 5.00: i = 2
+        elif value <= 5.15: i = 3
+        elif value <= 5.30: i = 4
+        elif value <= 5.60: i = 5
+        else: i = 6
+        bins[i] += 1
+    counts = bins + [sum(bins)]
+    return dict(depot=d.norm(depot), period=period, entity="VEHICLE", scope="MONTH", region=region,
+                headers=["SL No", "Depot", *LABELS, "G.Total"],
+                rows=[[1, d.norm(depot), *counts]], regional_total=counts, counts=counts,
+                source=f"{d.BASE}/med/vehlog_kmplveh.php", source_method="DEPOT_DETAIL_FALLBACK")
+
+
 class SourceAdapter:
     def __init__(self, session, depot, region, today=None):
         self.session, self.depot, self.region = session, depot, region
