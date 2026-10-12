@@ -520,10 +520,15 @@ def main_v11():
         get_session(), display, region, m.tyre_site_info)(group, period)
     details.update(detail_cache, details.annual_periods(selected), adapter,
                    selected_um=selected, checkpoint=save_details_cache)
-    range_adapter = ranges.SourceAdapter(get_session(), display, region)
+    range_adapter = None
+    def fetch_range(entity, period, scope="MONTH"):
+        nonlocal range_adapter
+        if range_adapter is None:
+            range_adapter = ranges.SourceAdapter(get_session(), display, region)
+        return range_adapter(entity, period, scope)
     range_periods = ranges.periods_for_fys(fys, selected)
     ranges.update(range_cache, range_periods,
-                  lambda entity, period: range_adapter(entity, period),
+                  lambda entity, period: fetch_range(entity, period),
                   selected, checkpoint=save_range_cache)
     # Cumulative populations are source snapshots, never sums of monthly populations.
     # Fetch the closing month for completed FYs and the selected month for the current FY.
@@ -533,7 +538,7 @@ def main_v11():
             continue
         upto_period = fy_periods[-1]
         ranges.update(range_cache, [upto_period],
-                      lambda entity, period, scope="MONTH": range_adapter(entity, period, scope),
+                      lambda entity, period, scope="MONTH": fetch_range(entity, period, scope),
                       upto_period, checkpoint=save_range_cache, include_upto=True)
     xlsx = make_xlsx_v11(display,mat,fys,detail_cache,range_cache)
     format_sheet_v11(sid,mat,fys)
