@@ -44,6 +44,22 @@ jobs:
                 out.append((ident,kms,hsd,v))
               except: pass
             return out
+          print("UPTO_DISCOVERY_BEGIN")
+          for ep in ("vehlog_kmpl.php","vehlog_ckmpl.php","vehlog_ckmpldepot.php","vehlog_kmpldepot.php","drvlog_ckmpl.php","drvlog_ckmpldepot.php"):
+            try:
+              for query in (None,{"action":"","yymm":"202608","rreg":"YSRKADAPA"}):
+                res=s.get(f"{d.BASE}/med/{ep}",params=query,timeout=45)
+                soup=BeautifulSoup(res.text,"html.parser")
+                heads=[h.get_text(" ",strip=True) for h in soup.find_all(re.compile("^h[1-6]$"))]
+                links=[a.get("href") for a in soup.find_all("a",href=True) if "kmpl" in a.get("href","").lower()]
+                tabs=soup.find_all("table")
+                print("UPTO_PROBE",ep,"query",bool(query),"status",res.status_code,"length",len(res.content),"heads",heads[:5],"links",links[:12],"tables",len(tabs))
+                for table in tabs[:2]:
+                  trs=table.find_all("tr")
+                  print("UPTO_TABLE",ep,"rows",len(trs),"first",[[c.get_text(" ",strip=True) for c in tr.find_all(["td","th"])] for tr in trs[:3]],"last",[[c.get_text(" ",strip=True) for c in tr.find_all(["td","th"])] for tr in trs[-2:]])
+            except Exception as exc:
+              print("UPTO_PROBE_ERROR",ep,type(exc).__name__,str(exc)[:140])
+          print("UPTO_DISCOVERY_END")
           for month in ("202607","202608","202609"):
             for entity in ("VEHICLE","DRIVER"):
               vals=rows(entity,month)
