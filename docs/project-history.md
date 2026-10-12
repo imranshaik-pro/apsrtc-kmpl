@@ -99,3 +99,13 @@ The range tests passed in the diagnostic workflow. A separate `report_details` H
 - Driver detail is record-level: repeated driver identities can occur, and distinct drivers can also have identical KM/HSD/KMPL metrics. Therefore metric deduplication and blind driver-ID deduplication are both unsafe. Month fallback counts valid source rows.
 - Upto/Cumulative remains separate. Driver Upto uses a different eight-band classification and must not be coerced into the seven Month bands. Vehicle Upto is not claimed repaired by the Month fallback.
 - Principle retained: missing source data is never converted to zero and no range population is fabricated.
+
+
+## 2026-10-12 — Cumulative range repair
+
+- Identified actual vehicle cumulative selector `vehlog_ckmpl.php` and aggregate `vehlog_ckmpldepot.php`; previous configuration incorrectly reused monthly vehicle sources.
+- Driver cumulative aggregate `drvlog_ckmpldepot.php` was correctly identified but rejected because the parser required the monthly heading and seven monthly bands.
+- APSRTC cumulative classifications are distinct: vehicle has seven cumulative bands (Below 2, 2.01–3, 3.01–4, 4.01–5, 5.01–5.30, 5.31–6, Above 6); driver has eight cumulative bands with 5.01–5.10 and 5.11–5.30 split.
+- Regional cumulative aggregate pages intermittently return only header rows. Depot cumulative drilldowns `vehlog_ckmplveh.php` and `drvlog_ckmpldrv.php` expose record-level KMPL. Driver cumulative source contained 193 rows for August PRODDUTUR; the workbook independently verified this source population.
+- Repeated source identities are retained as source records rather than deduplicated without an APSRTC rule. Month and Upto are rendered in separate tables with exact source headings, not silently combined.
+- No cumulative count is constructed by summing monthly counts.
