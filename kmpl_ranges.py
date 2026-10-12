@@ -20,12 +20,14 @@ SCHEMA = "kmpl-range-2"
 MONTHLY_TITLE = "KMPL Range Distribution"
 ANNUAL_TITLE = "FY KMPL Range Trend"
 ENDPOINTS = {"VEHICLE": "vehlog_kmpldepot.php", "DRIVER": "drvlog_kmpldepot.php"}
-UPTO_SELECTORS = {"VEHICLE": "vehlog_kmpl.php", "DRIVER": "drvlog_ckmpl.php"}
-UPTO_ENDPOINTS = {"VEHICLE": "vehlog_kmpldepot.php", "DRIVER": "drvlog_ckmpldepot.php"}
+UPTO_SELECTORS = {"VEHICLE": "vehlog_ckmpl.php", "DRIVER": "drvlog_ckmpl.php"}
+UPTO_ENDPOINTS = {"VEHICLE": "vehlog_ckmpldepot.php", "DRIVER": "drvlog_ckmpldepot.php"}
 SCOPES = ("MONTH", "UPTO")
 LABELS = ("Below -3.00", "3.00 - 4.00", "4.01 - 5.00", "5.01 - 5.15",
           "5.16 - 5.30", "5.31 - 5.60", "5.60 - ABV")
 HEADER_KEYS = tuple(d.key(x) for x in LABELS) + ("GTOTAL",)
+UPTO_LABELS = {"VEHICLE": ("Below -2.00", "2.01 -3.00", "3.01 -4.00", "4.01 - 5.00", "5.01 - 5.30", "5.31 - 6.00", "6.01 - ABV"), "DRIVER": ("Below -2.00", "2.01 -3.00", "3.01 -4.00", "4.01 - 5.00", "5.01 - 5.10", "5.11 - 5.30", "5.31 - 6.00", "6.01 - ABV")}
+
 
 
 def count(value):
@@ -44,6 +46,9 @@ def parse_range(html, entity, depot, period, region, scope="MONTH"):
     if not any(re.search(rf"RANGE WISE {entity} HSD KMPL FOR THE MONTH OF:\s*{expected}\s*$", h)
                for h in headings):
         raise ValueError("Range source entity/month heading is not verified")
+    labels = UPTO_LABELS[entity] if scope == "UPTO" else LABELS
+    keys = tuple(d.key(x) for x in labels) + ("GTOTAL",)
+    width = len(keys) + 2
     choices = []
     for table in soup.find_all("table"):
         trs = table.find_all("tr")
@@ -51,22 +56,22 @@ def parse_range(html, entity, depot, period, region, scope="MONTH"):
             continue
         first = trs[0].find_all(["th", "td"], recursive=False)
         second = trs[1].find_all(["th", "td"], recursive=False)
-        if len(first) != 3 or len(second) != 8:
+        if len(first) != 3 or len(second) != len(keys):
             continue
         if (d.key(first[0].get_text()) != "SLNO" or d.key(first[1].get_text()) not in ("REGION", "DEPOT")
                 or first[0].get("rowspan") != "2" or first[1].get("rowspan") != "2"
-                or first[2].get("colspan") != "8"
+                or first[2].get("colspan") != str(len(keys))
                 or d.key(first[2].get_text()) != f"KMPLRANGEWISENOOF{entity}S"
-                or tuple(d.key(c.get_text(" ", strip=True)) for c in second) != HEADER_KEYS):
+                or tuple(d.key(c.get_text(" ", strip=True)) for c in second) != keys):
             continue
         rows, seen, total = [], set(), None
         for tr in trs[2:]:
             cells = tr.find_all(["td", "th"], recursive=False)
-            if len(cells) != 10:
+            if len(cells) != width:
                 raise ValueError("Range row width does not match source headings")
             values = [c.get_text(" ", strip=True) for c in cells]
             counts = [count(v) for v in values[2:]]
-            if sum(counts[:7]) != counts[7]:
+            if sum(counts[:-1]) != counts[-1]:
                 raise ValueError("Range row does not reconcile to G.Total")
             name = d.norm(values[1])
             if name == "TOTAL":
@@ -84,7 +89,7 @@ def parse_range(html, entity, depot, period, region, scope="MONTH"):
                         raise ValueError("Range drilldown depot/month does not match its row")
                 seen.add(name)
                 rows.append([int(values[0]), name, *counts])
-        if not rows or total is None or any(sum(row[i+2] for row in rows) != total[i] for i in range(8)):
+        if not rows or total is None or any(sum(row[i+2] for row in rows) != total[i] for i in range(len(keys))):
             raise ValueError("Regional range totals do not reconcile")
         selected = [row for row in rows if row[1] == d.norm(depot)]
         if len(selected) != 1:
@@ -98,7 +103,7 @@ def parse_range(html, entity, depot, period, region, scope="MONTH"):
         for table in soup.find_all("table"):
             layouts.append([[dict(text=c.get_text(" ",strip=True),key=d.key(c.get_text()),rowspan=c.get("rowspan"),colspan=c.get("colspan"))
                              for c in tr.find_all(["th","td"],recursive=False)] for tr in table.find_all("tr")[:2]])
-        raise ValueError("Expected one verified range table; empty/login pages are unavailable; expected="+str((entity,HEADER_KEYS))+"; headers="+json.dumps(layouts))
+        raise ValueError("Expected one verified range table; empty/login pages are unavailable; expected="+str((entity,keys))+"; headers="+json.dumps(layouts))
     return choices[0]
 
 
