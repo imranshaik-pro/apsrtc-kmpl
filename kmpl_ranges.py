@@ -234,22 +234,23 @@ def validate_snapshot(snap, depot, entity, period, scope="MONTH"):
     if (not isinstance(snap, dict) or snap.get("depot") != d.norm(depot)
             or snap.get("entity") != entity or snap.get("period") != period or snap.get("scope", "MONTH") != scope):
         raise ValueError("Range snapshot identity mismatch")
+    n = len(UPTO_LABELS[entity]) if scope == "UPTO" else len(LABELS)
     counts = snap.get("counts", [])
-    if len(counts) != 8 or any(type(n) is not int or n < 0 for n in counts) or sum(counts[:7]) != counts[7]:
+    if len(counts) != n+1 or any(type(v) is not int or v < 0 for v in counts) or sum(counts[:-1]) != counts[-1]:
         raise ValueError("Invalid cached range counts")
     rows = snap.get("rows", [])
-    names = [r[1] for r in rows if isinstance(r, list) and len(r) == 10]
+    names = [r[1] for r in rows if isinstance(r, list) and len(r) == n+3]
     if len(names) != len(rows) or len(set(names)) != len(names):
         raise ValueError("Invalid cached range depot rows")
     for row in rows:
         if (type(row[0]) is not int or not isinstance(row[1], str)
-                or any(type(n) is not int or n < 0 for n in row[2:]) or sum(row[2:9]) != row[9]):
+                or any(type(v) is not int or v < 0 for v in row[2:]) or sum(row[2:-1]) != row[-1]):
             raise ValueError("Invalid cached range row totals")
     chosen = [row[2:] for row in rows if row[1] == d.norm(depot)]
     total = snap.get("regional_total", [])
-    if chosen != [counts] or total != [sum(r[i+2] for r in rows) for i in range(8)]:
+    if chosen != [counts] or total != [sum(r[i+2] for r in rows) for i in range(n+1)]:
         raise ValueError("Cached regional/depot range totals mismatch")
-    if len(snap.get("headers", [])) != 10:
+    if len(snap.get("headers", [])) != n+3:
         raise ValueError("Cached range headings missing")
     return snap
 
