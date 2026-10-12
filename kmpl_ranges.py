@@ -398,19 +398,22 @@ def render_tab(wb, cache, selected, fys=None):
         r += 1
 
     if not fys:
-        note("Selected-depot source counts · Month and Upto/Cum are independent APSRTC source snapshots")
-        for c,label in enumerate(["KMPL Range","Vehicle Month","Vehicle Upto","Driver Month","Driver Upto"],1):
-            ws.cell(r,c,label)
-        style_row(r,header=True); r += 1
-        groups=cache["months"].get(selected,{})
-        snaps=[groups.get("VEHICLE_MONTH") or groups.get("VEHICLE"), groups.get("VEHICLE_UPTO"),
-               groups.get("DRIVER_MONTH") or groups.get("DRIVER"), groups.get("DRIVER_UPTO")]
-        for idx,label in enumerate(list(LABELS)+["G.Total"]):
-            ws.cell(r,1,label)
-            for c,snap in enumerate(snaps,2):
-                if snap: ws.cell(r,c,snap["counts"][idx]).number_format="#,##0"
-            style_row(r,selected_row=label=="G.Total"); r += 1
-        note("Upto/Cum values are source-backed and never calculated by summing monthly populations.")
+        note("Month and cumulative source bands differ; each table uses exact APSRTC headings.")
+        groups = cache["months"].get(selected,{})
+        for scope in SCOPES:
+            for entity in ENDPOINTS:
+                labels = LABELS if scope == "MONTH" else UPTO_LABELS[entity]
+                snap = groups.get(f"{entity}_{scope}") or (groups.get(entity) if scope == "MONTH" else None)
+                note(f"{entity.title()} {scope.title()} · source-defined bands · " +
+                     ("Verified" if snap else "Unavailable — no verified source"))
+                ws.cell(r,1,"KMPL Range")
+                ws.cell(r,2,"Population")
+                style_row(r,header=True); r += 1
+                for idx,label in enumerate([*labels,"G.Total"]):
+                    ws.cell(r,1,label)
+                    if snap: ws.cell(r,2,snap["counts"][idx]).number_format="#,##0"
+                    style_row(r,selected_row=label=="G.Total"); r += 1
+        note("Upto/Cum values are source-backed; never sum monthly populations or relabel cumulative buckets.")
         r += 1
 
     for fy in (fys or [None]):
@@ -441,14 +444,14 @@ def render_tab(wb, cache, selected, fys=None):
                 upto_period=periods[-1]
                 upto=cache["months"].get(upto_period,{}).get(f"{entity}_UPTO")
                 ws.cell(r,1,"Upto/Cum "+d.month_end(upto_period).strftime("%b-%y"))
-                if upto:
+                if upto and len(upto["counts"]) == len(LABELS)+1 and tuple(upto["headers"][2:-1]) == tuple(LABELS):
                     for c,n in enumerate(upto["counts"],2): ws.cell(r,c,n).number_format="#,##0"
                     ws.cell(r,10,f"=SUM(B{r}:D{r})").number_format="#,##0"
                     ws.cell(r,11,f'=IF(I{r}=0,"",J{r}/I{r})').number_format="0.0%"
                     ws.cell(r,12,f'=IF(I{r}=0,"",H{r}/I{r})').number_format="0.0%"
                     ws.cell(r,13,"Provisional — open month" if upto.get("provisional") else "Verified cumulative source")
                 else:
-                    ws.cell(r,13,"Unavailable — no verified cumulative source")
+                    ws.cell(r,13,"See cumulative source bands — not comparable" if upto else "Unavailable — no verified cumulative source")
                 style_row(r,selected_row=True); r += 1
             note("Source first three ranges = below 3.00 through the source 4.01–5.00 bucket. Highest range uses source 5.60–ABV. No FY sum of monthly populations.")
             if fys and any((cache["months"].get(p,{}).get(f"{entity}_MONTH") or cache["months"].get(p,{}).get(entity,{})).get("counts",[0]*8)[7]>0 for p in periods):
