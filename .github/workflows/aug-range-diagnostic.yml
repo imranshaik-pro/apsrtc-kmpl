@@ -30,6 +30,17 @@ jobs:
               print("FORM_PAGE",entity,scope,path,"FORMS",len(soup.find_all("form")))
               for form in soup.find_all("form"):
                 print("FORM",entity,scope,"method",form.get("method"),"action",form.get("action"),"inputs",[(x.get("name"),x.get("type"),x.get("value") if x.get("type") in ("hidden","submit") else None) for x in form.find_all("input")],"selects",[(x.get("name"),[(o.get("value"),o.get_text(" ",strip=True)) for o in x.find_all("option")[:4]]) for x in form.find_all("select")])
+          for path in ("vehlog_kmpl.php","drvlog_kmpl.php","drvlog_ckmpl.php"):
+            q=s.get(f"{d.BASE}/med/{path}",timeout=45)
+            soup=BeautifulSoup(q.text,"html.parser")
+            print("PAGE",path,"TITLE",soup.title.get_text(" ",strip=True) if soup.title else None)
+            for tag in soup.find_all(["input","select","button","a"]):
+              if tag.name=="a" and not any(t in str(tag.get("href","")).lower() for t in ("kmpl","log")):continue
+              print("CONTROL",path,tag.name,"name",tag.get("name"),"id",tag.get("id"),"type",tag.get("type"),"value",tag.get("value"),"href",tag.get("href"),"onclick",str(tag.get("onclick"))[:200],"options",[(o.get("value"),o.get_text(" ",strip=True)) for o in tag.find_all("option")[:6]])
+            for sc in soup.find_all("script"):
+              txt=sc.get_text(" ",strip=True)
+              if any(x in txt.lower() for x in ("yymm","rreg","action","submit","kmpldepot")):
+                print("SCRIPT",path,txt[:2500])
           for month in ("202609","202608","202607"):
             print("COMPARISON_MONTH",month)
             for entity in ("VEHICLE","DRIVER"):
