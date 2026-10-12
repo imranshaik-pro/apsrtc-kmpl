@@ -111,7 +111,14 @@ def dashboard_model(display, fys, mat, selected):
     for c,label in [(4,"Target"),(5,fys[0]+" Full FY"),(6,fys[1]+" Full FY"),(7,current+" YTD"),(8,"Δ vs target"),(9,"YTD status")]:
         cell(12,c,label,fill=NAVY,color="FFFFFF",bold=True,align="center",size=9)
     core_kpis = {"HSD KMPL INCL AC","HSD KMPL EXCL AC","TOTAL LUB KMPL","AVG TYRE LIFE","NEW TYRE LIFE","RC TYRE LIFE","B.D RATE","MED CANCL."}
-    missing_engines=[]; previous=None; r=13
+    # Dynamic engine rows are intentionally not promoted into the management
+    # summary, but unavailable engine source rows must still be disclosed so a
+    # blank is never mistaken for zero or silently lost from the dashboard.
+    missing_engines=[
+        name for name, years in data.items()
+        if name.startswith("ENGINE:") and number(years.get(current,[""]*18)[17]) is None
+    ]
+    previous=None; r=13
     for name, years in data.items():
         if name not in core_kpis: continue
         current_row=years.get(current,[""]*18)
@@ -159,6 +166,9 @@ def dashboard_model(display, fys, mat, selected):
         model["charts"].append(dict(title=f"{title} — FY {current}",unit=unit,
             source_row=hr,points=count,series=len(series),labels=[x['label'] for x in series],
             targets=[x['target'] for x in series],row=12+idx*16,col=11,width=624,height=300))
+    if missing_engines:
+        cell(r,0,f"Source completeness: {len(missing_engines)} engine rows unavailable for FY {current} YTD; see Detailed Data.",cs=10,fill=PALE,color=NEUTRAL,size=9)
+        r+=1
     note=max(r+1,46)
     cell(note,0,"Key Findings & Recommended Actions",cs=19,fill=NAVY,color="FFFFFF",size=12,bold=True); note+=1
     findings=[]
