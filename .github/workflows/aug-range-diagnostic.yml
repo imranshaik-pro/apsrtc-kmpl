@@ -52,6 +52,8 @@ jobs:
                 use=[x for x in vals if pred(x)]; bins=[0]*7
                 for x in use: bins[bucket(x[3])]+=1
                 print("DETAIL_BUCKETS",month,entity,name,bins,sum(bins))
+              if month=="202609" and entity=="DRIVER":
+                print("SEP_DRIVER_3_4",[(x[0],x[1],x[2],x[3]) for x in vals if 3<=x[3]<=4])
               # Probe source aggregate repeatedly in a fresh authenticated session to distinguish deterministic emptiness from transient response.
               ep="vehlog_kmpldepot.php" if entity=="VEHICLE" else "drvlog_kmpldepot.php"
               q=s.get(f"{d.BASE}/med/{ep}",params={"action":"","yymm":month,"rreg":"YSRKADAPA"},timeout=45)
