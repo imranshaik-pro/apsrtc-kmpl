@@ -1,0 +1,55 @@
+name: August Range Repair Verification
+on:
+  push:
+    branches: [fix/aug-2026-range-source]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      APSRTC_USERNAME: ${{ secrets.APSRTC_USERNAME }}
+      APSRTC_PASSWORD: ${{ secrets.APSRTC_PASSWORD }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+      MONTHLY_DRIVE_FOLDER_ID: 1O6rKH39INogYxsNI9IepEO9UJq1MMnPj
+      VEHICLE_EVENTS_API_URL: ${{ secrets.VEHICLE_EVENTS_API_URL }}
+      VEHICLE_EVENTS_API_KEY: ${{ secrets.VEHICLE_EVENTS_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: pip install -r requirements.txt
+      - name: Validate parser and source retry tests
+        run: |
+          python -m py_compile kmpl_ranges.py monthly_vehicle_report.py tests/test_kmpl_ranges.py
+          python -m unittest discover -s tests -p 'test_kmpl_ranges.py' -v
+      - name: Generate PRODDUTUR August 2026 from real APSRTC
+        run: python monthly_vehicle_report.py --depot PRODDUTUR --month 2026-08 | tee august-verified.log
+      - name: Require verified August Month populations
+        run: |
+          python - <<'PY'
+          import glob,openpyxl
+          from kmpl_ranges import MONTHLY_TITLE
+          paths=[x for x in glob.glob("reports/PRODDUTUR_2026-08*.xlsx") if "prior" not in x]
+          assert paths, "Missing August workbook"
+          wb=openpyxl.load_workbook(paths[0],read_only=True)
+          ws=wb[MONTHLY_TITLE]
+          for row in ws.iter_rows(values_only=True):
+            if row[0]=="G.Total":
+              print("SOURCE_RANGE_TOTALS",row[:5])
+              assert isinstance(row[1],int) and row[1]>0, "Vehicle Month unavailable"
+              assert isinstance(row[3],int) and row[3]>0, "Driver Month unavailable"
+              break
+          else: raise AssertionError("Missing range total row")
+          PY
+      - name: Upload validated workbook and log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: proddutur-aug-range-repair
+          path: |
+            reports/PRODDUTUR_2026-08*.xlsx
+            august-verified.log
+          if-no-files-found: ignore
+          retention-days: 7
