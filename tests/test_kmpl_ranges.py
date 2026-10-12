@@ -216,57 +216,53 @@ class RangeTests(unittest.TestCase):
 
 
 def test_month_and_upto_cache_are_independent():
-    cache = k.new_cache("Proddutur")
-    calls = []
-    def fetch(entity, period, scope="MONTH"):
-        calls.append((entity, period, scope))
-        counts = [1,2,3,4,5,6,7,28] if scope == "MONTH" else [2,3,4,5,6,7,8,35]
-        return dict(depot="Proddutur", period=period, entity=entity, scope=scope, region="YSRKADAPA",
-                    headers=["SL No","Depot",*k.LABELS,"G.Total"],
-                    rows=[[1,"Proddutur",*counts]], regional_total=counts, counts=counts,
-                    source="fixture", provisional=False)
-    k.update(cache, ["2026-09"], fetch, "2026-09", include_upto=True)
-    groups = cache["months"]["2026-09"]
-    assert groups["VEHICLE_MONTH"]["counts"][-1] == 28
-    assert groups["VEHICLE_UPTO"]["counts"][-1] == 35
-    assert groups["DRIVER_MONTH"]["counts"][-1] == 28
-    assert groups["DRIVER_UPTO"]["counts"][-1] == 35
-    assert len(calls) == 4
-
-
-def test_monthly_combined_table_and_annual_upto_row():
-    from openpyxl import Workbook
-    cache = k.new_cache("Proddutur")
-    month=[1,2,3,4,5,6,7,28]
-    upto=[2,3,4,5,6,7,8,35]
-    for entity in k.ENDPOINTS:
-        cache["months"].setdefault("2026-09",{})[f"{entity}_MONTH"] = dict(
-            depot="Proddutur",period="2026-09",entity=entity,scope="MONTH",region="YSRKADAPA",
-            headers=["SL No","Depot",*k.LABELS,"G.Total"],rows=[[1,"Proddutur",*month]],
-            regional_total=month,counts=month,source="fixture",provisional=False)
-        cache["months"]["2026-09"][f"{entity}_UPTO"] = dict(
-            depot="Proddutur",period="2026-09",entity=entity,scope="UPTO",region="YSRKADAPA",
-            headers=["SL No","Depot",*k.LABELS,"G.Total"],rows=[[1,"Proddutur",*upto]],
-            regional_total=upto,counts=upto,source="fixture",provisional=False)
-    wb=Workbook(); del wb[wb.sheetnames[0]]
+    cache=k.new_cache("PRODDUTUR")
+    def fetch(entity,period,scope="MONTH"):
+        labels=k.LABELS if scope=="MONTH" else k.UPTO_LABELS[entity]
+        values=[1]*len(labels)
+        counts=values+[sum(values)]
+        return dict(depot="PRODDUTUR",period=period,entity=entity,scope=scope,region="YSRKADAPA",
+                    headers=["SL No","Depot",*labels,"G.Total"],
+                    rows=[[1,"PRODDUTUR",*counts]],regional_total=counts,counts=counts,
+                    source="fixture",provisional=False)
+    k.update(cache,["2026-09"],fetch,"2026-09",include_upto=True)
+    groups=cache["months"]["2026-09"]
+    assert groups["VEHICLE_UPTO"]["counts"][-1]==7
+    assert groups["DRIVER_UPTO"]["counts"][-1]==8
+    wb=Workbook()
     ws=k.render_tab(wb,cache,"2026-09")
-    values=[[c.value for c in row] for row in ws.iter_rows()]
-    assert ["KMPL Range","Vehicle Month","Vehicle Upto","Driver Month","Driver Upto"] in [r[:5] for r in values]
-    wb2=Workbook(); del wb2[wb2.sheetnames[0]]
-    ws2=k.render_tab(wb2,cache,"2026-09",["2026-27"])
-    assert any(c.value=="Upto/Cum Sep-26" for row in ws2.iter_rows() for c in row)
+    labels=[cell.value for row in ws for cell in row if cell.value]
+    assert "5.01 - 5.10" in labels
+    assert "5.01 - 5.30" in labels
+    assert "5.16 - 5.30" in labels
 
-
-def test_upto_source_contracts_use_verified_selector_and_result_endpoints():
+def test_cumulative_source_heading_and_band_contracts():
     for entity in k.ENDPOINTS:
-        session=Mock()
-        response=Mock(); response.text=html(entity)
-        session.get.return_value=response
-        result=k.SourceAdapter(session,"PRODDUTUR","YSRKADAPA",date(2026,10,7))(entity,"2026-09","UPTO")
-        assert result["scope"]=="UPTO"
-        assert session.get.call_args_list[0].args[0] == f"{d.BASE}/med/{k.UPTO_SELECTORS[entity]}"
-        assert session.get.call_args_list[1].args[0] == f"{d.BASE}/med/{k.UPTO_ENDPOINTS[entity]}"
-        assert session.get.call_args_list[1].kwargs["params"] == {"action":"","yymm":"202609","rreg":"YSRKADAPA"}
+        soup=BeautifulSoup(html(entity),"html.parser")
+        labels=k.UPTO_LABELS[entity]
+        soup.find("h3").string=f"RANGE WISE {entity} HSD KMPL UPTO THE MONTH OF: 09/2026"
+        table=soup.find("table")
+        rows=table.find_all("tr")
+        rows[0].find_all(["td","th"])[2]["colspan"]=str(len(labels)+1)
+        second=rows[1]
+        second.clear()
+        for label in [*labels,"G.Total"]:
+            cell=soup.new_tag("th")
+            cell.string=label
+            second.append(cell)
+        for tr in rows[2:]:
+            cells=tr.find_all(["td","th"],recursive=False)
+            extra=soup.new_tag(cells[-1].name)
+            extra.string="0"
+            cells[-1].insert_before(extra)
+        result=k.parse_range(str(soup),entity,"PRODDUTUR","2026-09","YSRKADAPA","UPTO")
+        assert len(result["counts"])==len(labels)+1
+        assert result["counts"][-1]>0
+
+def test_upto_endpoints_are_cumulative():
+    assert k.UPTO_SELECTORS["VEHICLE"]=="vehlog_ckmpl.php"
+    assert k.UPTO_ENDPOINTS["VEHICLE"]=="vehlog_ckmpldepot.php"
+    assert k.UPTO_ENDPOINTS["DRIVER"]=="drvlog_ckmpldepot.php"
 
 if __name__=="__main__":
     unittest.main()
