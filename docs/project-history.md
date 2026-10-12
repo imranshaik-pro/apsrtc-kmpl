@@ -160,3 +160,18 @@ The validated workbook from the repair run was uploaded as a **GitHub Actions ar
 - Do not convert missing source data to zero.
 - Do not sum monthly populations to manufacture Upto/Cumulative.
 - Do not deduplicate source records without a verified APSRTC identity rule.
+
+
+## 2026-10-12 — Production Drive publication verified
+
+The repaired PRODDUTUR August 2026 report was executed from `master` using the production Google OAuth secrets and the configured monthly Drive folder. The target Google Sheet already existed, so the uploader refreshed that stable file ID rather than creating a duplicate.
+
+- Production workflow run: `38261409452` — success.
+- Google Sheet ID: `1-qZi_7jX3Z6fC5xmUzROD7u7GCxP3dAe2GDj7_Sl3nw`.
+- The workflow exported the published Google Sheet back from Drive as XLSX and reopened the `KMPL Range Distribution` sheet; this was a read-back verification, not only a local pre-upload assertion.
+- Published read-back G.Totals: Vehicle Month **83**, Driver Month **167**, Vehicle Upto **84**, Driver Upto **193**.
+- Range source tests: **20 passed** before publication.
+- The publication run logged all four APSRTC depot-detail fallback populations before upload: 83 / 167 / 84 / 193.
+- Delivery state for this incident is therefore: **implemented → tested → workbook verified → merged → documented → production Drive refreshed → published Drive copy read back and verified**.
+
+The one-purpose publication workflow `.github/workflows/publish-proddutur-aug-repair.yml` was introduced to make this release independently auditable. It publishes only PRODDUTUR August 2026 and fails if the Drive-exported workbook does not contain exactly the four approved totals.
