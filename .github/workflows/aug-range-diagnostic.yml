@@ -41,6 +41,14 @@ jobs:
               txt=sc.get_text(" ",strip=True)
               if any(x in txt.lower() for x in ("yymm","rreg","action","submit","kmpldepot")):
                 print("SCRIPT",path,txt[:2500])
+          for path in ("vehlog_kmpl.php","drvlog_kmpl.php","drvlog_ckmpl.php","vehlog_kmpldepot.php?action=&yymm=202609&rreg=YSRKADAPA"):
+            q=s.get(f"{d.BASE}/med/{path}",timeout=45)
+            soup=BeautifulSoup(q.text,"html.parser")
+            for tag in soup(["script","style"]):tag.decompose()
+            txt=soup.get_text(" ",strip=True)
+            print("BODY",path,"LEN",len(txt),"START",txt[:1600],"END",txt[-500:])
+            print("LINKS",path,[(a.get_text(" ",strip=True),a.get("href")) for a in soup.find_all("a",href=True)[:18]])
+            print("COOKIES",path,sorted(s.cookies.keys()))
           for month in ("202609","202608","202607"):
             print("COMPARISON_MONTH",month)
             for entity in ("VEHICLE","DRIVER"):
