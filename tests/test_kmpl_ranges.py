@@ -85,6 +85,15 @@ class RangeTests(unittest.TestCase):
         self.assertEqual(session.get.call_count, 2)
         sleep.assert_called_once_with(2)
 
+    def test_vehicle_detail_fallback_uses_positive_operated_km(self):
+        detail = """<table><tr><th>x</th></tr>
+        <tr><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>100</td><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>4.90</td></tr>
+        <tr><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>0</td><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>0.00</td></tr>
+        <tr><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>100</td><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>x</td><td>5.70</td></tr></table>"""
+        result=k.parse_vehicle_month_detail(detail,"PRODDUTUR","2026-08","YSRKADAPA")
+        self.assertEqual(result["counts"],[0,0,1,0,0,0,1,2])
+        self.assertEqual(result["source_method"],"DEPOT_DETAIL_FALLBACK")
+
     def test_persistent_header_only_response_fails_closed(self):
         soup = BeautifulSoup(html(), "html.parser")
         for row in list(soup.find("table").find_all("tr"))[2:]:
