@@ -198,7 +198,7 @@ def parse_cumulative_detail(html, entity, depot, period, region):
     table = soup.find("table")
     if not table:
         raise ValueError("Cumulative detail source has no table")
-    values, identities = [], set()
+    values = []
     for tr in table.find_all("tr"):
         cells = tr.find_all("td", recursive=False)
         if not cells:
@@ -209,9 +209,8 @@ def parse_cumulative_detail(html, entity, depot, period, region):
             kmpl = float(cells[13 if entity == "VEHICLE" else 3].get_text(strip=True).replace(",",""))
         except (ValueError, IndexError):
             continue
-        if number <= 0 or not ident or ident in identities:
-            raise ValueError("Cumulative detail contains invalid or duplicate identity")
-        identities.add(ident)
+        if number <= 0 or not ident:
+            raise ValueError("Cumulative detail contains invalid source identity")
         values.append(kmpl)
     if not values:
         raise ValueError("Cumulative detail has no valid source rows")
