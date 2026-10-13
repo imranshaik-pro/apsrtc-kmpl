@@ -153,12 +153,18 @@ def parse_driver_month_detail(html, depot, period, region):
         raise ValueError("Driver detail fallback has no source table")
     values = []
     for tr in table.find_all("tr"):
-        cells = tr.find_all("td")
-        if not cells:
+        # APSRTC nests the actual driver rows below a wrapper/form row.  A
+        # recursive td search makes that wrapper look like an extra driver
+        # (PRODDUTUR Aug-2026 produced a synthetic duplicate of 411856).
+        # Real driver records have exactly six direct cells:
+        # SL No, Driver No, Name, Kms, HSD, KMPL.
+        cells = tr.find_all("td", recursive=False)
+        if len(cells) != 6:
             continue
         try:
+            int(cells[0].get_text(strip=True))
             driver = d.norm(cells[1].get_text(" ", strip=True))
-            kmpl = float(cells[-1].get_text(strip=True).replace(",", ""))
+            kmpl = float(cells[5].get_text(strip=True).replace(",", ""))
         except (ValueError, IndexError):
             continue
         if driver:
