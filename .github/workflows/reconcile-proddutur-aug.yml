@@ -132,3 +132,13 @@ jobs:
                   for tr in allr[:3]: sample.append([c.get_text(" ",strip=True) for c in tr.find_all(["th","td"],recursive=False)])
                   print("TABLE_SHAPE",entity,n,t.get("id"),t.get("class"),"DIRECT",len(direct),"ALL",len(allr),"SAMPLE",sample)
           PY
+          python - <<'PY'
+          from bs4 import BeautifulSoup
+          from src.auth.client import login
+          from kmpl_ranges import SourceAdapter
+          a=SourceAdapter(login(),"PRODDUTUR","YSRKADAPA")
+          soup=BeautifulSoup(a._get_detail("drvlog_kmpldrv.php","2026-08").text,"html.parser")
+          for i,tr in enumerate(soup.find("table").find_all("tr")[:8]):
+              rec=tr.find_all("td"); direct=tr.find_all("td",recursive=False)
+              print("DRIVER_ROW_SHAPE",i,"REC",len(rec),[c.get_text(" ",strip=True)[:40] for c in rec[:8]],"DIRECT",len(direct),[c.get_text(" ",strip=True)[:40] for c in direct[:8]])
+          PY
