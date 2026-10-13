@@ -50,3 +50,21 @@ jobs:
                   print("RECON",period,entity,"ROWS",len(rr),"UNIQUE_IDS",len(ids),"DUP_IDS",[(k,v) for k,v in ids.items() if v>1],"EXACT_DUPS",[(k,v) for k,v in exact.items() if v>1])
                   print("RECORDS",period,entity,rr)
           PY
+          # Vehicle rows excluded by the current positive-operated-KM fallback.
+          python - <<'PY'
+          from bs4 import BeautifulSoup
+          import report_details as d
+          from src.auth.client import login
+          from kmpl_ranges import SourceAdapter
+          a=SourceAdapter(login(),"PRODDUTUR","YSRKADAPA")
+          for period in ("2026-08","2026-09"):
+              h=a._get_detail("vehlog_kmplveh.php",period).text
+              excluded=[]
+              for tr in BeautifulSoup(h,"html.parser").find_all("tr"):
+                  c=tr.find_all("td")
+                  try:
+                      ident=d.norm(c[2].get_text(" ",strip=True)); kms=float(c[6].get_text(strip=True).replace(",","")); kmpl=float(c[13].get_text(strip=True).replace(",",""))
+                  except (ValueError,IndexError): continue
+                  if ident and kms<=0: excluded.append((ident,kms,kmpl,[x.get_text(" ",strip=True) for x in c]))
+              print("VEHICLE_EXCLUDED",period,excluded)
+          PY
