@@ -17,6 +17,8 @@ jobs:
       - uses: actions/setup-python@v5
         with: {python-version: '3.11', cache: pip}
       - run: pip install -r requirements.txt
+      - name: Run range regression suite
+        run: python -m unittest tests.test_kmpl_ranges -v
       - name: Capture record-level August and September evidence
         run: |
           python - <<'PY'
