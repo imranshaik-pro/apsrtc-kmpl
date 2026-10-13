@@ -158,7 +158,7 @@ def parse_driver_month_detail(html, depot, period, region):
         # (PRODDUTUR Aug-2026 produced a synthetic duplicate of 411856).
         # Real driver records resolve to exactly six cells; the nested wrapper resolves\n        # to the entire descendant table and is therefore rejected:
         # SL No, Driver No, Name, Kms, HSD, KMPL.
-        cells = tr.find_all("td", recursive=False)
+        cells = tr.find_all("td")
         if len(cells) != 6:
             continue
         try:
