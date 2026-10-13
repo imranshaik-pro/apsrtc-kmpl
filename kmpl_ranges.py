@@ -156,7 +156,7 @@ def parse_driver_month_detail(html, depot, period, region):
         # APSRTC nests the actual driver rows below a wrapper/form row.  A
         # recursive td search makes that wrapper look like an extra driver
         # (PRODDUTUR Aug-2026 produced a synthetic duplicate of 411856).
-        # Real driver records have exactly six direct cells:
+        # Real driver records resolve to exactly six cells; the nested wrapper resolves\n        # to the entire descendant table and is therefore rejected:
         # SL No, Driver No, Name, Kms, HSD, KMPL.
         cells = tr.find_all("td", recursive=False)
         if len(cells) != 6:
