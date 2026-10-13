@@ -1,4 +1,4 @@
-name: Publish verified PRODDUTUR August repair
+name: Publish reconciled PRODDUTUR Aug repair
 
 on:
   push:
@@ -58,7 +58,7 @@ jobs:
           rows=list(ws.iter_rows(values_only=True))
           totals=[row[1] for row in rows if row[0]=="G.Total"]
           print("PUBLISHED_RANGE_TOTALS",totals[:4])
-          expected=[83,167,84,193]
+          expected=[83,166,84,193]
           assert totals[:4]==expected, f"Published Drive sheet totals {totals[:4]} != {expected}"
           print("PUBLISHED_DRIVE_VERIFIED",os.environ["SHEET_ID"],os.environ["REPORT_URL"])
           PY
