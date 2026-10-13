@@ -79,3 +79,15 @@ jobs:
               except Exception as e:
                   print("LIVE_AGGREGATE_ERROR",entity,type(e).__name__,str(e))
           PY
+          python - <<'PY'
+          from bs4 import BeautifulSoup
+          from src.auth.client import login
+          from kmpl_ranges import SourceAdapter
+          a=SourceAdapter(login(),"PRODDUTUR","YSRKADAPA")
+          for period in ("2026-08","2026-09"):
+              h=a._get_detail("drvlog_kmpldrv.php",period).text
+              for tr in BeautifulSoup(h,"html.parser").find_all("tr"):
+                  c=tr.find_all("td")
+                  if len(c)>1 and c[1].get_text(" ",strip=True)=="411856":
+                      print("DUP_DRIVER_FULL",period,[x.get_text(" ",strip=True) for x in c])
+          PY
