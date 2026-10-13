@@ -91,3 +91,29 @@ jobs:
                   if len(c)>1 and c[1].get_text(" ",strip=True)=="411856":
                       print("DUP_DRIVER_FULL",period,[x.get_text(" ",strip=True) for x in c])
           PY
+          python - <<'PY'
+          from bs4 import BeautifulSoup
+          import report_details as d
+          from src.auth.client import login
+          from kmpl_ranges import SourceAdapter
+          a=SourceAdapter(login(),"PRODDUTUR","YSRKADAPA")
+          for entity,ep in (("VEHICLE","vehlog_kmplveh.php"),("DRIVER","drvlog_kmpldrv.php")):
+              h=a._get_detail(ep,"2026-08").text
+              vals=[]
+              for tr in BeautifulSoup(h,"html.parser").find_all("tr"):
+                  c=tr.find_all("td",recursive=False)
+                  try:
+                      if entity=="VEHICLE":
+                          ident=d.norm(c[2].get_text(" ",strip=True)); kms=float(c[6].get_text(strip=True).replace(",","")); kmpl=float(c[13].get_text(strip=True).replace(",",""))
+                          if kms<=0: continue
+                      else:
+                          ident=d.norm(c[1].get_text(" ",strip=True)); kmpl=float(c[-1].get_text(strip=True).replace(",",""))
+                          if not ident: continue
+                  except (ValueError,IndexError): continue
+                  vals.append((ident,kmpl))
+              bins=[0]*7
+              for _,v in vals:
+                  i=0 if v<3 else 1 if v<=4 else 2 if v<=5 else 3 if v<=5.15 else 4 if v<=5.30 else 5 if v<=5.60 else 6
+                  bins[i]+=1
+              print("NONRECURSIVE_RESULT",entity,bins+[len(vals)],"FIRST_LAST",vals[:2],vals[-2:])
+          PY
