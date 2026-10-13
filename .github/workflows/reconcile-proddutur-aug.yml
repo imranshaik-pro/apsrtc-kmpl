@@ -74,7 +74,7 @@ jobs:
           a=SourceAdapter(login(),"PRODDUTUR","YSRKADAPA")
           for entity in ("VEHICLE","DRIVER"):
               try:
-                  snap=a.fetch("2026-08",entity,"MONTH")
+                  snap=a(entity,"2026-08","MONTH")
                   print("LIVE_AGGREGATE_OR_FALLBACK",entity,snap["counts"],snap.get("source_method"),snap.get("source"))
               except Exception as e:
                   print("LIVE_AGGREGATE_ERROR",entity,type(e).__name__,str(e))
