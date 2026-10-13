@@ -22,9 +22,9 @@ jobs:
           python - <<'PY'
           import collections
           from bs4 import BeautifulSoup
-          import report_details as d
+          import report_details as d\n          from src.auth.client import login
           from kmpl_ranges import SourceAdapter
-          s=d.login()
+          s=login()
           a=SourceAdapter(s,"PRODDUTUR","YSRKADAPA")
           def rows(ep,period,entity):
               h=a._get_detail(ep,period).text
