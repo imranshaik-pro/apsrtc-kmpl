@@ -117,3 +117,16 @@ jobs:
                   bins[i]+=1
               print("NONRECURSIVE_RESULT",entity,bins+[len(vals)],"FIRST_LAST",vals[:2],vals[-2:])
           PY
+          python - <<'PY'
+          from bs4 import BeautifulSoup
+          from src.auth.client import login
+          from kmpl_ranges import SourceAdapter
+          a=SourceAdapter(login(),"PRODDUTUR","YSRKADAPA")
+          for entity,ep in (("VEHICLE","vehlog_kmplveh.php"),("DRIVER","drvlog_kmpldrv.php")):
+              soup=BeautifulSoup(a._get_detail(ep,"2026-08").text,"html.parser")
+              for n,t in enumerate(soup.find_all("table")):
+                  direct=t.find_all("tr",recursive=False); allr=t.find_all("tr")
+                  sample=[]
+                  for tr in allr[:3]: sample.append([c.get_text(" ",strip=True) for c in tr.find_all(["th","td"],recursive=False)])
+                  print("TABLE_SHAPE",entity,n,t.get("id"),t.get("class"),"DIRECT",len(direct),"ALL",len(allr),"SAMPLE",sample)
+          PY
