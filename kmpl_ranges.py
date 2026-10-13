@@ -16,7 +16,7 @@ from bs4 import BeautifulSoup
 import report_details as d
 
 CACHE_TITLE = "_KMPL_RANGE_HISTORY"
-SCHEMA = "kmpl-range-2"
+SCHEMA = "kmpl-range-3"
 MONTHLY_TITLE = "KMPL Range Distribution"
 ANNUAL_TITLE = "FY KMPL Range Trend"
 ENDPOINTS = {"VEHICLE": "vehlog_kmpldepot.php", "DRIVER": "drvlog_kmpldepot.php"}
