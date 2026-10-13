@@ -1,0 +1,51 @@
+name: Reconcile PRODDUTUR Aug range populations
+
+on:
+  push:
+    branches: [master]
+    paths: ['.github/workflows/reconcile-proddutur-aug.yml']
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      APSRTC_USERNAME: ${{ secrets.APSRTC_USERNAME }}
+      APSRTC_PASSWORD: ${{ secrets.APSRTC_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11', cache: pip}
+      - run: pip install -r requirements.txt
+      - name: Capture record-level August and September evidence
+        run: |
+          python - <<'PY'
+          import collections
+          from bs4 import BeautifulSoup
+          import report_details as d
+          from kmpl_ranges import SourceAdapter
+          s=d.login()
+          a=SourceAdapter(s,"PRODDUTUR","YSRKADAPA")
+          def rows(ep,period,entity):
+              h=a._get_detail(ep,period).text
+              out=[]
+              for tr in BeautifulSoup(h,"html.parser").find_all("tr"):
+                  c=tr.find_all("td")
+                  try:
+                      if entity=="VEHICLE":
+                          ident=d.norm(c[2].get_text(" ",strip=True)); kms=float(c[6].get_text(strip=True).replace(",","")); kmpl=float(c[13].get_text(strip=True).replace(",",""))
+                          if kms<=0: continue
+                      else:
+                          ident=d.norm(c[1].get_text(" ",strip=True)); kms=None; kmpl=float(c[-1].get_text(strip=True).replace(",",""))
+                          if not ident: continue
+                  except (ValueError,IndexError): continue
+                  out.append((ident,kms,kmpl))
+              return out
+          for period in ("2026-08","2026-09"):
+              for entity,ep in (("VEHICLE","vehlog_kmplveh.php"),("DRIVER","drvlog_kmpldrv.php")):
+                  rr=rows(ep,period,entity)
+                  ids=collections.Counter(x[0] for x in rr)
+                  exact=collections.Counter(rr)
+                  print("RECON",period,entity,"ROWS",len(rr),"UNIQUE_IDS",len(ids),"DUP_IDS",[(k,v) for k,v in ids.items() if v>1],"EXACT_DUPS",[(k,v) for k,v in exact.items() if v>1])
+                  print("RECORDS",period,entity,rr)
+          PY
