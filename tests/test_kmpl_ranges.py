@@ -94,6 +94,17 @@ class RangeTests(unittest.TestCase):
         self.assertEqual(result["counts"],[0,0,1,0,0,0,1,2])
         self.assertEqual(result["source_method"],"DEPOT_DETAIL_FALLBACK")
 
+    def test_driver_month_detail_ignores_nested_wrapper_row(self):
+        # Mirrors APSRTC's malformed/nested driver table shape. The outer row
+        # contains the inner table and must never become a synthetic driver.
+        detail = """<table><tr><th>SL NO</th><th>Drv No</th><th>Name</th><th>Kms</th><th>HSD</th><th>KMPL</th></tr>
+        <tr><td colspan="6"><table>
+        <tr><td>1</td><td>411856</td><td>E RAMUDU</td><td>5560</td><td>956</td><td>5.82</td></tr>
+        <tr><td>2</td><td>411664</td><td>G S REDDY</td><td>5000</td><td>1000</td><td>5.00</td></tr>
+        </table></td></tr></table>"""
+        result=k.parse_driver_month_detail(detail,"PRODDUTUR","2026-08","YSRKADAPA")
+        self.assertEqual(result["counts"],[0,0,1,0,0,0,1,2])
+
     def test_cumulative_vehicle_and_driver_detail_fallback(self):
         for entity in ("VEHICLE","DRIVER"):
             if entity=="VEHICLE":
