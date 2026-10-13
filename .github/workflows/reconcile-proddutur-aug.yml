@@ -22,7 +22,8 @@ jobs:
           python - <<'PY'
           import collections
           from bs4 import BeautifulSoup
-          import report_details as d\n          from src.auth.client import login
+          import report_details as d
+          from src.auth.client import login
           from kmpl_ranges import SourceAdapter
           s=login()
           a=SourceAdapter(s,"PRODDUTUR","YSRKADAPA")
