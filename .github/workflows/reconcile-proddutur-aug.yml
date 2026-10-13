@@ -68,3 +68,14 @@ jobs:
                   if ident and kms<=0: excluded.append((ident,kms,kmpl,[x.get_text(" ",strip=True) for x in c]))
               print("VEHICLE_EXCLUDED",period,excluded)
           PY
+          python - <<'PY'
+          from src.auth.client import login
+          from kmpl_ranges import SourceAdapter, parse_range
+          a=SourceAdapter(login(),"PRODDUTUR","YSRKADAPA")
+          for entity in ("VEHICLE","DRIVER"):
+              try:
+                  snap=a.fetch("2026-08",entity,"MONTH")
+                  print("LIVE_AGGREGATE_OR_FALLBACK",entity,snap["counts"],snap.get("source_method"),snap.get("source"))
+              except Exception as e:
+                  print("LIVE_AGGREGATE_ERROR",entity,type(e).__name__,str(e))
+          PY
