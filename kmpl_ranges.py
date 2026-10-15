@@ -17,6 +17,7 @@ import report_details as d
 
 CACHE_TITLE = "_KMPL_RANGE_HISTORY"
 SCHEMA = "kmpl-range-3"
+LEGACY_RESET_SCHEMAS = {"kmpl-range-2"}
 MONTHLY_TITLE = "KMPL Range Distribution"
 ANNUAL_TITLE = "FY KMPL Range Trend"
 ENDPOINTS = {"VEHICLE": "vehlog_kmpldepot.php", "DRIVER": "drvlog_kmpldepot.php"}
@@ -339,7 +340,10 @@ def encode(cache):
 
 
 def decode(rows, depot):
-    if not rows or len(rows[0]) < 4 or list(rows[0][:2]) != [SCHEMA, d.norm(depot)]:
+    if not rows or len(rows[0]) < 4 or rows[0][1] != d.norm(depot):
+        raise ValueError("Range history identity/schema mismatch")
+    source_schema = rows[0][0]
+    if source_schema != SCHEMA and source_schema not in LEGACY_RESET_SCHEMAS:
         raise ValueError("Range history identity/schema mismatch")
     n = int(rows[0][2])
     if n < 1 or len(rows) < n+1 or any(not r or not isinstance(r[0], str) for r in rows[1:n+1]):
@@ -348,8 +352,11 @@ def decode(rows, depot):
     if hashlib.sha256(raw.encode()).hexdigest() != rows[0][3]:
         raise ValueError("Range history checksum mismatch")
     cache = json.loads(raw)
-    if cache.get("schema") != SCHEMA or cache.get("depot") != d.norm(depot):
+    if cache.get("schema") != source_schema or cache.get("depot") != d.norm(depot):
         raise ValueError("Range history identity mismatch")
+    if source_schema in LEGACY_RESET_SCHEMAS:
+        print(f"RANGE_CACHE_SCHEMA_RESET {d.norm(depot)} {source_schema}->{SCHEMA}")
+        return new_cache(depot)
     for period, groups in cache["months"].items():
         d.month_end(period)
         for key, snap in groups.items():

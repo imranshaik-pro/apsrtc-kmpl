@@ -1,10 +1,13 @@
 name: Publish reconciled PRODDUTUR Aug repair
 
 on:
+  workflow_dispatch:
   push:
     branches: [master]
     paths:
       - '.github/workflows/publish-proddutur-aug-repair.yml'
+      - 'kmpl_ranges.py'
+      - 'tests/test_kmpl_cache_migration.py'
 
 permissions:
   contents: read
@@ -30,7 +33,9 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - name: Test range source contracts
-        run: python -m unittest discover -s tests -p 'test_kmpl_ranges.py' -v
+        run: |
+          python -m unittest tests.test_kmpl_cache_migration -v
+          python -m unittest discover -s tests -p 'test_kmpl_ranges.py' -v
       - name: Generate and publish August PRODDUTUR
         shell: bash
         run: |
