@@ -75,18 +75,7 @@ jobs:
               raise SystemExit('decode() anchor changed; refusing unguarded patch')
           source.write_text(text.replace(old, new))
 
-          test = Path('tests/test_kmpl_cache_migration.py')
-          test.write_text('''import hashlib\nimport json\nimport unittest\n\nimport kmpl_ranges as k\n\n\ndef encode_legacy(cache, schema="kmpl-range-2"):\n    raw = json.dumps(cache, ensure_ascii=True, allow_nan=False, separators=(",", ":"))\n    chunks = [raw[i:i+30000] for i in range(0, len(raw), 30000)]\n    return [[schema, cache["depot"], len(chunks), hashlib.sha256(raw.encode()).hexdigest()]] + [[v] for v in chunks]\n\n\nclass CacheMigrationTests(unittest.TestCase):\n    def test_v2_cache_is_intentionally_reset_before_live_refetch(self):\n        legacy = {"schema": "kmpl-range-2", "depot": "PRODDUTUR",\n                  "months": {"2026-08": {"DRIVER_MONTH": {"stale": True}}}, "errors": {}}\n        self.assertEqual(k.decode(encode_legacy(legacy), "PRODDUTUR"), k.new_cache("PRODDUTUR"))\n\n    def test_unknown_schema_is_rejected(self):\n        legacy = {"schema": "kmpl-range-1", "depot": "PRODDUTUR", "months": {}, "errors": {}}\n        with self.assertRaisesRegex(ValueError, "identity/schema mismatch"):\n            k.decode(encode_legacy(legacy, "kmpl-range-1"), "PRODDUTUR")\n\n    def test_legacy_cache_checksum_and_depot_are_still_enforced(self):\n        legacy = {"schema": "kmpl-range-2", "depot": "PRODDUTUR", "months": {}, "errors": {}}\n        rows = encode_legacy(legacy)\n        rows[1][0] += "x"\n        with self.assertRaisesRegex(ValueError, "checksum mismatch"):\n            k.decode(rows, "PRODDUTUR")\n        with self.assertRaisesRegex(ValueError, "identity/schema mismatch"):\n            k.decode(encode_legacy(legacy), "RAJAMPET")\n\n\nif __name__ == "__main__":\n    unittest.main()\n''')
-
-          workflow = Path('.github/workflows/publish-proddutur-aug-repair.yml')
-          wf = workflow.read_text()
-          old = "on:\n  push:\n    branches: [master]\n    paths:\n      - '.github/workflows/publish-proddutur-aug-repair.yml'"
-          new = "on:\n  workflow_dispatch:\n  push:\n    branches: [master]\n    paths:\n      - '.github/workflows/publish-proddutur-aug-repair.yml'\n      - 'kmpl_ranges.py'\n      - 'tests/test_kmpl_cache_migration.py'"
-          if wf.count(old) != 1:
-              raise SystemExit('publish workflow trigger anchor changed; refusing unguarded patch')
-          workflow.write_text(wf.replace(old, new))
-
-          Path('.github/workflows/apply-kmpl-v3-cache-fix.yml').unlink()
+          Path('tests/test_kmpl_cache_migration.py').write_text('''import hashlib\nimport json\nimport unittest\n\nimport kmpl_ranges as k\n\n\ndef encode_legacy(cache, schema="kmpl-range-2"):\n    raw = json.dumps(cache, ensure_ascii=True, allow_nan=False, separators=(",", ":"))\n    chunks = [raw[i:i+30000] for i in range(0, len(raw), 30000)]\n    return [[schema, cache["depot"], len(chunks), hashlib.sha256(raw.encode()).hexdigest()]] + [[v] for v in chunks]\n\n\nclass CacheMigrationTests(unittest.TestCase):\n    def test_v2_cache_is_intentionally_reset_before_live_refetch(self):\n        legacy = {"schema": "kmpl-range-2", "depot": "PRODDUTUR",\n                  "months": {"2026-08": {"DRIVER_MONTH": {"stale": True}}}, "errors": {}}\n        self.assertEqual(k.decode(encode_legacy(legacy), "PRODDUTUR"), k.new_cache("PRODDUTUR"))\n\n    def test_unknown_schema_is_rejected(self):\n        legacy = {"schema": "kmpl-range-1", "depot": "PRODDUTUR", "months": {}, "errors": {}}\n        with self.assertRaisesRegex(ValueError, "identity/schema mismatch"):\n            k.decode(encode_legacy(legacy, "kmpl-range-1"), "PRODDUTUR")\n\n    def test_legacy_cache_checksum_and_depot_are_still_enforced(self):\n        legacy = {"schema": "kmpl-range-2", "depot": "PRODDUTUR", "months": {}, "errors": {}}\n        rows = encode_legacy(legacy)\n        rows[1][0] += "x"\n        with self.assertRaisesRegex(ValueError, "checksum mismatch"):\n            k.decode(rows, "PRODDUTUR")\n        with self.assertRaisesRegex(ValueError, "identity/schema mismatch"):\n            k.decode(encode_legacy(legacy), "RAJAMPET")\n\n\nif __name__ == "__main__":\n    unittest.main()\n''')
           PY
       - name: Compile and test KMPL cache/range contracts
         run: |
@@ -97,6 +86,6 @@ jobs:
         run: |
           git config user.name 'imranshaik-pro'
           git config user.email 'imranshaik.pro@gmail.com'
-          git add -A
+          git add kmpl_ranges.py tests/test_kmpl_cache_migration.py
           git commit -m 'Handle legacy KMPL cache reset before live reconciliation'
           git push origin HEAD:fix/kmpl-v3-cache-reset-20261015
